@@ -1,0 +1,23 @@
+Jujutsu for Git Experts: Graph-First Version Control
+
+Original book prose, diagrams, HTML, CSS, and validation scripts in this
+project are licensed CC BY 4.0. See research/book-license.md and
+https://creativecommons.org/licenses/by/4.0/.
+
+The files under research/cli-help-*.txt, command-inventory*.md, and the
+versioned config/help captures are generated from the Jujutsu CLI and related
+documentation. Jujutsu is distributed under the Apache License 2.0:
+https://github.com/jj-vcs/jj/blob/main/LICENSE. The Apache 2.0 text is in
+LICENSES/Apache-2.0.txt. These captures are included for reproducibility and
+are not part of the book's original prose.
+
+No third-party images, fonts, logos, JavaScript libraries, or long quotations
+are embedded in the authored HTML or generated PDF. External documentation is
+referenced and paraphrased; row-level provenance is recorded in
+research/provenance.md.
+
+The optional independent PDF acceptance renderer uses pypdfium2==5.13.0 and
+its bundled PDFium engine through the locked uv environment. It produces only
+ignored build-time PNG samples and is not embedded in the book or PDF. Consult
+the package's BSD/Apache and dependent licence notices when redistributing the
+build environment.
