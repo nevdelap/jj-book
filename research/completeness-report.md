@@ -19,7 +19,7 @@ Generated: 2026-09-06 UTC
 * Substantive authored-book words (approximate, excludes pre/script/style): 102796
 * Expansion design target: 100,000–130,000 substantive words / approximately 450–600 Kindle-Scribe pages
 * Rendered PDF pages: 510 (7.5 × 10 inch portrait; see build/jj-book.pdf.sha256)
-* Rendered PDF SHA-256: 805dddba5c6f7341dffd2074e41c2a8dd745de49e492145c076cfc1be77de42f
+* Rendered PDF SHA-256: 66c620478124c3758c51a3b28fdde2c811a1326a82b64f1cfef3af682b3eb305
 * Printed contents span: 2 page(s) before the substantive preface; PDF outline entries: 322
 * Revset operators: documented in research/revset-inventory.md and the raw help snapshot
 * Revset function names: 61 extracted help entries; grouped prose is in the HTML

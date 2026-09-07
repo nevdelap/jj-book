@@ -13,8 +13,8 @@ The previous workspace ordering/duplication, stale-workspace wording, and
 visual-sample coverage findings are closed. The clean 510-page PDF is rendered
 from the canonical HTML, the two-page printed contents ends before the body,
 the revised contents and chapter ordering are coherent, and the root PDF and
-HTML convenience artefacts are real relative symlinks. One isolated diagram
-spacing defect remains in the newly corrected workspace notation.
+HTML convenience artefacts are real relative symlinks. The diagram-spacing
+defect is closed; one generated completeness-report checksum is stale.
 
 See the complete current findings, commands, evidence, and required fixes in
 [`current-followup-review.md`](current-followup-review.md).
@@ -45,7 +45,7 @@ The detailed commands, evidence boundaries, and closure checks are in
 ## Reproducibility
 
 `just clean && just review` passed. The resulting PDF checksum
-(`805dddba5c6f7341dffd2074e41c2a8dd745de49e492145c076cfc1be77de42f`)
+(`5cf34095c2549947cb0745e8f1d90c0f9302555c78b302ea06c8a96b8092c580`)
 verified, both
 root convenience artefacts were recreated as relative symbolic links, and the
 visual recipe produced 15 current PDFium samples including both contents pages

@@ -1,6 +1,6 @@
 # Current follow-up review
 
-Review date: 2026-09-07 UTC  
+Review date: 2026-09-08 UTC  
 Project: `Jujutsu for Git Experts: Graph-First Version Control`  
 Normative target: jj 0.44.0; comparison target: jj 0.45.1
 
@@ -58,7 +58,7 @@ PDFium samples                       15 current samples rendered and inspected
 ```
 
 Current PDF SHA-256:
-`805dddba5c6f7341dffd2074e41c2a8dd745de49e492145c076cfc1be77de42f`.
+`5cf34095c2549947cb0745e8f1d90c0f9302555c78b302ea06c8a96b8092c580`.
 
 The current substantive authored count is 102,796 words by the project's
 documented counting method. The current PDF is 510 pages in the revised
@@ -123,38 +123,46 @@ and verifies that the edit survives. This passes in the clean review run.
 
 ### FUP6-m-001 — missing whitespace in a workspace diagram
 
-ID: FUP6-m-001  
+**Status: CLOSED.**
+
+Revision `lqloztuwxnnsuywpvpupryymswppzokp`, commit
+`3ea73617d8bef81772fb80d054bf62270ef62367`, changed the label to
+`workspace review: review@ = A (review baseline)`. The rebuilt PDF retains 510
+pages and the relevant diagrams remain readable.
+
+### FUP7-m-001 — completeness report records an obsolete PDF hash
+
+ID: FUP7-m-001  
 Severity: MINOR  
-Area: diagram readability and notation  
-File: `src/book.html:5793`  
-Section: Multiple workspaces in one repository
+Area: generated artefact consistency  
+File: `research/completeness-report.md:22`  
+Section: Rendered PDF SHA-256
 
-Claim or issue: the diagram label is written as `workspace review:review@ = A`
-without a space after the colon. The surrounding labels use `workspace dev:
-dev@` and `workspace build: build@`, so this appears to be a formatting typo
-rather than intentional notation.
+Claim or issue: the completeness report records a PDF checksum that does not
+match the current generated PDF or its checksum sidecar.
 
-Evidence: the source line is exactly:
+Evidence:
 
 ```text
-workspace review:review@ = A (review baseline)
+research/completeness-report.md: 66c620478124c3758c51a3b28fdde2c811a1326a82b64f1cfef3af682b3eb305
+build/jj-book.pdf.sha256:       5cf34095c2549947cb0745e8f1d90c0f9302555c78b302ea06c8a96b8092c580
+sha256sum build/jj-book.pdf:   5cf34095c2549947cb0745e8f1d90c0f9302555c78b302ea06c8a96b8092c580
 ```
 
-The corrected `review@` workspace notation is otherwise technically
-appropriate: the jj 0.44 revset help defines `<workspace name>@` for another
-workspace's working-copy commit. The clean build and visual inspection pass;
-this finding concerns only the missing diagram whitespace.
+The clean build and PDF validation pass; the mismatch is in the generated
+completeness record, not in the PDF or checksum sidecar.
 
-Why it matters: a graph-first book relies on diagrams being quickly legible.
-The run-together label can make the workspace name and the symbol look like one
-token and weakens consistency in a section explicitly teaching notation.
+Why it matters: the completeness report is part of the reproducibility record.
+An auditor using it to identify the reviewed PDF would be directed to an old
+artefact hash.
 
-Required fix: change the label to `workspace review: review@ = A (review
-baseline)` and retain the same workspace-qualified symbol.
+Required fix: regenerate and commit `research/completeness-report.md` after
+the current PDF build so its recorded checksum matches
+`build/jj-book.pdf.sha256` and `sha256sum build/jj-book.pdf`.
 
-Suggested validation: search the workspace diagrams for the pattern
-`workspace <name>:` and inspect the generated page after rebuilding; all such
-labels should have a separating space before the workspace-qualified symbol.
+Suggested validation: run `just clean && just review`, then assert that the
+hash in `research/completeness-report.md` equals the first field of
+`build/jj-book.pdf.sha256`.
 
 ## Acceptance matrix
 
@@ -189,7 +197,7 @@ These are documented limits, not unresolved findings:
   `research/depth-audit.md` and this report; the historical files should not
   be read as open findings.
 
-The sole open issue is FUP6-m-001, an isolated diagram-spacing correction.
+The sole open issue is FUP7-m-001, a generated checksum-record correction.
 
 ## Reproduction
 
