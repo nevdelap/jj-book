@@ -35,6 +35,11 @@ run "$J" git push --bookmark main --remote origin
 local_main=$("$J" log -r main --no-graph -T 'commit_id')
 git_main=$("$G" --git-dir "$bare" rev-parse refs/heads/main)
 test "$local_main" = "$git_main"
+run "$J" git push --remote origin --named review=@-
+review_commit=$("$J" log -r review --no-graph -T 'commit_id')
+git_review=$("$G" --git-dir "$bare" rev-parse refs/heads/review)
+test "$review_commit" = "$git_review"
+run "$J" git push --remote origin --change main --dry-run
 run "$J" git fetch --remote origin
 remote_main=$("$J" log -r main@origin --no-graph -T 'commit_id')
 test "$remote_main" = "$git_main"
