@@ -225,7 +225,7 @@ root -> A' -> @
         API + tests
 
 A' is an evolved successor of A</pre>
-<p><code>jj squash</code> combines patch content into a destination. <code>jj split</code> divides one change into two according to selected paths or interactive editing. <code>jj restore</code> copies tree content; it is not a reset of a ref. <code>jj revert</code> creates a new change that undoes an earlier patch. <code>jj duplicate</code> copies a commit as a new logical change. <code>jj abandon</code> removes selected commits from the visible graph according to jj’s rewrite rules. <code>jj rebase</code> changes parent relationships or moves selected sources to selected destinations. In all of these, inspect the graph afterward because descendants can be rewritten automatically.</p>
+<p><code>jj squash</code> combines patch content into a destination. <code>jj split</code> divides one change into two according to selected paths or interactive editing. <code>jj restore</code> restores selected file contents; it is not a reset of a ref. <code>jj revert</code> creates a new change that undoes an earlier patch. <code>jj duplicate</code> copies a commit as a new logical change. <code>jj abandon</code> removes selected commits from the visible graph according to jj’s rewrite rules. <code>jj rebase</code> changes parent relationships or moves selected sources to selected destinations. In all of these, inspect the graph afterward because descendants can be rewritten automatically.</p>
 <p>When a rewrite cannot apply a patch cleanly, jj records a conflict in the affected commit. Use <code>jj status</code>, <code>jj log</code>, and <code>jj resolve --list</code> to find it. Resolve the materialised conflict with your editor or a configured tool, then use <code>jj resolve</code> as appropriate. There is commonly no separate Git-style <code>rebase --continue</code>; resolving the conflict is another change to the stored commit, and descendants can continue to exist while the conflict is present.</p>
 <p>For a first safe experiment, create a temporary bookmark before a broad rewrite:</p>
 <pre>jj bookmark create before-experiment -r @
@@ -555,7 +555,7 @@ jj log -r 'heads(mutable() ~ ::remote_bookmarks())'</pre>
 <tr><td><code>jj diffedit R</code></td><td>Replaces selected content using a diff editor.</td><td>Touch up a patch in place.</td></tr>
 <tr><td><code>jj squash</code></td><td>Moves a patch into a destination, commonly its parent.</td><td>Fold fixups or selected files.</td></tr>
 <tr><td><code>jj split</code></td><td>Replaces one change with two successors.</td><td>Separate logical concerns interactively or by fileset.</td></tr>
-<tr><td><code>jj absorb</code></td><td>Moves hunks from a change into suitable mutable ancestors.</td><td>Distribute fixups across a stack.</td></tr>
+<tr><td><code>jj absorb</code></td><td>Moves individual diff hunks from a change into suitable mutable ancestors.</td><td>Distribute fixups across a stack.</td></tr>
 <tr><td><code>jj duplicate R</code></td><td>Creates a new change with R's content.</td><td>Copy a patch to another location; identity is new.</td></tr>
 <tr><td><code>jj abandon R</code></td><td>Removes selected commits from visible graph and reconnects descendants.</td><td>Discard a change; recover through operation history if needed.</td></tr>
 <tr><td><code>jj restore</code></td><td>Restores selected paths in a destination commit to content from a source tree; without explicit operands, restores <code>@</code> from its parent.</td><td>Content undo or replacement without moving parent edges or selecting a new commit location.</td></tr>
@@ -568,7 +568,7 @@ jj log -r 'heads(mutable() ~ ::remote_bookmarks())'</pre>
 
 jj absorb:
 after:        A′ -- B′ -- C′ -- @′
-              hunk is applied to the earliest compatible mutable change
+              an individual diff hunk is applied to the earliest compatible mutable change
 
 jj squash --from C --into B:
 after:        A′ -- B″ -- C″ -- @″
@@ -596,13 +596,13 @@ J                 J</pre>
 
 <section id="part2-deep">
 <h3 id="5-rewrite-experiments-preserve-a-patch-change-its-context">11. Rewrite experiments: preserve a patch, change its context</h3>
-<p>Every history rewrite is easier to reason about when the patch and its parent context are written separately. A commit's effective patch is the difference between its tree and the automatic merge of its parents. Rebase changes parent context and asks jj to preserve that patch. Squash changes which commit owns content. Split partitions one patch. Restore changes tree content directly. Metaedit changes metadata while leaving the tree alone.</p>
+<p>Every history rewrite is easier to reason about when the patch and its parent context are written separately. A commit's effective patch is the difference between its tree and the automatic merge of its parents. Rebase changes parent context and asks jj to preserve that patch. Squash changes which commit owns content. Split partitions one patch. Restore changes selected file contents directly. Metaedit changes metadata while leaving the tree alone.</p>
 <table><thead><tr><th>Operation</th><th>Primary input</th><th>Primary result</th><th>Typical identity result</th></tr></thead><tbody>
 <tr><td><code>describe</code>/<code>metaedit</code></td><td>metadata</td><td>same tree, new metadata</td><td>new commit ID; same change ID unless requested otherwise.</td></tr>
 <tr><td><code>diffedit</code></td><td>one commit's patch</td><td>edited patch</td><td>successor of same change.</td></tr>
 <tr><td><code>squash</code></td><td>source patch and destination</td><td>content ownership moves</td><td>source/destination evolutions; descriptions need review.</td></tr>
-<tr><td><code>split</code></td><td>one patch/fileset/hunks</td><td>two sequential changes</td><td>two resulting change identities; inspect evolog.</td></tr>
-<tr><td><code>absorb</code></td><td>hunks plus compatible ancestors</td><td>inference-based distribution</td><td>several changes can evolve.</td></tr>
+<tr><td><code>split</code></td><td>one patch/fileset/individual diff hunks</td><td>two sequential changes</td><td>two resulting change identities; inspect evolog.</td></tr>
+<tr><td><code>absorb</code></td><td>individual diff hunks plus compatible ancestors</td><td>inference-based distribution</td><td>several changes can evolve.</td></tr>
 <tr><td><code>restore</code></td><td>source/destination commits or <code>changes-in</code></td><td>Restores selected destination paths from a source tree, or undoes a commit’s patch.</td><td>Destination successor; descendants may be rebased.</td></tr>
 <tr><td><code>revert</code></td><td>selected commit patch</td><td>new inverse patch</td><td>new change identity; original remains.</td></tr>
 <tr><td><code>duplicate</code></td><td>selected commit tree</td><td>new copy at new parents</td><td>new change identity.</td></tr>
@@ -629,7 +629,7 @@ A′ is the successor of A; B′, C′, and @′ preserve descendants over new c
 root - A - B - C - @     root - A′ - B′ - C′ - @′
           B: API             B′: API + src/ fix
           C: docs + fix       C′: docs</pre>
-<p>The result is not necessarily an empty C: the selected files moved, unselected content remained. If the fileset selects only part of a file, the diff editor/hunk selection determines the actual partition. A child depending on the old tree is rebased automatically. Use <code>jj diff -r C′</code> and <code>jj show -r B′</code>, not only descriptions, to verify ownership.</p>
+<p>The result is not necessarily an empty C: the selected files moved, unselected content remained. If the fileset selects only part of a file, the diff editor's individual-hunk selection determines the actual partition. A child depending on the old tree is rebased automatically. Use <code>jj diff -r C′</code> and <code>jj show -r B′</code>, not only descriptions, to verify ownership.</p>
 <h4 id="splitting-a-change-without-losing-descendants">Splitting a change without losing descendants</h4>
 <pre class="diagram">before:             split A by tests
 root -- A -- B      root -- A_1 -- A_2 -- B′
@@ -763,7 +763,7 @@ workspace records:
     C  (tests)
     |
     @  (documentation edits)</pre>
-<p>Suppose a review comment says that one hunk in C belongs in B. The operation is not “stage that hunk, amend B, and hope C can be replayed”. First choose the logical operation: move content from a descendant into an ancestor while preserving the rest of both changes. One safe sequence is:</p>
+<p>Suppose a review comment says that one individual diff hunk in C belongs in B. The operation is not “stage that diff hunk, amend B, and hope C can be replayed”. First choose the logical operation: move content from a descendant into an ancestor while preserving the rest of both changes. One safe sequence is:</p>
 <pre>jj edit C
 jj squash --into B --interactive
 jj edit B
@@ -773,8 +773,8 @@ jj log -r 'stack(B)'</pre>
 <pre class="diagram">before:
 A--B(API)--C(tests)--@ docs
 
-after moving a hunk from C to B:
-A--B′(API + hunk)--C′(remaining tests)--@′ docs
+after moving one diff hunk from C to B:
+A--B′(API + selected change)--C′(remaining tests)--@′ docs
 
 possible conflict:
 A--B′--C′[conflict]--@′[conflict propagation]</pre>
@@ -783,7 +783,7 @@ A--B′--C′[conflict]--@′[conflict propagation]</pre>
 <h4 id="choosing-a-rewrite-primitive">Choosing a rewrite primitive</h4>
 <table><thead><tr><th>Intent</th><th>Primitive</th><th>Identity consequence</th><th>Graph consequence</th></tr></thead><tbody>
 <tr><td>Make the current change’s description or metadata correct</td><td><code>describe</code>, <code>metaedit</code></td><td>Evolves the same change.</td><td>Usually no parent/child topology change.</td></tr>
-<tr><td>Change which files/hunks belong to a change</td><td><code>diffedit</code>, <code>squash</code>, <code>split</code>, <code>absorb</code></td><td>Source/destination changes evolve; a split creates new logical changes as appropriate.</td><td>Patch ownership changes; descendants may rebase.</td></tr>
+<tr><td>Change which files or diff hunks belong to a change</td><td><code>diffedit</code>, <code>squash</code>, <code>split</code>, <code>absorb</code></td><td>Source/destination changes evolve; a split creates new logical changes as appropriate.</td><td>Patch ownership changes; descendants may rebase.</td></tr>
 <tr><td>Move an existing logical change to another parent</td><td><code>rebase</code></td><td>Change identity is intended to persist.</td><td>Parent edge changes; descendants follow.</td></tr>
 <tr><td>Create another logical copy</td><td><code>duplicate</code></td><td>New change identity.</td><td>New node and descendants only if selected later.</td></tr>
 <tr><td>Remove a node’s contribution while retaining descendants</td><td><code>abandon</code></td><td>Source disappears from visible graph; descendants are rebased.</td><td>Topology is simplified, possibly with conflicts.</td></tr>
@@ -923,8 +923,8 @@ jj log -r 'author_date(after:"2026-01-01") &amp; committer_date(after:"2026-09-0
 <p>History rewriting is ordinary jj work, but “ordinary” does not mean consequence-free. A rewrite changes an exact commit object and can change the parent identity supplied to every descendant. The useful unit of planning is the transformation of a graph region: identify source nodes, choose new parent edges, predict successor relationships, and inspect the resulting patch stack.</p>
 <h4 id="rewrite-operation-selection">Select the operation by intent</h4>
 <table><thead><tr><th>Intent</th><th>Primary command</th><th>Why not the tempting equivalent?</th></tr></thead><tbody>
-<tr><td>Change only the message or metadata.</td><td><code>describe</code>/<code>metaedit</code></td><td><code>restore</code> changes tree content; <code>revert</code> adds inverse content.</td></tr>
-<tr><td>Touch up selected hunks in one change.</td><td><code>diffedit</code></td><td><code>squash</code> moves content across a boundary.</td></tr>
+<tr><td>Change only the message or metadata.</td><td><code>describe</code>/<code>metaedit</code></td><td><code>restore</code> changes file contents; <code>revert</code> adds inverse content.</td></tr>
+<tr><td>Touch up selected diff hunks in one change.</td><td><code>diffedit</code></td><td><code>squash</code> moves content across a boundary.</td></tr>
 <tr><td>Move selected content into another change.</td><td><code>squash</code></td><td><code>duplicate</code> creates another logical change.</td></tr>
 <tr><td>Divide one patch into reviewable pieces.</td><td><code>split</code></td><td><code>new</code> creates a boundary but does not redistribute an existing patch.</td></tr>
 <tr><td>Move a whole change/stack to a new base.</td><td><code>rebase</code></td><td><code>edit</code> changes the workspace pointer, not parent edges.</td></tr>
@@ -994,7 +994,7 @@ squash docs into A:
 A'--B'(@)
 A' owns docs/parser.md
 B' owns src/parser.rs + tests/parser.rs</pre>
-<p>A fileset narrows the content transfer, but hunk boundaries can still matter within a file. Use an interactive diff editor when the policy is “some hunks of this file”. After a partial squash, inspect both source and destination diffs. An empty source may remain as an intentional message boundary or may be abandoned; do not infer the desired cleanup from its emptiness.</p>
+<p>A fileset narrows the content transfer, but individual diff-hunk boundaries can still matter within a file. Use an interactive diff editor when the policy is “some portions of this file”. After a partial squash, inspect both source and destination diffs. An empty source may remain as an intentional message boundary or may be abandoned; do not infer the desired cleanup from its emptiness.</p>
 <pre>jj diff -r @
 jj squash --into @- -- 'root-file:"docs/parser.md"'
 jj diff -r @-
@@ -1654,7 +1654,7 @@ jj file list -r main@origin -- LOCK</pre>
 <li>Is the intent exact file, prefix, non-recursive glob, recursive glob, or prefix-glob?</li>
 <li>Did the shell preserve the expression?</li>
 <li>What does the expression select in <code>jj file list</code>?</li>
-<li>Is the consumer selecting output, tree content, patch ownership, or workspace materialisation?</li>
+<li>Is the consumer selecting output, file contents, patch ownership, or workspace materialisation?</li>
 <li>Does a partial operation leave a source remainder or rewrite descendants?</li>
 <li>Would a fileset alias shadow a builtin or depend on a repository-specific config layer?</li>
 </ol>
@@ -1738,7 +1738,7 @@ jj file list 'root-glob:src/**/parser.rs'
 <p>Do not use a regex mental model for glob wildcards. A glob’s <code>*</code>, <code>**</code>, directory separators, and prefix rules have language-specific semantics. Case-insensitive forms are explicit; they should not be assumed from the filesystem’s case behaviour. A path containing spaces or brackets must be quoted for both the shell and, where applicable, the fileset parser.</p>
 
 <h3 id="filesets-in-patch-stack-surgery">Filesets in patch-stack surgery</h3>
-<p>Filesets are most valuable when a change is conceptually mixed. Suppose B contains an API implementation and an unrelated documentation edit, while C contains tests for both. Rather than splitting by hunk interactively without a stated invariant, select the path family first:</p>
+<p>Filesets are most valuable when a change is conceptually mixed. Suppose B contains an API implementation and an unrelated documentation edit, while C contains tests for both. Rather than splitting by individual diff hunk interactively without a stated invariant, select the path family first:</p>
 <pre class="diagram">B: src/parser.rs + docs/api/parser.md
 C: tests/cli.rs + tests/fixtures/*
 
@@ -1830,8 +1830,8 @@ jj file list -- 'root-file:"Cargo.toml" | root-file:"Cargo.lock"'</pre>
 <table><thead><tr><th>Consumer</th><th>Commit side</th><th>Fileset effect</th><th>Risk boundary</th></tr></thead><tbody>
 <tr><td><code>diff</code></td><td>Endpoint or selected commit.</td><td>Narrows rendered patch paths.</td><td>It does not narrow the commit set itself.</td></tr>
 <tr><td><code>restore</code></td><td>Source and destination/change.</td><td>Copies or reverses selected paths.</td><td>Wrong direction can overwrite intended content.</td></tr>
-<tr><td><code>squash</code></td><td>Source/current and destination parent.</td><td>Moves selected hunks/files into another change.</td><td>Descendants may be rebased and conflict.</td></tr>
-<tr><td><code>split</code></td><td>One change, usually current.</td><td>Separates selected paths or hunks into a new change.</td><td>Unselected content remains at the original boundary.</td></tr>
+<tr><td><code>squash</code></td><td>Source/current and destination parent.</td><td>Moves selected diff hunks/files into another change.</td><td>Descendants may be rebased and conflict.</td></tr>
+<tr><td><code>split</code></td><td>One change, usually current.</td><td>Separates selected paths or diff hunks into a new change.</td><td>Unselected content remains at the original boundary.</td></tr>
 <tr><td><code>fix</code></td><td>Configured commit set.</td><td>Restricts fixer input and changed files.</td><td>Formatter output can rewrite many changes.</td></tr>
 <tr><td><code>file list/show/search</code></td><td>Selected tree/commit.</td><td>Lists or reads matching entries.</td><td>Inspection does not mean filesystem materialisation.</td></tr>
 <tr><td><code>file track/untrack</code></td><td>Working-copy snapshot policy.</td><td>Changes what future snapshots consider.</td><td>It is not deletion or publication.</td></tr>
@@ -2750,7 +2750,7 @@ jj diff -r 'roots(::@ &amp; conflicts())..@'</pre>
 <pre>jj new A B -m 'Merge API and documentation'
 jj log -r 'merges()'
 jj log -r 'merges() &amp; conflicts()'</pre>
-<p>The merge's diff is calculated against the automatic merge of its parents. If the parents disagree, resolving the tree content does not make the graph linear. Preserve the merge when it expresses integration history; use rebase/parallelize when the graph should express a stack instead.</p>
+<p>The merge's diff is calculated against the automatic merge of its parents. If the parents disagree, resolving the conflicting file contents does not make the graph linear. Preserve the merge when it expresses integration history; use rebase/parallelize when the graph should express a stack instead.</p>
 <h4 id="rewriting-while-conflicted">Rewriting while conflicted</h4>
 <p>Because the conflict is stored, ordinary graph operations remain available. You can rebase a conflicted stack onto a new trunk, split the conflicted commit, restore one path from a known-good commit, or continue unrelated work in another workspace. Each operation may create a new conflict state; inspect the path-level result.</p>
 <pre>jj edit 'conflicts() &amp; heads(::@)'
@@ -3454,7 +3454,7 @@ review = ["gerrit", "upload", "--remote", "gerrit", "--remote-branch", "main"]
 <tr><td><code>git</code></td><td><code>fetch</code>, <code>push</code>, <code>private-commits</code>, <code>sign-on-push</code>, <code>colocate</code>, <code>object-hash</code></td><td>Backend/transport and publication defaults.</td><td>Server branch protection and credentials.</td></tr>
 <tr><td><code>remotes</code></td><td>remote tables</td><td>Remote URL/name configuration.</td><td>Which remote a human intended without an explicit flag.</td></tr>
 <tr><td><code>gerrit</code></td><td><code>default-remote</code>, <code>default-remote-branch</code>, <code>review-url</code></td><td>Gerrit upload defaults in 0.45.x.</td><td>Gerrit server permissions and review identity.</td></tr>
-<tr><td><code>merge</code></td><td><code>hunk-level</code>, <code>same-change</code></td><td>Merge/conflict heuristics.</td><td>Whether a conflict is conceptually acceptable.</td></tr>
+<tr><td><code>merge</code></td><td><code>hunk-level</code>, <code>same-change</code></td><td>Merge/conflict heuristics, including individual diff-hunk handling.</td><td>Whether a conflict is conceptually acceptable.</td></tr>
 <tr><td><code>revsets</code></td><td><code>log</code>, <code>fix</code>, <code>run</code>, <code>sign</code>, <code>short-prefixes</code></td><td>Default selections and display policies.</td><td>What a command means when an explicit selector is supplied.</td></tr>
 <tr><td><code>snapshot</code></td><td><code>auto-track</code>, <code>auto-update-stale</code>, <code>max-new-file-size</code></td><td>Filesystem snapshot behaviour.</td><td>Files already in a commit’s tree.</td></tr>
 <tr><td><code>working-copy</code></td><td><code>eol-conversion</code>, <code>exec-bit-change</code></td><td>Working-copy representation details.</td><td>POSIX file permissions outside jj’s snapshot rules.</td></tr>
@@ -3465,7 +3465,7 @@ review = ["gerrit", "upload", "--remote", "gerrit", "--remote-branch", "main"]
 </tbody></table>
 
 <h4 id="ui-editors-and-pagers">UI, editors, and pagers</h4>
-<p><code>ui.editor</code> is used for descriptions and metadata editors; <code>ui.diff-editor</code> handles hunk-level editing; <code>ui.merge-editor</code> handles conflict resolution. They are different contracts. A program that can edit a unified diff is not automatically a three-way merge tool. Configure builtin tools first, then add external tools by name in <code>merge-tools</code> and test them with a disposable conflict.</p>
+<p><code>ui.editor</code> is used for descriptions and metadata editors; <code>ui.diff-editor</code> handles editing at individual diff-hunk granularity; <code>ui.merge-editor</code> handles conflict resolution. They are different contracts. A program that can edit a unified diff is not automatically a three-way merge tool. Configure builtin tools first, then add external tools by name in <code>merge-tools</code> and test them with a disposable conflict.</p>
 <pre>[ui]
 editor = ["nvim", "-f"]
 diff-editor = ":builtin"
@@ -4189,13 +4189,13 @@ jj evolog -r 'change_id(abc...)'</pre>
 <p><strong>Trap and recovery.</strong> Do not use abandon as a private equivalent of “reset branch”: it changes visible graph topology and can rewrite descendants. Inspect the operation immediately; <code>jj undo</code>, <code>jj op restore</code>, or <code>jj evolog</code> can recover the intended change. Immutable commits require <code>--ignore-immutable</code>, which should be treated as an exceptional audit event.</p></article>
 
 <article class="command-entry" id="cmd-absorb"><h4 id="jj-absorb"><code>jj absorb</code></h4>
-<p><strong>Purpose and model.</strong> Distributes the current change's file-level modifications into suitable mutable ancestors. It is an inference-driven stack operation: jj compares the source patch with ancestor changes and moves a hunk to the nearest compatible destination, rather than blindly squashing all content into the parent.</p>
+<p><strong>Purpose and model.</strong> Distributes the current change's file-level modifications into suitable mutable ancestors. It is an inference-driven stack operation: jj compares the source patch with ancestor changes and moves an individual diff hunk to the nearest compatible destination, rather than blindly squashing all content into the parent.</p>
 <p><strong>Syntax/options.</strong> <code>jj absorb [FILESETS...]</code>; <code>-f/--from REVSET</code> selects the source (default <code>@</code>), <code>-t/--into REVSETS</code> bounds candidate destinations (default <code>mutable()</code>, only ancestors of the source), <code>-i/--interactive</code> chooses parts, and <code>--tool NAME</code> selects the diff editor and implies interactive mode.</p>
 <p><strong>State effects.</strong> The source and one or more mutable ancestors can be rewritten; descendants of every changed ancestor are rebased. The source may become empty or retain changes that could not be attributed. Change IDs normally follow their logical evolutions; commit IDs change for every rewritten node. A fileset restricts candidate content, not the commit domain.</p>
 <pre>jj absorb --from @ --into 'stack(@)'
 jj absorb --interactive -- 'glob:src/**'
 jj log -r 'stack(@) | conflicts()'</pre>
-<p><strong>Trap.</strong> “Earliest compatible” is a semantic choice, not a promise that every hunk goes to the immediate parent. Review the diff and evolution log. Use <code>jj squash</code> when the intended destination is explicit, and <code>jj undo</code> if attribution was wrong.</p></article>
+<p><strong>Trap.</strong> “Earliest compatible” is a semantic choice, not a promise that every individual diff hunk goes to the immediate parent. Review the diff and evolution log. Use <code>jj squash</code> when the intended destination is explicit, and <code>jj undo</code> if attribution was wrong.</p></article>
 
 <article class="command-entry" id="cmd-arrange"><h4 id="jj-arrange"><code>jj arrange</code></h4>
 <p><strong>Purpose and model.</strong> Opens the interactive graph arrangement interface for the selected commits. It is intended for visual reordering and abandoning of a graph region; it is not a text editor for commit messages and not a replacement for understanding the resulting parent edges.</p>
@@ -4216,7 +4216,7 @@ jj log -r 'bisect(@)'</pre>
 
 <article class="command-entry" id="cmd-commit"><h4 id="jj-commit"><code>jj commit</code></h4>
 <p><strong>Purpose and model.</strong> Describes the current working-copy change and creates a new empty child on top of it. In jj, the current filesystem is already associated with <code>@</code>; commit is a boundary in the local patch stack, not the act of transferring files into a hidden index.</p>
-<p><strong>Syntax/options.</strong> <code>jj commit [FILESETS...]</code>; a fileset commits only selected paths, <code>-i/--interactive</code> selects hunks, <code>--tool NAME</code> chooses the diff editor and implies interactive mode, <code>-m/--message</code> supplies a description, and <code>--editor</code> opens the editor even after a message was supplied. Global snapshot controls apply.</p>
+<p><strong>Syntax/options.</strong> <code>jj commit [FILESETS...]</code>; a fileset commits only selected paths, <code>-i/--interactive</code> selects diff hunks, <code>--tool NAME</code> chooses the diff editor and implies interactive mode, <code>-m/--message</code> supplies a description, and <code>--editor</code> opens the editor even after a message was supplied. Global snapshot controls apply.</p>
 <p><strong>State effects.</strong> jj snapshots first, updates <code>@</code> with selected content and metadata, then creates a new empty child working-copy commit. Unselected filesystem changes remain in the new child. The old commit's change identity is preserved by the description operation; the new child receives a new change ID. A bookmark at the old <code>@</code> does not automatically follow.</p>
 <pre>jj commit -m 'API: validate quota'
 jj commit --interactive -- 'glob:src/**'
@@ -4347,8 +4347,8 @@ jj rebase -r D -o K -o M</pre>
 <p><strong>Trap.</strong> Several source roots can produce several direct children, and a destination must satisfy its own cardinality. Inspect log, evolution, and operation state after a non-trivial rebase. There is no Git-style continuation session: resolve the stored conflict or perform another rewrite.</p></article>
 
 <article class="command-entry" id="cmd-restore"><h4 id="jj-restore"><code>jj restore</code></h4>
-<p><strong>Purpose and model.</strong> Copies tree content or undoes the patch represented by a commit. It is a content operation, not a ref reset and not the same as <code>revert</code>. Ask whether the source tree, destination tree, or a commit's visible changes define the operation.</p>
-<p><strong>Syntax/options.</strong> <code>jj restore [FILESETS...]</code>; <code>-f/--from REVSET</code> is the source, <code>-t/--into REVSET</code> the destination, and <code>-c/--changes-in REVSET</code> undoes changes visible in a commit compared with the merge of its parents. Without options the default is effectively <code>--changes-in @</code>. <code>-i/--interactive</code> and <code>--tool NAME</code> select hunks; <code>--restore-descendants</code> preserves descendant content during rebasing.</p>
+<p><strong>Purpose and model.</strong> Restores selected file contents from one commit into another, or undoes the patch represented by a commit. It is a content operation, not a ref reset and not the same as <code>revert</code>. Ask whether the source tree, destination tree, or a commit's visible changes define the operation.</p>
+<p><strong>Syntax/options.</strong> <code>jj restore [FILESETS...]</code>; <code>-f/--from REVSET</code> is the source, <code>-t/--into REVSET</code> the destination, and <code>-c/--changes-in REVSET</code> undoes changes visible in a commit compared with the merge of its parents. Without options the default is effectively <code>--changes-in @</code>. <code>-i/--interactive</code> and <code>--tool NAME</code> select individual diff hunks; <code>--restore-descendants</code> preserves descendant content during rebasing.</p>
 <p><strong>State effects.</strong> The destination is rewritten with selected paths copied from the source or parent-derived inverse. Descendants may be rebased and conflicts may be stored. A fileset narrows paths, not commit selection. Restoring into <code>@</code> changes the working-copy tree at the next snapshot.</p>
 <pre>jj restore --from main@origin --into @ -- 'glob:src/**'
 jj restore --changes-in A
@@ -4375,13 +4375,13 @@ jj log -r 'merges()'</pre>
 
 <article class="command-entry" id="cmd-split"><h4 id="jj-split"><code>jj split</code></h4>
 <p><strong>Purpose and model.</strong> Divides one commit into two changes. The first result contains selected content and the second contains the remainder; this is a graph replacement, not merely a file move. By default the target is <code>@</code>.</p>
-<p><strong>Syntax/options.</strong> <code>jj split [FILESETS...]</code>; <code>-r/--revision REVSET</code> chooses the commit, <code>-i/--interactive</code> and <code>--tool NAME</code> select hunks, <code>-o/--onto</code>/<code>-d/--destination</code> and <code>-A</code>/<code>-B</code> place the resulting changes, <code>-m/--message</code> supplies a description, <code>--editor</code> opens the editor, and <code>-p/--parallel</code> controls parallel handling in the installed surface. A fileset selects paths for the first side when non-interactive.</p>
+<p><strong>Syntax/options.</strong> <code>jj split [FILESETS...]</code>; <code>-r/--revision REVSET</code> chooses the commit, <code>-i/--interactive</code> and <code>--tool NAME</code> select diff hunks, <code>-o/--onto</code>/<code>-d/--destination</code> and <code>-A</code>/<code>-B</code> place the resulting changes, <code>-m/--message</code> supplies a description, <code>--editor</code> opens the editor, and <code>-p/--parallel</code> controls parallel handling in the installed surface. A fileset selects paths for the first side when non-interactive.</p>
 <p><strong>State effects.</strong> The original commit receives successors representing the split. Descendants are rebased onto the second resulting change and can conflict. The split changes have distinct change IDs; neither should be assumed to be the original change's sole continuation without checking evolution. Bookmarks at the original target follow the command's successor policy, but publication bookmarks may need to be moved.</p>
 <pre>jj split -r @ -- 'glob:tests/**'
 jj split --interactive -r A
 jj split -r @ -m 'API: implementation'
 jj log -r '::@'</pre>
-<p><strong>Trap.</strong> A fileset is a path selection, not a semantic hunk classifier. Check both diffs and descriptions. If the operation is wrong, undo before further edits; later, use evolution to identify the split successors.</p></article>
+<p><strong>Trap.</strong> A fileset is a path selection, not a semantic diff-hunk classifier. Check both diffs and descriptions. If the operation is wrong, undo before further edits; later, use evolution to identify the split successors.</p></article>
 
 <article class="command-entry" id="cmd-squash"><h4 id="jj-squash"><code>jj squash</code></h4>
 <p><strong>Purpose and model.</strong> Moves content from one or more source commits into a destination, normally the parent of the current change. It can fold all or selected paths and can perform experimental insertion-style rewrites in 0.44.</p>
@@ -4762,7 +4762,7 @@ jj help -k templates</pre>
 <p>A fileset selects repository paths, while a commit option selects the tree/commit. File tracking changes whether ignored/large paths participate in snapshotting; it does not create a commit by itself until a snapshot records the filesystem.</p></article>
 
 <article class="command-entry" id="cmd-file-annotate"><h4 id="jj-file-annotate"><code>jj file annotate</code></h4>
-<p>Shows line attribution for one path. Syntax is <code>jj file annotate PATH</code>; <code>-r/--revision REVSET</code> selects the starting commit and <code>-T/--template</code> renders <code>AnnotationLine</code> values, including commit, content, line numbers, original line numbers, and hunk boundaries.</p>
+<p>Shows line attribution for one path. Syntax is <code>jj file annotate PATH</code>; <code>-r/--revision REVSET</code> selects the starting commit and <code>-T/--template</code> renders <code>AnnotationLine</code> values, including commit, content, line numbers, original line numbers, and diff-hunk boundaries.</p>
 <pre>jj file annotate src/quota.rs
 jj file annotate -r main@origin -T 'line_number() ++ " " ++ commit().change_id() ++ " " ++ content()'</pre>
 <p>It is observational and can snapshot. The path is a single path argument, not a general fileset. Attribution follows jj's graph/evolution data and may differ from Git blame after rewrites.</p></article>
@@ -5099,7 +5099,7 @@ parents.map(|p| p.commit_id().short()).join(",") ++ "\n"
 '</pre>
 
 <h4 id="content-commands-tree-endpoints-versus-patch-endpoints">Content commands: tree endpoints versus patch endpoints</h4>
-<p><code>restore</code> copies tree content; <code>squash</code> moves a patch into another change; <code>diffedit</code> changes a selected patch through an editor. The commands may produce similar final files but differ in which logical change owns the content and which description/evolution receives the successor.</p>
+<p><code>restore</code> copies selected file contents; <code>squash</code> moves a patch into another change; <code>diffedit</code> changes a selected patch through an editor. The commands may produce similar final files but differ in which logical change owns the content and which description/evolution receives the successor.</p>
 <pre class="diagram">B tree: implementation
 C tree: implementation + tests
 
@@ -5185,14 +5185,14 @@ jj log -r '::@ &amp; conflicts()'
 <p>If the source is a fork, <code>roots(main@origin..@)</code> may select more than one root. That can be correct for a stack with a merge, or a sign that the query is too broad. The command will not infer the publication policy from your bookmark names.</p>
 
 <h4 id="jj-split-commit-boundary-design"><code>jj split</code>: commit boundary design</h4>
-<p>Split is a way to turn patch ownership into an explicit sequence. Let X be a mixed change. The selected files/hunks become X_1, and the remainder becomes X_2 or stays in the residual working-copy change according to the command’s mode. Descendants are rebased onto the new boundary.</p>
+<p>Split is a way to turn patch ownership into an explicit sequence. Let X be a mixed change. The selected files or individual diff hunks become X_1, and the remainder becomes X_2 or stays in the residual working-copy change according to the command’s mode. Descendants are rebased onto the new boundary.</p>
 <pre class="diagram">before:
 A--X(mixed implementation + docs)--Y(tests)--@
 
 after:
 A--X_1(implementation)--X_2(docs)--Y′(tests)--@′
 </pre>
-<p>The intended split must be stated in terms of review responsibility: which commit should be independently revertible, which files need to build together, and whether a descendant test should depend on both. A path-only split can produce a commit that does not compile; an interactive hunk split can create a logically incomplete first change. Use <code>jj diff</code> and run the project’s smallest valid test at each resulting node.</p>
+<p>The intended split must be stated in terms of review responsibility: which commit should be independently revertible, which files need to build together, and whether a descendant test should depend on both. A path-only split can produce a commit that does not compile; an interactive diff-hunk split can create a logically incomplete first change. Use <code>jj diff</code> and run the project’s smallest valid test at each resulting node.</p>
 <pre>jj split -r X --interactive
 jj split -r X -- 'root-glob:src/**/*.rs'
 jj log -r 'X::@'
@@ -5254,7 +5254,7 @@ jj absorb --interactive -- 'root-glob:src/**'
 jj log -r 'stack(@)' -T 'change_id.short() ++ " " ++ description.first_line() ++ "\n"'
 jj op show
 </pre>
-<p>Review descriptions, empty commits, moved hunks, and test behaviour. Use squash when the destination is known. Undo the whole absorb operation rather than manually reconstructing the old stack if the attribution is wrong.</p>
+<p>Review descriptions, empty commits, moved diff hunks, and test behaviour. Use squash when the destination is known. Undo the whole absorb operation rather than manually reconstructing the old stack if the attribution is wrong.</p>
 
 <h4 id="jj-resolve-selecting-a-semantic-result"><code>jj resolve</code>: selecting a semantic result</h4>
 <p>Resolve is the point where a conflict value becomes a concrete tree. List conflicts first. For each path, identify the intended invariant, inspect all sides, choose or merge content, save, and run a test that exercises the conflict boundary.</p>
@@ -5285,10 +5285,10 @@ jj log -r '::@ &amp; conflicts()'
 jj metaedit -r 'change_id(API_CHANGE)' --update-author-timestamp
 jj edit 'change_id(API_CHANGE)'
 jj diffedit -r 'change_id(API_CHANGE)' -- 'root-prefix-glob:"src"'</pre>
-<p><code>jj squash</code> moves the current or selected patch into a destination change. A partial fileset makes it a content-ownership operation; an unselected hunk stays at the source boundary. The destination's description and change identity are not the source's by default. Descendants of the destination can be rebased, and the source may become empty. If the source should remain as a separate logical change, use <code>duplicate</code> or <code>restore</code> instead of squash.</p>
+<p><code>jj squash</code> moves the current or selected patch into a destination change. A partial fileset makes it a content-ownership operation; an unselected diff hunk stays at the source boundary. The destination's description and change identity are not the source's by default. Descendants of the destination can be rebased, and the source may become empty. If the source should remain as a separate logical change, use <code>duplicate</code> or <code>restore</code> instead of squash.</p>
 <p><code>jj split</code> turns one change into multiple changes. It is a boundary operation: the first resulting change receives selected content and the second receives the remainder according to the mode. Existing descendants are rebased over the new sequence. Treat the interactive editor as a content selector, then verify with two diffs and a parent-edge query. A split is not “make a branch”; it changes the patch stack's granularity.</p>
-<p><code>jj absorb</code> routes working-copy changes into suitable mutable ancestors. It is powerful precisely because it is a policy-driven multi-target rewrite. Before using it, inspect which ancestors are mutable, which files each owns, and whether the current change contains unrelated work. Use a narrow revset/fileset and an operation checkpoint. If a hunk matches several ancestors or no ancestor, the command's behaviour follows its configured applicability rules; do not promise ownership without inspecting the result.</p>
-<p><code>jj duplicate</code> creates a new logical change with copied content. It intentionally breaks evolution continuity. <code>jj abandon</code> removes a commit from ordinary visible work and reconnects or updates dependants according to graph rules. <code>jj restore</code> copies tree content or reverses a selected change. <code>jj revert</code> creates a new inverse change. The last two are both content operations but differ in whether the inverse is applied to an existing destination or represented as a new commit.</p>
+<p><code>jj absorb</code> routes working-copy changes into suitable mutable ancestors. It is powerful precisely because it is a policy-driven multi-target rewrite. Before using it, inspect which ancestors are mutable, which files each owns, and whether the current change contains unrelated work. Use a narrow revset/fileset and an operation checkpoint. If an individual diff hunk matches several ancestors or no ancestor, the command's behaviour follows its configured applicability rules; do not promise ownership without inspecting the result.</p>
+<p><code>jj duplicate</code> creates a new logical change with copied content. It intentionally breaks evolution continuity. <code>jj abandon</code> removes a commit from ordinary visible work and reconnects or updates dependants according to graph rules. <code>jj restore</code> restores selected file contents or reverses a selected change. <code>jj revert</code> creates a new inverse change. The last two are both content operations but differ in whether the inverse is applied to an existing destination or represented as a new commit.</p>
 <h4 id="cli-rebase-contract">Rebase as a two-dimensional contract</h4>
 <p><code>jj rebase</code> has a source dimension and a destination dimension. Source <code>-r/--revisions X</code> selects explicit commits; <code>-s/--source X</code> selects X and descendants; <code>-b/--branch X</code> selects the branch of X relative to the destination. Destination <code>-o/--onto Y</code> places the selected source on Y; repeated destinations create multiple parents where supported; <code>-A/--insert-after Y</code> inserts selected changes after Y; <code>-B/--insert-before Y</code> inserts them before Y. The names are not cosmetic: changing <code>-r</code> to <code>-s</code> can turn a one-commit repair into a whole-stack rewrite.</p>
 <pre class="diagram">before: base--A--B--C
@@ -6476,7 +6476,7 @@ A -- B′ -- B″ -- C′
 <p>If the wrong paths were assigned, undo while the operation is fresh. Otherwise, use squash or restore to repair ownership and metaedit to repair descriptions. If the original commit was immutable, the operation will be rejected unless the safety boundary is deliberately bypassed. A split of a published change creates new commit IDs and may require a different publication strategy; do not assume a hosting service can reinterpret the old single-review boundary automatically.</p>
 
 <h3 id="dossier-absorb">Dossier: <code>jj absorb</code></h3>
-<p><code>absorb</code> distributes changes from the working-copy patch into mutable ancestors that already touch the relevant lines. Its value is not merely saving an interactive rebase: it uses patch context to assign hunks to changes. Its danger is that the assignment is a semantic heuristic, not a human review of intent. Run it over a small stack first and inspect the resulting descriptions, diffs, and evolution entries.</p>
+<p><code>absorb</code> distributes changes from the working-copy patch into mutable ancestors that already touch the relevant lines. Its value is not merely saving an interactive rebase: it uses patch context to assign individual diff hunks to changes. Its danger is that the assignment is a semantic heuristic, not a human review of intent. Run it over a small stack first and inspect the resulting descriptions, diffs, and evolution entries.</p>
 <pre>jj diff --summary
 jj log -r 'stack(@)' -T 'change_id.short() ++ " " ++ description.first_line() ++ "\n"'
 jj absorb
@@ -6484,20 +6484,20 @@ jj log -r 'stack(@)' -T '
 change_id.short() ++ " " ++ commit_id.short() ++ " " ++
 description.first_line() ++ "\n"
 '</pre>
-<p>Absorb can rewrite several ancestors in one operation and automatically rebase descendants. A hunk that matches no ancestor may remain in the working copy. A hunk that matches more than one candidate can require an interactive decision or be left untouched, depending on the release and configuration. An empty working-copy change after absorb is not necessarily a failure; it means the selected patch was assigned elsewhere.</p>
-<p>Use filesets or a narrower commit set where supported by the target command. Keep a pre-operation patch file if the change matters. The operation log gives repository recovery, but it does not replace a record of the intended hunk ownership. For a review stack, absorb is excellent for moving a forgotten test adjustment into its API change, but it should be followed by tests at the stack tip and a review of each patch boundary.</p>
+<p>Absorb can rewrite several ancestors in one operation and automatically rebase descendants. An individual diff hunk that matches no ancestor may remain in the working copy. A diff hunk that matches more than one candidate can require an interactive decision or be left untouched, depending on the release and configuration. An empty working-copy change after absorb is not necessarily a failure; it means the selected patch was assigned elsewhere.</p>
+<p>Use filesets or a narrower commit set where supported by the target command. Keep a pre-operation patch file if the change matters. The operation log gives repository recovery, but it does not replace a record of the intended diff-hunk ownership. For a review stack, absorb is excellent for moving a forgotten test adjustment into its API change, but it should be followed by tests at the stack tip and a review of each patch boundary.</p>
 
 <h3 id="dossier-restore">Dossier: <code>jj restore</code></h3>
-<p><code>restore</code> copies file content from one tree to another. Its source and destination are tree endpoints, not review identities. In the common form it restores the working copy from its parent, discarding the selected working-copy changes. With explicit <code>--from</code> and <code>--into</code>, it can copy selected paths between arbitrary commits. Because it operates on trees, it can be used to repair a patch boundary without asking whether the source change should continue to exist.</p>
+<p><code>restore</code> restores file contents from one commit into another. Its source and destination are tree endpoints, not review identities. In the common form it restores the working copy from its parent, discarding the selected working-copy changes. With explicit <code>--from</code> and <code>--into</code>, it can copy selected paths between arbitrary commits. Because it operates on trees, it can be used to repair a patch boundary without asking whether the source change should continue to exist.</p>
 <pre># Inspect before copying.
 jj diff -r @ -- root-glob:src/**
 jj restore --from @- --into @ -- root-file:src/generated.rs
 jj diff -r @ -- root-file:src/generated.rs</pre>
-<p>A restore does not mean “reset this commit” in the Git sense. It creates the destination tree that results from the selected source content and leaves the rest of the destination unchanged. If the source and destination have conflicts, the resulting tree can contain a conflict value. If the path is absent at the source, the result may be a deletion. Verify both a positive selection and an excluded neighbour.</p>
+<p>A restore does not mean “reset this commit” in the Git sense. It creates the destination tree that results from the selected source file contents and leaves the rest of the destination unchanged. If the source and destination have conflicts, the resulting tree can contain a conflict value. If the path is absent at the source, the result may be a deletion. Verify both a positive selection and an excluded neighbour.</p>
 <p>Restore is often the right operation when the source content should be copied but the source change should remain a separate review unit. Squash is better when the source patch should change ownership and the source should be emptied or transformed. A direct filesystem edit followed by snapshot can produce the same tree but loses the explicit source/destination record that makes intent easy to audit.</p>
 
 <h3 id="dossier-duplicate-and-revert">Dossier: <code>jj duplicate</code> and <code>jj revert</code></h3>
-<p><code>duplicate</code> creates a new change whose tree content is based on an existing commit, usually at a chosen destination. It preserves patch intent but deliberately creates a new jj change identity. This is appropriate when the same logical code needs to be applied to an independent stack or when a useful change must be recovered without continuing the old evolution. It is not a way to move the original change.</p>
+<p><code>duplicate</code> creates a new change whose file contents are based on an existing commit, usually at a chosen destination. It preserves patch intent but deliberately creates a new jj change identity. This is appropriate when the same logical code needs to be applied to an independent stack or when a useful change must be recovered without continuing the old evolution. It is not a way to move the original change.</p>
 <p><code>revert</code> creates a new change containing the inverse of a selected change at a destination. It preserves the fact that the original occurred and is therefore useful for a public history where abandoning the original would obscure the event. Revert is not guaranteed to be conflict-free: if later changes changed the same lines, the inverse can produce a stored conflict. Resolve and test the new change as usual.</p>
 <pre class="diagram">A -- B -- C             A -- B -- C -- R
      feature                 feature    inverse(B)
@@ -6938,7 +6938,7 @@ patterns = ["root-glob:**/*.rs"]
 [revsets]
 fix = "mutable() &amp; ::@"</pre>
 <p>The exact schema fields and command capabilities must be taken from the target version's config schema. The example illustrates the design, not an assertion that every tool accepts every field. First run the fixer on one disposable commit and one fileset. Record the patch before and after, inspect its change ID and descendants, then expand the commit set. If the tool changes generated files, keep generated-file policy separate from source formatting policy.</p>
-<p>Fixers and <code>absorb</code> solve different problems. A fixer computes a transformation from an external program; absorb assigns existing working-copy hunks to ancestor changes. Running a formatter and then absorb may produce a clean stack, but it can also distribute formatting changes across reviews in a way the reviewer did not expect. Choose one ownership policy and inspect the resulting patch boundaries.</p>
+<p>Fixers and <code>absorb</code> solve different problems. A fixer computes a transformation from an external program; absorb assigns existing working-copy diff hunks to ancestor changes. Running a formatter and then absorb may produce a clean stack, but it can also distribute formatting changes across reviews in a way the reviewer did not expect. Choose one ownership policy and inspect the resulting patch boundaries.</p>
 
 <h3 id="run-lifecycle-lab">Running commands over commits</h3>
 <p><code>jj run</code> is a graph-oriented facility for invoking a command over selected commits. The crucial question is whether the command is a predicate, an inspection, or a mutation. A test command should leave no meaningful filesystem mutation; a generator or fixer can intentionally alter the commit context. The commit domain must be printed before running, and the command's exit status should be associated with the selected commit in an artefact.</p>
@@ -7015,7 +7015,7 @@ jj --ignore-working-copy log -r @ -T 'commit_id.normal_hex() ++ "\n"'</pre>
 <p>This lab makes two consequences visible: a split is not only a file-selection operation, and descendant rebasing is not an optional follow-up step. The child is maintained as a graph successor even when the user never selected it directly.</p>
 
 <h3 id="lab-08-absorb-ownership">Lab 8: absorb ownership</h3>
-<p>Make an API change and a later test change, then edit one line in the API and another line in the test while at the tip. Run absorb and inspect which hunks moved into which ancestors. Use a hunk that is deliberately ambiguous to see how the tool handles uncertainty under the target configuration. The expected assertion is about patch ownership, not merely that the working-copy diff became empty.</p>
+<p>Make an API change and a later test change, then edit one line in the API and another line in the test while at the tip. Run absorb and inspect which diff hunks moved into which ancestors. Use a deliberately ambiguous diff hunk to see how the tool handles uncertainty under the target configuration. The expected assertion is about patch ownership, not merely that the working-copy diff became empty.</p>
 <p>Keep the original diff in a file before absorb and compare the union of resulting diffs with it. If the union is not equivalent, investigate line-range handling, ignored files, or a tool/configuration problem before accepting the operation.</p>
 
 <h3 id="lab-09-duplicate-revert">Lab 9: duplicate versus revert</h3>
@@ -7037,7 +7037,7 @@ jj --ignore-working-copy log -r @ -T 'commit_id.normal_hex() ++ "\n"'</pre>
 <p>Repeat from a nested directory. A fileset can be syntactically correct yet select the wrong directory because its base coordinate changed. Root-qualified expressions are the portable answer.</p>
 
 <h3 id="lab-14-fileset-consumers">Lab 14: one fileset, four consumers</h3>
-<p>Define <code>source_paths = root:src ~ root-prefix-glob:src/**/generated/**</code>. Use it with <code>file list</code>, <code>diff</code>, <code>restore</code>, and <code>squash</code> in copies of the same fixture. The set of matched paths should be stable, but the command effect differs: list displays, diff filters output, restore copies tree content, and squash changes patch ownership. Record the source/destination commits for the two mutating commands.</p>
+<p>Define <code>source_paths = root:src ~ root-prefix-glob:src/**/generated/**</code>. Use it with <code>file list</code>, <code>diff</code>, <code>restore</code>, and <code>squash</code> in copies of the same fixture. The set of matched paths should be stable, but the command effect differs: list displays, diff filters output, restore copies selected file contents, and squash changes patch ownership. Record the source/destination commits for the two mutating commands.</p>
 
 <h3 id="lab-15-template-optionals">Lab 15: template optional values</h3>
 <p>Render author and committer signatures for a commit with distinct identities. Render a root with no parents, an unsigned commit with no signature, and a commit with no bookmark. Build a template that handles all three without error using conditionals and fallbacks. Then deliberately remove the guard and keep the failing command in the lab notes as a type/error example.</p>
@@ -7245,7 +7245,7 @@ main@upstream ---+
 <h3 id="command-path-reference">Canonical command-path reference</h3>
 <table><thead><tr><th>Canonical path</th><th>Primary input</th><th>Effect class</th><th>Reader contract</th></tr></thead><tbody>
 <tr><td><code>jj abandon</code></td><td>Revset</td><td>Graph rewrite</td><td>Can reconnect/rebase descendants; inspect evolution and bookmarks.</td></tr>
-<tr><td><code>jj absorb</code></td><td>Working-copy patch and mutable ancestors</td><td>Content ownership/rewrite</td><td>Heuristically assigns hunks; verify every affected patch.</td></tr>
+<tr><td><code>jj absorb</code></td><td>Working-copy patch and mutable ancestors</td><td>Content ownership/rewrite</td><td>Heuristically assigns individual diff hunks; verify every affected patch.</td></tr>
 <tr><td><code>jj arrange</code></td><td>Commit set and arrangement</td><td>Graph rewrite</td><td>Use for deliberate stack arrangement; inspect parent arrays.</td></tr>
 <tr><td><code>jj bisect</code></td><td>Commit domain and predicate/command</td><td>Search state</td><td>Requires a meaningful graph order and deterministic test.</td></tr>
 <tr><td><code>jj bisect run</code></td><td>Command</td><td>Repeated checkout/test</td><td>Record environment and return-code meaning.</td></tr>
@@ -7313,7 +7313,7 @@ main@upstream ---+
 <tr><td><code>jj rebase</code></td><td>Source/destination revsets</td><td>Graph rewrite</td><td>Selection and destination are independent; descendants follow.</td></tr>
 <tr><td><code>jj redo</code></td><td>Operation convenience</td><td>Repository-view restore</td><td>Review operation state before redoing after other work.</td></tr>
 <tr><td><code>jj resolve</code></td><td>Conflict/fileset/tool</td><td>Conflict resolution</td><td>Stored conflict becomes a resolved tree after snapshot.</td></tr>
-<tr><td><code>jj restore</code></td><td>From/into/fileset</td><td>Tree content rewrite</td><td>Copies content; does not mean reset or squash.</td></tr>
+<tr><td><code>jj restore</code></td><td>From/into/fileset</td><td>File-content rewrite</td><td>Restores selected file contents; does not mean reset or squash.</td></tr>
 <tr><td><code>jj revert</code></td><td>Commit/destination</td><td>New inverse change</td><td>Preserves the original event; can conflict.</td></tr>
 <tr><td><code>jj root</code></td><td>None</td><td>Inspection</td><td>Prints workspace/repository root.</td></tr>
 <tr><td><code>jj run</code></td><td>Commit set/command/jobs</td><td>Repeated checkout/rewrite</td><td>Use <code>--ignore-changes</code> for checks and inspect env variables.</td></tr>
@@ -7372,7 +7372,7 @@ jj log -r @ -T '
 change_id.normal_hex() ++ "\t" ++ commit_id.normal_hex() ++ "\t" ++
 parents.map(|p| p.commit_id().normal_hex()).join(",") ++ "\n"
 </pre>
-<p>The working-copy commit is not a staging area. There is no need to ask which hunks are “staged” before creating a new change. If the edit belongs in a separate logical change, use <code>jj new</code> before editing or use <code>split</code>/<code>diffedit</code> after the fact. The choice is about graph and patch ownership, not the durability of the current files.</p>
+<p>The working-copy commit is not a staging area. There is no need to ask which diff hunks are “staged” before creating a new change. If the edit belongs in a separate logical change, use <code>jj new</code> before editing or use <code>split</code>/<code>diffedit</code> after the fact. The choice is about graph and patch ownership, not the durability of the current files.</p>
 
 <h3 id="life-2-dependent-change">Stage 2: dependent change</h3>
 <p>Run <code>jj new</code> and add tests. The old API change remains a parent, and the new working-copy commit is an empty or partially edited child while you work. Once the tests are snapshotted, the graph is:</p>
@@ -7487,7 +7487,7 @@ description.first_line() ++ "\n"
 <p>Then run the operation and compute it again. The set of exact commit IDs will differ; the set of intended logical changes and their parent relationships is the useful comparison. If the new closure includes unrelated work, the source set or destination was too broad.</p>
 
 <h3 id="tree-patches-and-context">Trees, patches, and context</h3>
-<p>A commit stores a tree, while a review usually discusses its patch relative to a parent. The same tree can represent different patches under different parents. Rebase preserves a change's intended tree transformation as far as possible, but its patch can change when context changes. Restore copies tree content; squash changes which commit's parent-to-tree difference owns content; diffedit edits a patch; and split creates new boundaries through one tree delta.</p>
+<p>A commit stores a tree, while a review usually discusses its patch relative to a parent. The same tree can represent different patches under different parents. Rebase preserves a change's intended tree transformation as far as possible, but its patch can change when context changes. Restore copies selected file contents; squash changes which commit's parent-to-tree difference owns content; diffedit edits a patch; and split creates new boundaries through one tree delta.</p>
 <pre class="diagram">parent P:  config = old, code = old
 change Q:  config = new, code = new
 
@@ -7549,7 +7549,7 @@ operation DAG:       op_0 -- op_1(rewrite B)
 <table><thead><tr><th>Proof item</th><th>Question</th><th>Typical observation</th></tr></thead><tbody>
 <tr><td>Domain</td><td>Which commits can the expression see?</td><td><code>jj log -r 'visible() &amp; ::@'</code></td></tr>
 <tr><td>Selection</td><td>Which exact commits will the command consume?</td><td><code>jj log --no-graph -r 'roots(stack(@))'</code></td></tr>
-<tr><td>Tree delta</td><td>Which paths and hunks are actually changing?</td><td><code>jj diff -r R -- fileset</code></td></tr>
+<tr><td>Tree delta</td><td>Which paths and diff hunks are actually changing?</td><td><code>jj diff -r R -- fileset</code></td></tr>
 <tr><td>Destination</td><td>Which parent edge or tree endpoint will change?</td><td><code>jj log -r 'parents(R) | destination'</code></td></tr>
 <tr><td>Identity</td><td>Which commit IDs and change IDs may evolve?</td><td><code>jj log -T 'commit_id ++ " " ++ change_id'</code></td></tr>
 <tr><td>Publication</td><td>Which local and remote names are involved?</td><td><code>jj bookmark list --all-remotes</code></td></tr>
@@ -7572,7 +7572,7 @@ operation DAG:       op_0 -- op_1(rewrite B)
        |
        v
   postcondition checks</pre>
-<p>This loop also explains why a command that merely “works” can still be wrong. A broad <code>-r</code> expression may be accepted and produce a coherent graph, but if it includes a sibling stack the operation has violated the intended precondition. A fileset may parse and select existing paths while selecting no changed hunks. A bookmark may be moved locally while the user believes a server ref has moved. A template may render a plausible empty field for an absent optional value. Proof-driven practice makes these errors visible at the boundary where they are cheapest to correct.</p>
+<p>This loop also explains why a command that merely “works” can still be wrong. A broad <code>-r</code> expression may be accepted and produce a coherent graph, but if it includes a sibling stack the operation has violated the intended precondition. A fileset may parse and select existing paths while selecting no changed diff hunks. A bookmark may be moved locally while the user believes a server ref has moved. A template may render a plausible empty field for an absent optional value. Proof-driven practice makes these errors visible at the boundary where they are cheapest to correct.</p>
 
 <h4 id="synthesis-rewrite-proof">Rewrite proof: patch ownership, topology, and identity</h4>
 <p>Consider a stack with a public base and two private changes:</p>
@@ -7583,7 +7583,7 @@ operation DAG:       op_0 -- op_1(rewrite B)
     B  tests and compatibility
     |
     C(@) documentation and examples</pre>
-<p>Suppose the intent is to move only the compatibility tests from B into A while keeping the documentation as a separate change. The operation is not “amend A”. First determine whether the tests are complete files, hunks within a file, or a patch that is already shared with C. A path-level squash can move a complete path; a diff editor is needed for hunk-level ownership. The precondition is that A and B are mutable, that the selected paths are present in B's patch, and that C is a descendant whose patch can be reapplied over the new B.</p>
+<p>Suppose the intent is to move only the compatibility tests from B into A while keeping the documentation as a separate change. The operation is not “amend A”. First determine whether the tests are complete files, diff hunks within a file, or a patch that is already shared with C. A path-level squash can move a complete path; a diff editor is needed for diff-hunk-level ownership. The precondition is that A and B are mutable, that the selected paths are present in B's patch, and that C is a descendant whose patch can be reapplied over the new B.</p>
 <pre>jj log -r 'A|B|C' -T 'change_id.short() ++ " " ++ commit_id.short() ++ " " ++ description.first_line() ++ "\n"'
 jj diff -r B -- root-glob:tests/**
 jj diff -r A -- root-glob:tests/**
@@ -7654,7 +7654,7 @@ root -- X -- Y
                \
                 Z(@2)</pre>
 <p><code>heads(mutable())</code> may return both C and Z. <code>heads(mutable() &amp; ::@)</code> restricts the domain to the current workspace's ancestry before reducing it. <code>heads(mutable()) &amp; ::@</code> reduces globally and intersects afterward; these operations can differ when a global head is an ancestor of a current-workspace head or when a filter removes the descendant that made a node non-maximal. Parenthesise the policy and inspect the result in a template before handing it to a rewrite command.</p>
-<p>For filesets, evaluate the path set against the actual tree. A glob that matches a generated file is not automatically the same as a glob that matches a changed generated file. A relative literal is interpreted from the relevant working-directory or repository-root coordinate, depending on the command and prefix. Quote metacharacters so that Bash does not expand them first. If a fileset is intended to move hunks, prove it with a diff editor or a before/after patch comparison; <code>file list</code> proves names, not patch ownership.</p>
+<p>For filesets, evaluate the path set against the actual tree. A glob that matches a generated file is not automatically the same as a glob that matches a changed generated file. A relative literal is interpreted from the relevant working-directory or repository-root coordinate, depending on the command and prefix. Quote metacharacters so that Bash does not expand them first. If a fileset is intended to move diff hunks, prove it with a diff editor or a before/after patch comparison; <code>file list</code> proves names, not patch ownership.</p>
 <p>For templates, keep typed values typed until the output boundary. A commit ID's <code>short()</code> method is not interchangeable with a string method; an absent signature is not an empty signature string; a list must be mapped or joined before concatenation. Machine output should disable colour and use an unambiguous record separator. JSON escaping belongs at the field boundary, and a template regression should test control characters, absent optionals, merge parents, and conflicts rather than only checking that the command exits successfully.</p>
 <p>Versioned automation should pin the target jj binary and test the effective syntax. A 0.45.x-only function, option, or command belongs behind a version gate rather than an optimistic fallback. Keep a small fixture with a merge, a fork, a conflicted commit, a bookmark, a remote bookmark, a divergent change, and descriptions containing whitespace. Store expected symbolic results and assert full IDs only where the fixture is deterministic. This turns the book's examples into executable contracts and makes release upgrades a deliberate review rather than a silent change of query meaning.</p>
 
@@ -8022,7 +8022,7 @@ jj diff -r @ -- "$paths"</pre>
 <tr><td><code>jj file list</code></td><td>Current working tree/commit</td><td>Limits listed paths.</td><td>Run from root and subdirectory to test scope.</td></tr>
 <tr><td><code>jj restore</code></td><td>From source to into destination</td><td>Copies selected paths.</td><td>Diff the destination and inspect residual files.</td></tr>
 <tr><td><code>jj squash</code></td><td>From source change into destination</td><td>Moves selected patch paths.</td><td>Diff both source and destination.</td></tr>
-<tr><td><code>jj split</code></td><td>Selected commit</td><td>Assigns selected paths/hunks to one side.</td><td>Inspect both resulting commits.</td></tr>
+<tr><td><code>jj split</code></td><td>Selected commit</td><td>Assigns selected paths/diff hunks to one side.</td><td>Inspect both resulting commits.</td></tr>
 <tr><td><code>jj fix</code></td><td>Selected source commits</td><td>Restricts fixer input where supported.</td><td>Query successors and run tests at the stack tip.</td></tr>
 <tr><td><code>jj file chmod</code></td><td>Working-copy tree</td><td>Limits executable-bit changes.</td><td>Show file modes through Git/object inspection if relevant.</td></tr>
 <tr><td><code>jj file track/untrack</code></td><td>Filesystem tracking state</td><td>Changes what snapshot considers.</td><td>Run status and inspect the next snapshot.</td></tr>
