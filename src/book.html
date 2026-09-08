@@ -1049,7 +1049,9 @@ A         B::D = {B,D}
 |         B+ = {D}
 root      B- = {A}</pre>
 <h4 id="patterns-dates-and-aliases">Patterns, dates, and aliases</h4>
-<p>String predicates accept pattern kinds such as <code>exact:</code>, <code>substring:</code>, <code>glob:</code>, and <code>regex:</code>, with quoting for spaces and punctuation. Date patterns accept date literals and ranges using the syntax documented by the installed help. Prefer explicit pattern kinds in scripts; defaults and the old “glob by default” configuration have changed across releases.</p>
+<p>String predicates accept pattern kinds such as <code>exact:</code>, <code>substring:</code>, <code>glob:</code>, and <code>regex:</code>, with quoting for spaces and punctuation. Date predicates use one of two explicitly named patterns: <code>after:"DATE"</code> is inclusive, while <code>before:"DATE"</code> is exclusive. A bounded interval is their intersection, not a <code>..</code> expression inside the date argument:</p>
+<pre>author_date(after:"2026-08-01") &amp; author_date(before:"2026-09-01")</pre>
+<p>The date string may be an ISO date such as <code>2024-02-01</code>, an ISO date-time such as <code>2024-02-01T12:00:00</code> or <code>2024-02-01T12:00:00-08:00</code>, a space-separated date-time such as <code>2024-02-01 12:00:00</code>, or a supported relative form such as <code>2 days ago</code>, <code>5 minutes ago</code>, <code>yesterday</code>, <code>yesterday 5pm</code>, or <code>yesterday 10:30</code>. Quote the complete revset for the shell and quote the date string inside the pattern. Prefer an absolute timestamp for reproducible reports; relative dates are evaluated when the query runs.</p>
 <pre>[revset-aliases]
 mine = 'author(exact:"A. Engineer")'
 stack(x) = 'x:: &amp; mutable()'
@@ -1174,10 +1176,11 @@ jj log -r 'present(commit_id("prefix"))'</pre>
 jj log -r 'author_email(exact:"a@example.test")'
 jj log -r 'subject(regex:"^(fix|revert):")'
 jj log -r 'description(glob:"*security*")'</pre>
-<p>Date patterns are parsed dates, ranges, and relative forms according to the installed revset help. Compare author and committer dates deliberately; an imported commit can have a historical author date but a newer committer date after a rewrite. Use UTC when communicating a reproducible cutoff.</p>
+<p>Date patterns are the <code>after:"DATE"</code> and <code>before:"DATE"</code> forms described above. <code>after:</code> includes a commit whose selected timestamp is exactly the boundary; <code>before:</code> excludes a commit exactly at the boundary. Compare author and committer dates deliberately: an imported commit can have a historical author date but a newer committer date after a rewrite. Use an explicit offset or UTC when communicating a reproducible cutoff.</p>
 <pre>jj log -r 'author_date(after:"2026-01-01")'
 jj log -r 'committer_date(before:"2026-09-01")'
-jj log -r 'author_date("2026-08-01..2026-09-01")'</pre>
+jj log -r 'author_date(after:"2026-08-01") &amp; author_date(before:"2026-09-01")'
+jj log -r 'author_date(after:"yesterday 10:30")'</pre>
 <h4 id="symbol-resolution-and-cardinality">Symbol resolution and cardinality</h4>
 <p>A symbol can name a tag, local bookmark, remote bookmark, workspace, commit ID prefix, or change ID prefix. Ambiguity is not a cosmetic concern: <code>jj edit</code> may reject a set where <code>jj log</code> displays it. Use explicit functions or full IDs when a script crosses a publication boundary.</p>
 <table><thead><tr><th>Consumer class</th><th>Typical cardinality</th><th>Safe practice</th></tr></thead><tbody>
@@ -1290,7 +1293,9 @@ jj log -r 'description(regex:"(?i)CVE-[0-9]+")'
 jj log -r 'author_email(exact:"dev@example.org")'
 </pre>
 <p>An exact pattern is appropriate for a machine-generated subject; a substring is appropriate for an exploratory query; a glob is useful for a controlled family; a regex is powerful but should be tested against descriptions containing punctuation and newlines. Pattern syntax belongs inside the revset grammar, so escaping has two layers: the shell quote and the pattern’s own quoting/escaping rules.</p>
-<p>Date patterns should likewise be explicit. Use the installed help’s supported date forms rather than relying on a shell-generated locale string. A relative phrase such as “two weeks ago” is convenient interactively but can make an audit non-reproducible. For a reproducible report, use an absolute timestamp or a checked-in alias whose meaning is documented. Date predicates compare the relevant author or committer timestamp; do not assume they are interchangeable, especially after rebases and imports.</p>
+<p>Date patterns should likewise be explicit. The grammar is <code>after:"DATE"</code> or <code>before:"DATE"</code>; combine them with <code>&amp;</code> for an interval. A relative phrase such as <code>2 weeks ago</code> is convenient interactively but can make an audit non-reproducible. For a reproducible report, use an absolute date-time with an explicit offset or a checked-in alias whose meaning is documented. Date predicates compare the relevant author or committer timestamp; do not assume they are interchangeable, especially after rebases and imports.</p>
+<pre>jj log -r 'author_date(after:"2026-08-01T00:00:00+00:00") &amp; author_date(before:"2026-09-01T00:00:00+00:00")'
+jj log -r 'committer_date(after:"2 days ago")'</pre>
 
 <h3 id="algebraic-derivations">Algebraic derivations</h3>
 <p>Here are derivations rather than recipes. Let <code>P</code> be the union of publication tips and <code>T</code> be the local trunk tip. “Ancestors of @ that are not reachable from any publication tip” is:</p>
@@ -2020,7 +2025,7 @@ jj bookmark list --all-remotes</pre>
 <tr><td><code>jj git clone --colocate</code></td><td>Explicitly request the normal colocated layout</td><td>Useful as documentary/script intent even though it is normally the default.</td></tr>
 <tr><td><code>jj git init</code> (0.44 default)</td><td>Initialise a colocated Git-backed jj repository unless <code>git.colocate=false</code></td><td>Start a repository that ordinary Git tools can also open.</td></tr>
 <tr><td><code>jj git init --no-colocate</code></td><td>Initialise with the backing Git repository hidden below <code>.jj</code></td><td>Explicit non-colocated layout.</td></tr>
-<tr><td><code>jj git init --git-repo PATH</code></td><td>Use an existing Git repository as the backing repository; mutually exclusive with <code>--colocate</code></td><td>Follow the installed help for the same-path special case.</td></tr>
+<tr><td><code>jj git init --git-repo PATH</code></td><td>Use an existing Git repository as the backing repository; mutually exclusive with <code>--colocate</code></td><td>If PATH is the destination itself and contains <code>.git</code>, jj creates a colocated workspace. If PATH names a different Git directory, jj uses a non-colocated layout.</td></tr>
 </tbody></table>
 <p>After a clone, identify the trunk bookmark and remote name. The default remote is often <code>origin</code>, but a GitHub fork/upstream or Gerrit repository may use different names. Do not write scripts that assume the remote URL from a directory name.</p>
 <h4 id="fetch-import-export-push">Fetch, import, export, push</h4>
@@ -4586,11 +4591,16 @@ jj git clone --remote upstream https://example.test/project.git project</pre>
 <p>A local source path is resolved to an absolute path. Colocation makes the directory usable by native Git and jj; non-colocation keeps jj metadata separate. The clone's operation DAG is new and independent of the source clone.</p></article>
 
 <article class="command-entry" id="cmd-git-init"><h4 id="jj-git-init"><code>jj git init</code></h4>
-<p>Initialises a Git-backed jj repository in the destination, defaulting to the current directory. In 0.44, <code>--colocate</code> creates/uses a top-level <code>.git</code> and is the default unless <code>git.colocate=false</code>; <code>--no-colocate</code> explicitly puts the backing Git repository under the jj metadata layout. <code>--git-repo PATH</code> selects an existing backing Git repository and is mutually exclusive with <code>--colocate</code>, subject to the same-path special case described by local help. The destination is created if necessary.</p>
+<p>Initialises a Git-backed jj repository in the destination, defaulting to the current directory. In 0.44, <code>--colocate</code> creates/uses a top-level <code>.git</code> and is the default unless <code>git.colocate=false</code>; <code>--no-colocate</code> explicitly puts the backing Git repository under the jj metadata layout. <code>--git-repo PATH</code> selects an existing backing Git repository and is mutually exclusive with <code>--colocate</code>. There is one important same-path rule: if PATH is the same working directory as the jj destination, so that both <code>.jj</code> and <code>.git</code> are in that directory, the result is a colocated workspace and both native Git and jj commands work there. If PATH names a different directory, the jj destination is non-colocated and native Git commands must be run against the separate backing repository. <code>jj git root</code> reports the underlying Git directory, commonly the <code>.git</code> directory; it is not necessarily the workspace root. The destination is created if necessary.</p>
 <pre>jj git init --colocate
 jj git init project                 # colocated in 0.44 by default
 jj git init --no-colocate hidden-project
-jj git init --colocate --git-repo ../existing.git</pre>
+mkdir -p same-path backing
+git -C same-path init
+jj git init --git-repo "$PWD/same-path" "$PWD/same-path"  # same-path, colocated
+git -C backing init
+jj git init --git-repo "$PWD/backing" "$PWD/project"      # different path, non-colocated
+git --git-dir="$PWD/backing/.git" show-ref</pre>
 <p>Choose colocation when GitHub/Gerrit tools and Git transport must share a worktree, but establish a single-writer rule for filesystem operations. Check <code>jj root</code> and <code>jj git root</code> after initialisation.</p></article>
 
 <article class="command-entry" id="cmd-git-fetch"><h4 id="jj-git-fetch"><code>jj git fetch</code></h4>

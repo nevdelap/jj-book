@@ -13,6 +13,9 @@ COLOCATED="$BASE/colocated-$STAMP"
 NONCOLOCATED="$BASE/non-colocated-$STAMP"
 DEFAULT_INIT="$BASE/default-init-$STAMP"
 CONFIG_FALSE="$BASE/config-false-$STAMP.toml"
+SAME_PATH="$BASE/same-path-$STAMP"
+EXTERNAL_BACKING="$BASE/external-backing-$STAMP"
+EXTERNAL_DEST="$BASE/external-dest-$STAMP"
 mkdir -p "$COLOCATED" "$NONCOLOCATED"
 
 # Verify the normative default independently of the explicit-colocation lab.
@@ -70,5 +73,19 @@ test "$(git -C "$COLOCATED" symbolic-ref HEAD)" = refs/heads/main
 test ! -e "$NONCOLOCATED/.git"
 test -d "$NONCOLOCATED/.jj/repo"
 (cd "$NONCOLOCATED" && "$J" status >/dev/null)
+
+# --git-repo has a same-path exception. An existing Git repository used as
+# the jj destination is colocated; an existing Git repository at a different
+# path produces a non-colocated jj workspace whose Git directory is external.
+git -c init.defaultBranch=main init "$SAME_PATH" >/dev/null
+(cd "$SAME_PATH" && "$J" git init --git-repo "$SAME_PATH" "$SAME_PATH" >/dev/null)
+test -d "$SAME_PATH/.git"
+test -d "$SAME_PATH/.jj"
+git -c init.defaultBranch=main init "$EXTERNAL_BACKING" >/dev/null
+(cd "$BASE" && "$J" git init --git-repo "$EXTERNAL_BACKING" "$EXTERNAL_DEST" >/dev/null)
+test ! -e "$EXTERNAL_DEST/.git"
+test -d "$EXTERNAL_DEST/.jj"
+test "$("$J" -R "$EXTERNAL_DEST" git root)" = "$EXTERNAL_BACKING/.git"
+git --git-dir="$EXTERNAL_BACKING/.git" show-ref >/dev/null
 
 echo "Git backend validation valid: jj 0.44 snapshot object=$JJ_COMMIT; HEAD=$HEAD_COMMIT; change-id header present; colocated export and non-colocated layout verified"

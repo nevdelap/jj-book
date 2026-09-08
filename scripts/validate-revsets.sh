@@ -29,4 +29,18 @@ test -n "$base"
 "$J" log -r 'description(regex:"^[A-D]$")' --no-graph >/dev/null
 "$J" log -r 'empty() | conflicts()' --no-graph >/dev/null
 "$J" log -r 'all() ~ hidden()' --no-graph >/dev/null
+for expr in \
+  'author_date(after:"2026-01-01")' \
+  'committer_date(before:"2026-09-01")' \
+  'author_date(after:"2024-02-01T12:00:00")' \
+  'author_date(after:"2024-02-01T12:00:00-08:00")' \
+  'author_date(after:"2024-02-01 12:00:00")' \
+  'author_date(after:"2 days ago")' \
+  'author_date(after:"yesterday")' \
+  'author_date(after:"yesterday 5pm")' \
+  'author_date(after:"yesterday 10:30")' \
+  'author_date(after:"2026-08-01") & author_date(before:"2026-09-01")' \
+  'author_date(after:"2026-08-01T00:00:00+00:00") & author_date(before:"2026-09-01T00:00:00+00:00")'; do
+    "$J" log -r "$expr" --no-graph >/dev/null
+done
 echo "revset validation passed for $($J version)"
