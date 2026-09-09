@@ -4181,7 +4181,8 @@ refs = 'separate(" ", bookmarks, remote_bookmarks, tags)'
 <p>Each entry below is organised around semantics rather than a transcription of help output. “Snapshot” means the normal command boundary at which jj records the current filesystem in the workspace commit. “Rewrite” means new successor commits may be created and descendants may be rebased. “One commit” means a command requires a single resolved commit; a revset can still be syntactically valid and operationally invalid if it returns zero or several commits.</p>
 <p>Short options are retained because they are useful at a terminal, but durable aliases and documentation should prefer the long option when it makes the dimension explicit. Global options apply to every entry: <code>-R/--repository</code>, <code>--ignore-working-copy</code>, <code>--no-integrate-operation</code>, <code>--ignore-immutable</code>, <code>--at-operation/--at-op</code>, <code>--debug</code>, <code>--color</code>, <code>--quiet</code>, <code>--no-pager</code>, repeatable <code>--config</code> and <code>--config-file</code>, and help/version options. Their interaction is explained after the command entries.</p>
 
-<h3 id="cli-history">History, content, and rewrite commands</h3>
+<h3 id="cli-command-reference-alphabetical">Alphabetical command reference entries</h3>
+<p>These reader-facing entries are ordered by canonical command path. The order is deliberately independent of the conceptual grouping used in the teaching chapters; use the browser's find function or the printed contents to reach a command, then follow the related-command links for semantics and workflows.</p>
 
 <article class="command-entry" id="cmd-abandon"><h4 id="jj-abandon"><code>jj abandon</code></h4>
 <p><strong>Purpose and model.</strong> Hides the selected commits from the ordinary visible graph and reconnects their children to the abandoned commits' parents. It is a graph operation, not deletion of immutable Git objects. The default commit is <code>@</code>; the argument is a revset and may select several commits.</p>
@@ -4219,222 +4220,10 @@ jj log -r 'visible_heads() | bookmarks()'</pre>
 jj log -r 'bisect(@)'</pre>
 <p><strong>Trap.</strong> A test that mutates files, depends on network state, or returns a status for an unrelated failure invalidates the search. Record the range and command; inspect the result with <code>jj show</code> and <code>jj diff</code> before applying a fix.</p></article>
 
-<article class="command-entry" id="cmd-commit"><h4 id="jj-commit"><code>jj commit</code></h4>
-<p><strong>Purpose and model.</strong> Describes the current working-copy change and creates a new empty child on top of it. In jj, the current filesystem is already associated with <code>@</code>; commit is a boundary in the local patch stack, not the act of transferring files into a hidden index.</p>
-<p><strong>Syntax/options.</strong> <code>jj commit [FILESETS...]</code>; a fileset commits only selected paths, <code>-i/--interactive</code> selects diff hunks, <code>--tool NAME</code> chooses the diff editor and implies interactive mode, <code>-m/--message</code> supplies a description, and <code>--editor</code> opens the editor even after a message was supplied. Global snapshot controls apply.</p>
-<p><strong>State effects.</strong> jj snapshots first, updates <code>@</code> with selected content and metadata, then creates a new empty child working-copy commit. Unselected filesystem changes remain in the new child. The old commit's change identity is preserved by the description operation; the new child receives a new change ID. A bookmark at the old <code>@</code> does not automatically follow.</p>
-<pre>jj commit -m 'API: validate quota'
-jj commit --interactive -- 'glob:src/**'
-jj describe -m 'API: split validation'
-jj status</pre>
-<p><strong>Trap.</strong> Do not use <code>jj commit</code> to save an arbitrary ancestor: use <code>jj edit</code>, <code>jj describe</code>, or <code>jj squash</code> according to intent. An accidental child is recoverable with <code>jj undo</code>.</p></article>
-
-<article class="command-entry" id="cmd-describe"><h4 id="jj-describe"><code>jj describe</code></h4>
-<p><strong>Purpose and model.</strong> Rewrites the description and selected metadata of one or more commits, defaulting to <code>@</code>. It preserves logical change identity unless metadata is explicitly changed by another command; the commit ID changes because the commit object changes.</p>
-<p><strong>Syntax/options.</strong> <code>jj describe [REVSETS...]</code>; <code>-m/--message</code> avoids the editor, <code>--stdin</code> reads the description, and <code>--editor</code> forces editing after either. Multiple commits receive the same supplied description. The <code>-r</code> alias selects the commit set.</p>
-<p><strong>State effects.</strong> This is a metadata rewrite, but descendants can still be rewritten because their parent commit IDs change. The filesystem normally remains the same tree. Bookmarks follow successor graph locations; Git export sees a new Git commit when the changed commit is exported.</p>
-<pre>jj describe -m 'API: introduce quota limits'
-jj describe --stdin -r 'mutable()'
-jj log -r 'stack(@)' -T 'change_id ++ " " ++ description.first_line() ++ "\n"'</pre>
-<p><strong>Trap.</strong> Supplying one message to a set is intentional but often wrong for a stack. Use one commit or a per-commit workflow. Use <code>jj metaedit</code> for author/timestamp/signature metadata.</p></article>
-
-<article class="command-entry" id="cmd-diff"><h4 id="jj-diff"><code>jj diff</code></h4>
-<p><strong>Purpose and model.</strong> Compares trees and renders a patch. Commit selection and path selection are independent: <code>-r</code>, <code>--from</code>/<code>--to</code>, and positional filesets describe separate domains.</p>
-<p><strong>Syntax/options.</strong> <code>jj diff [FILESETS...]</code>; <code>-r/--revisions REVSETS</code> shows the total change across a set, <code>-f/--from REVSET</code> and <code>-t/--to REVSET</code> compare endpoints, and no selector defaults to <code>@</code>. Important presentation options include <code>--summary</code>, <code>--stat</code>, <code>--types</code>, <code>--name-only</code>, <code>--git</code>, <code>--color-words</code>, <code>-T/--template</code>, context controls, and external diff controls.</p>
-<p><strong>Semantics.</strong> A multi-commit set must be connected: a gap such as <code>A|C</code> in a linear chain is not a patch range. A merge commit compares its tree with the automatic merge of its parents. A range expression such as <code>B::D</code> is not the same as selecting two unrelated trees.</p>
-<pre>jj diff -r @
-jj diff --from 'main@origin' --to @ -- 'glob:src/**'
-jj diff -r 'B::D' --stat
-jj diff -r @ --name-only</pre>
-<p><strong>Trap.</strong> A diff is not proof that a commit is single-parent; merges and conflicts have special tree semantics. For scripts prefer <code>--name-only</code> or controlled templates with colour disabled. Use <code>jj interdiff</code> for successive patch versions.</p></article>
-
-<article class="command-entry" id="cmd-diffedit"><h4 id="jj-diffedit"><code>jj diffedit</code></h4>
-<p><strong>Purpose and model.</strong> Touches up the content delta of an existing commit through a configured diff editor. It changes the patch while preserving the selected change's logical identity; unlike <code>restore</code>, it is expressed as editing a diff rather than copying an entire tree.</p>
-<p><strong>Syntax/options.</strong> <code>jj diffedit [FILESETS...]</code>; <code>-r/--revision REVSET</code> edits one commit (default <code>@</code>), <code>--from</code>/<code>--to</code> choose comparison endpoints, <code>--tool NAME</code> chooses the diff editor, and <code>--restore-descendants</code> controls descendant content. Positional filesets leave unmatched paths unchanged.</p>
-<p><strong>State effects.</strong> The target and descendants can receive successor commit IDs. The filesystem is updated to the resulting working-copy tree when the target is current; conflicts may be stored if the edited patch no longer applies cleanly.</p>
-<pre>jj diffedit -r A -- 'glob:src/**'
-jj diffedit --tool meld -r @
-jj log -r '::@ &amp; conflicts()'</pre>
-<p><strong>Trap.</strong> <code>--from</code>/<code>--to</code> here define the diff shown to the editor, not rebase source/destination. Use <code>jj describe</code> for metadata and <code>jj squash</code> for patch movement.</p></article>
-
-<article class="command-entry" id="cmd-duplicate"><h4 id="jj-duplicate"><code>jj duplicate</code></h4>
-<p><strong>Purpose and model.</strong> Creates a new change whose content is equivalent to a selected commit, placed at chosen parents. It is a copy, not a successor: the new change has a new change ID even if its tree and description match.</p>
-<p><strong>Syntax/options.</strong> <code>jj duplicate [REVSETS...]</code>; source defaults to <code>@</code> and accepts <code>-r</code>. Use repeated <code>-o/--onto REVSETS</code> (alias <code>-d/--destination</code>), <code>-A/--insert-after</code>, or <code>-B/--insert-before</code>. Repeated destinations can create a merge.</p>
-<p><strong>State effects.</strong> The original remains. The duplicate and descendants at the insertion site can be rewritten; move publication bookmarks explicitly. A workspace generally stays at the resulting current location according to normal movement policy.</p>
-<pre>jj duplicate -r A -o 'main@origin'
-jj duplicate -r A -o X -o Y
-jj log -r 'A | descendants(A) | mutable()'</pre>
-<p><strong>Trap.</strong> Continue an existing logical patch with <code>jj rebase</code> or <code>jj edit</code>; publish an inverse with <code>jj revert</code>. Use duplicate when starting a new evolution is intentional.</p></article>
-
-<article class="command-entry" id="cmd-edit"><h4 id="jj-edit"><code>jj edit</code></h4>
-<p><strong>Purpose and model.</strong> Moves the current workspace's working-copy commit to exactly one existing commit. It is how an advanced user resumes or amends an earlier change; it does not create a bookmark or move another workspace's <code>@</code>.</p>
-<p><strong>Syntax/options.</strong> <code>jj edit REVSET</code> or <code>-r REVSET</code>; exactly one commit is required. <code>--ignore-working-copy</code> is usually inappropriate because edit is intended to update the filesystem. <code>--at-op</code> is for historical inspection, not continuation.</p>
-<p><strong>State effects.</strong> jj snapshots the old workspace first, then checks out the selected tree as the new <code>@</code>. The old working-copy commit remains unless abandoned. Filesystem edits made while another change was current become part of the pre-move snapshot.</p>
-<pre>jj edit 'change_id(abc...)'
-jj edit 'bookmark(review)'
-jj status
-jj new</pre>
-<p><strong>Trap.</strong> “Edit A” is not Git checkout of a branch: A remains mutable and unnamed. Use <code>jj new A</code> to leave A unchanged and create a fresh child.</p></article>
-
-<article class="command-entry" id="cmd-evolog"><h4 id="jj-evolog"><code>jj evolog</code></h4>
-<p><strong>Purpose and model.</strong> Shows the evolution of a logical change: successive commit versions and their predecessor relationships. It answers what happened to one change, not what every repository operation did.</p>
-<p><strong>Syntax/options.</strong> <code>jj evolog [OPTIONS]</code>; <code>-r/--revisions REVSETS</code> follows changes (default <code>@</code>), <code>-n/--limit</code> bounds entries, <code>--reversed</code> reverses order, <code>-G/--no-graph</code> flattens output, <code>-T/--template</code> renders an evolution entry, and <code>-p/--patch</code> shows an inter-diff.</p>
-<p><strong>State effects.</strong> Observational, but normal snapshot rules apply unless disabled. It does not restore a commit or move a bookmark. Evolution entries link to operations, allowing a rewrite to be correlated with <code>jj op log</code>.</p>
-<pre>jj evolog -r 'change_id(abc...)'
-jj evolog -p -r @
-jj evolog --reversed -n 10</pre>
-<p><strong>Trap.</strong> Evolution is not a ref reflog and does not record every unrelated abandoned change. Use operation history for repository-wide recovery.</p></article>
-
-<article class="command-entry" id="cmd-metaedit"><h4 id="jj-metaedit"><code>jj metaedit</code></h4>
-<p><strong>Purpose and model.</strong> Rewrites commit metadata without changing file content. It is the precise tool for author, timestamp, description, change ID, and related metadata edits.</p>
-<p><strong>Syntax/options.</strong> The commit set defaults to <code>@</code>. Important 0.44 options include <code>--update-change-id</code>, <code>-m/--message</code>, <code>--update-author-timestamp</code>, <code>--update-author</code>, <code>--author</code>, <code>--author-timestamp</code>, and committer controls shown by local help. The <code>-r</code> alias selects commits.</p>
-<p><strong>State effects.</strong> The tree is unchanged, but metadata changes the commit ID. Descendants may be rewritten because their parent ID changes; bookmarks follow successors. <code>--update-change-id</code> intentionally breaks local evolution continuity and should not be used merely because a commit ID changed.</p>
-<pre>jj metaedit --author 'A. Engineer &lt;a@example.test&gt;' -r @
-jj metaedit --update-author-timestamp
-jj metaedit --update-change-id -r 'mutable()'</pre>
-<p><strong>Trap.</strong> Author/committer identity, jj change ID, and Gerrit Change-Id are separate. Use <code>jj describe</code> for editor-driven descriptions and <code>jj sign</code> for cryptographic signing.</p></article>
-
-<article class="command-entry" id="cmd-new"><h4 id="jj-new"><code>jj new</code></h4>
-<p><strong>Purpose and model.</strong> Creates an empty working-copy change with supplied parents. One parent creates a child; multiple parents create a merge. It is the ordinary boundary between patch-stack changes.</p>
-<p><strong>Syntax/options.</strong> <code>jj new [REVSETS...]</code> defaults to <code>@</code>; <code>-m/--message</code> describes it, <code>--no-edit</code> leaves the workspace where it is, <code>-A/--insert-after</code> inserts after selected commits and rebases their children, and <code>-B/--insert-before</code> inserts before selected commits. <code>-o/--onto</code> is an alias for parent selection in 0.44.</p>
-<p><strong>State effects.</strong> The old <code>@</code> becomes a parent and remains intact. Insert modes are graph surgery and can rewrite descendants. Bookmarks at the old commit do not automatically move to the new child.</p>
-<pre>jj new main@origin -m 'API: introduce quota'
-jj new @- @--
-jj new --no-edit A
-jj new --insert-after A</pre>
-<p><strong>Trap.</strong> Multiple commits are explicit merge parents, not alternatives. Use <code>jj edit</code> when continuing an existing change.</p></article>
-
-<article class="command-entry" id="cmd-next"><h4 id="jj-next"><code>jj next</code></h4>
-<p><strong>Purpose and model.</strong> Moves from the current working-copy commit toward a child, optionally jumping to the next conflicted descendant. It can create a new child or edit the target directly according to movement policy.</p>
-<p><strong>Syntax/options.</strong> <code>jj next [OFFSET]</code> defaults to one step. <code>-e/--edit</code> edits the target; <code>-n/--no-edit</code> creates a new working-copy commit on the target; <code>--conflict</code> searches for the next conflicted descendant. These override <code>ui.movement.edit</code>.</p>
-<p><strong>State effects.</strong> Normal snapshotting records current edits before movement. Forks may not have a unique next child. No bookmark is moved merely by navigation.</p>
-<pre>jj next
-jj next --edit
-jj next --conflict
-jj next 2 --no-edit</pre>
-<p><strong>Trap.</strong> “Next” is graph navigation, not next commit on a branch. Use an explicit revset with <code>jj edit</code> or <code>jj new</code> when precision matters.</p></article>
-
-<article class="command-entry" id="cmd-parallelize"><h4 id="jj-parallelize"><code>jj parallelize</code></h4>
-<p><strong>Purpose and model.</strong> Makes selected commits siblings by removing the edge that serialises them. It is useful when changes were accidentally stacked but should be independent.</p>
-<p><strong>Syntax/options.</strong> <code>jj parallelize [REVSETS...]</code>; <code>-r</code> is the commit alias and there are no additional 0.44 command-specific options.</p>
-<p><strong>State effects.</strong> New parent edges cause selected commits and descendants to receive successors. A child that depended on removed content may conflict or change patch. Bookmarks follow affected successors; remote publication does not happen automatically.</p>
-<pre>jj parallelize -r 'B|C'
-jj log -r '::@'
-jj log -r 'conflicts()'</pre>
-<p><strong>Trap.</strong> Parallelisation is not reverting a dependency's files. Check every descendant; use <code>jj rebase</code> when an explicit destination describes the intention better.</p></article>
-
-<article class="command-entry" id="cmd-prev"><h4 id="jj-prev"><code>jj prev</code></h4>
-<p><strong>Purpose and model.</strong> Moves backward from the current working-copy commit. It can create a new child on the selected parent or edit the parent directly, mirroring <code>next</code>.</p>
-<p><strong>Syntax/options.</strong> <code>jj prev [OFFSET]</code> defaults to one parent. <code>-e/--edit</code> edits the parent; <code>-n/--no-edit</code> creates a new working-copy change; <code>--conflict</code> jumps to the previous conflicted ancestor.</p>
-<p><strong>State effects.</strong> Current edits are snapshotted first. A merge may have no unique parent, and an offset is graph navigation rather than a first-parent promise. Existing commits are not rewritten unless subsequently edited.</p>
-<pre>jj prev
-jj prev --edit
-jj prev --conflict
-jj prev 2 --no-edit</pre>
-<p><strong>Trap.</strong> Use <code>jj edit</code> for a non-linear review target. A new child protects the parent; edit mode makes later edits part of it.</p></article>
-
-<article class="command-entry" id="cmd-rebase"><h4 id="jj-rebase"><code>jj rebase</code></h4>
-<p><strong>Purpose and model.</strong> Rewrites parent edges for a selected set while preserving each selected commit's patch as far as possible. Source selection and destination placement are independent dimensions.</p>
-<p><strong>Syntax.</strong> <code>jj rebase &lt;destination option&gt; [source option]</code>. Source options are <code>-r/--revisions REVSETS</code> for explicit commits, <code>-s/--source REVSET</code> for a commit and descendants, and <code>-b/--branch REVSET</code> for the branch relative to the destination (default <code>@</code>). Exactly one destination mode is required: <code>-o/--onto</code> (aliases <code>-d/--destination</code>), <code>-A/--insert-after</code> (alias <code>--after</code>), or <code>-B/--insert-before</code> (alias <code>--before</code>).</p>
-<table><thead><tr><th>Mode</th><th>Transformation</th><th>Typical intent</th></tr></thead><tbody>
-<tr><td><code>-r X -o Y</code></td><td>Rewrite exactly X onto Y.</td><td>Surgical move; useful with holes in a stack.</td></tr>
-<tr><td><code>-s X -o Y</code></td><td>X and descendants onto Y.</td><td>Move a whole stack.</td></tr>
-<tr><td><code>-b X -o Y</code></td><td>Branch of X relative to Y onto Y.</td><td>Update a current line without naming every node.</td></tr>
-<tr><td><code>-A Y</code></td><td>Insert selected changes after Y and rebase Y's descendants.</td><td>Insert between Y and its children.</td></tr>
-<tr><td><code>-B Y</code></td><td>Insert before Y and rebase Y and descendants.</td><td>Place a patch before a known commit.</td></tr>
-<tr><td>repeat <code>-o</code></td><td>Multiple destination parents.</td><td>Create an intentional merge.</td></tr>
-</tbody></table>
-<p><strong>State effects.</strong> Rebased commits get successor commit IDs; change IDs normally persist. Descendants automatically rebase. Conflicts are stored in the resulting commits. Bookmarks follow rewritten graph targets, but remote publication requires an explicit push.</p>
-<pre>jj rebase -b 'roots(main@origin..@)' -o main@origin
-jj rebase -r 'A|C' -o B
-jj rebase -s A -A X
-jj rebase -r D -o K -o M</pre>
-<p><strong>Trap.</strong> Several source roots can produce several direct children, and a destination must satisfy its own cardinality. Inspect log, evolution, and operation state after a non-trivial rebase. There is no Git-style continuation session: resolve the stored conflict or perform another rewrite.</p></article>
-
-<article class="command-entry" id="cmd-restore"><h4 id="jj-restore"><code>jj restore</code></h4>
-<p><strong>Purpose and model.</strong> Restores selected file contents from one commit into another, or undoes the patch represented by a commit. It is a content operation, not a ref reset and not the same as <code>revert</code>. Ask whether the source tree, destination tree, or a commit's visible changes define the operation.</p>
-<p><strong>Syntax/options.</strong> <code>jj restore [FILESETS...]</code>; <code>-f/--from REVSET</code> is the source, <code>-t/--into REVSET</code> the destination, and <code>-c/--changes-in REVSET</code> undoes changes visible in a commit compared with the merge of its parents. Without options the default is effectively <code>--changes-in @</code>. <code>-i/--interactive</code> and <code>--tool NAME</code> select individual diff hunks; <code>--restore-descendants</code> preserves descendant content during rebasing.</p>
-<p><strong>State effects.</strong> The destination is rewritten with selected paths copied from the source or parent-derived inverse. Descendants may be rebased and conflicts may be stored. A fileset narrows paths, not commit selection. Restoring into <code>@</code> changes the working-copy tree at the next snapshot.</p>
-<pre>jj restore --from main@origin --into @ -- 'glob:src/**'
-jj restore --changes-in A
-jj restore --from @- --into @ --interactive</pre>
-<p><strong>Trap.</strong> Use <code>revert</code> for a review-visible inverse; use restore from a parent for local cleanup. Verify with <code>jj diff</code> before publishing.</p></article>
-
-<article class="command-entry" id="cmd-revert"><h4 id="jj-revert"><code>jj revert</code></h4>
-<p><strong>Purpose and model.</strong> Creates a new change that applies the reverse of selected commits. It preserves original history and expresses the reversal as a reviewable patch.</p>
-<p><strong>Syntax/options.</strong> <code>jj revert --revision REVSETS --onto REVSETS</code>, or use <code>-A/--insert-after</code>/<code>-B/--insert-before</code>. <code>-r/--revision</code> is required; <code>-o/--onto</code> (alias <code>-d/--destination</code>) supplies the destination. Multiple destinations can create a merge.</p>
-<p><strong>State effects.</strong> Original commits are not rewritten. A new change with a new change ID is created; conflicts can occur when the inverse no longer applies. Bookmarks move only if they point at the result or are advanced explicitly.</p>
-<pre>jj revert -r A -o @
-jj revert --revision 'A::C' --onto main@origin
-jj log -r '::@'</pre>
-<p><strong>Trap.</strong> Revert is not abandon and does not erase a public patch. For unpublished cleanup, restore/squash may communicate intent better.</p></article>
-
-<article class="command-entry" id="cmd-simplify-parents"><h4 id="jj-simplify-parents"><code>jj simplify-parents</code></h4>
-<p><strong>Purpose and model.</strong> Removes redundant parent edges while preserving the selected commits' tree meaning. It is graph normalisation: it does not turn a merge into an arbitrary squash and should be used when parent reachability makes an edge unnecessary.</p>
-<p><strong>Syntax/options.</strong> <code>jj simplify-parents</code>; <code>-s/--source REVSETS</code> simplifies commits together with their descendant trees, while <code>-r/--revision REVSETS</code> limits the operation to specified commits. If neither is supplied, 0.44 uses <code>revsets.simplify-parents</code> or <code>reachable(@, mutable())</code>.</p>
-<p><strong>State effects.</strong> Parent edges and therefore commit IDs can change; descendants may be rewritten. Filesystem content should remain semantically equivalent, but conflicts and merges must be inspected. Bookmarks follow target successors.</p>
-<pre>jj simplify-parents -r @
-jj simplify-parents --source 'mutable()'
-jj log -r 'merges()'</pre>
-<p><strong>Trap.</strong> Use <code>rebase</code> when you want a particular destination, and do not treat parent simplification as a content cleanup. Compare before/after graph and diff.</p></article>
-
-<article class="command-entry" id="cmd-split"><h4 id="jj-split"><code>jj split</code></h4>
-<p><strong>Purpose and model.</strong> Divides one commit into two changes. The first result contains selected content and the second contains the remainder; this is a graph replacement, not merely a file move. By default the target is <code>@</code>.</p>
-<p><strong>Syntax/options.</strong> <code>jj split [FILESETS...]</code>; <code>-r/--revision REVSET</code> chooses the commit, <code>-i/--interactive</code> and <code>--tool NAME</code> select diff hunks, <code>-o/--onto</code>/<code>-d/--destination</code> and <code>-A</code>/<code>-B</code> place the resulting changes, <code>-m/--message</code> supplies a description, <code>--editor</code> opens the editor, and <code>-p/--parallel</code> controls parallel handling in the installed surface. A fileset selects paths for the first side when non-interactive.</p>
-<p><strong>State effects.</strong> The original commit receives successors representing the split. Descendants are rebased onto the second resulting change and can conflict. The split changes have distinct change IDs; neither should be assumed to be the original change's sole continuation without checking evolution. Bookmarks at the original target follow the command's successor policy, but publication bookmarks may need to be moved.</p>
-<pre>jj split -r @ -- 'glob:tests/**'
-jj split --interactive -r A
-jj split -r @ -m 'API: implementation'
-jj log -r '::@'</pre>
-<p><strong>Trap.</strong> A fileset is a path selection, not a semantic diff-hunk classifier. Check both diffs and descriptions. If the operation is wrong, undo before further edits; later, use evolution to identify the split successors.</p></article>
-
-<article class="command-entry" id="cmd-squash"><h4 id="jj-squash"><code>jj squash</code></h4>
-<p><strong>Purpose and model.</strong> Moves content from one or more source commits into a destination, normally the parent of the current change. It can fold all or selected paths and can perform experimental insertion-style rewrites in 0.44.</p>
-<p><strong>Syntax/options.</strong> <code>jj squash [FILESETS...]</code>; ordinary mode uses <code>-r/--revision REVSET</code> to squash a commit into its parent, or <code>-f/--from REVSETS</code> and <code>-t/--into REVSET</code> to name source and destination. <code>-i/--interactive</code>/<code>--tool NAME</code> select content. <code>-m/--message</code> sets the destination description, <code>-u/--use-destination-message</code> discards source descriptions, and <code>--editor</code> opens the editor. Experimental <code>-o/--onto</code>, <code>-A</code>, and <code>-B</code> insert the new commit.</p>
-<p><strong>State effects.</strong> Source and destination are rewritten; source may become empty and descendants receive new commit IDs. Change IDs of the surviving logical patches can persist, but moving content between changes changes which change owns the patch. Bookmarks at source/destination follow the resulting graph; remote bookmarks are not updated until push.</p>
-<pre>jj squash                         # current patch into parent
-jj squash --from @ --into @- -- 'glob:src/**'
-jj squash --use-destination-message
-jj squash --interactive --tool meld</pre>
-<p><strong>Trap.</strong> <code>--revision</code> mode is incompatible with experimental insertion options. Distinguish “copy these paths into a tree” (<code>restore</code>) from “move this patch ownership” (<code>squash</code>). Review descriptions and empty changes after a partial squash.</p></article>
-
-<article class="command-entry" id="cmd-fix"><h4 id="jj-fix"><code>jj fix</code></h4>
-<p><strong>Purpose and model.</strong> Runs configured fixer programs against files in selected commits. It is a history rewrite operation whose input is a commit domain and whose file scope is a fileset/configured fixer policy.</p>
-<p><strong>Syntax/options.</strong> <code>jj fix [FILESETS...]</code>; <code>-s/--source REVSETS</code> selects commits and descendants, defaulting to <code>revsets.fix</code> or <code>reachable(@, mutable())</code>. <code>--include-unchanged-files</code> fixes files even when not changed in the target; <code>-a/--all-lines</code> asks for all lines rather than modified lines when the fixer supports ranges.</p>
-<p><strong>State effects.</strong> Fixers can rewrite many commits and trigger descendant rebasing/conflicts. A failing fixer may leave a useful operation to inspect, but do not assume partial output is a valid stack. Fix configuration supplies commands, environment, file patterns, and range protocol; the working-copy commit is not special except as a selected commit.</p>
-<pre>jj fix -s 'stack(@)' -- 'glob:src/**'
-jj fix --all-lines -s 'mutable()'
-jj log -r 'mutable() &amp; conflicts()'</pre>
-<p><strong>Trap.</strong> Run first on a small revset and inspect the diff. A formatter that does not understand modified-line ranges can rewrite entire files. For reproducible automation, pin the fixer executable/version and use <code>run --ignore-changes</code> for checks that should not rewrite history.</p></article>
-
-<article class="command-entry" id="cmd-resolve"><h4 id="jj-resolve"><code>jj resolve</code></h4>
-<p><strong>Purpose and model.</strong> Resolves stored file conflicts with a merge tool. It changes the conflict value in a selected commit; it is not a Git index continuation phase.</p>
-<p><strong>Syntax/options.</strong> <code>jj resolve [FILESETS...]</code>; <code>-r/--revision REVSET</code> defaults to <code>@</code>, <code>-l/--list</code> lists paths instead of resolving, and <code>--tool NAME</code> selects a configured three-way merge tool. Built-in <code>:ours</code> and <code>:theirs</code> choose sides one and two for applicable conflicts.</p>
-<p><strong>State effects.</strong> The selected commit is rewritten with resolved file content; descendants that depend on its tree may be rebased and conflicts can disappear or move. The filesystem is materialised for the current workspace, but the stored conflict value is authoritative. A fileset limits conflicted paths.</p>
-<pre>jj resolve --list -r @
-jj resolve --tool meld -r @ -- 'glob:src/**'
-jj resolve --tool :ours
-jj log -r '::@ &amp; conflicts()'</pre>
-<p><strong>Trap.</strong> Multi-sided conflicts are not necessarily two-way, and marker files are a rendering. Inspect the resulting diff and conflict predicate. Resolving a child does not necessarily resolve an independent conflict in its descendant.</p></article>
-
-<article class="command-entry" id="cmd-sign"><h4 id="jj-sign"><code>jj sign</code></h4>
-<p><strong>Purpose and model.</strong> Adds or replaces a cryptographic signature on selected commits. Signing rewrites commits because the signature is metadata; it is separate from a Git hosting server's verification policy.</p>
-<p><strong>Syntax/options.</strong> <code>jj sign</code> selects commits with <code>-r/--revision REVSETS</code>, defaulting to <code>revsets.sign</code>, and accepts <code>--key KEY</code>. Commits are re-signed even if they appear already signed; hardware-key workflows should account for that.</p>
-<p><strong>State effects.</strong> Signed commits receive new commit IDs and may cause descendant successors. Change IDs normally persist. Bookmarks follow successors locally; pushing signed commits still requires the relevant bookmark/ref and server policy.</p>
-<pre>jj sign -r 'bookmark(release)'
-jj sign --key KEYID -r @
-jj log -r @ -T 'if(signature, signature.status(), "unsigned") ++ "\n"'</pre>
-<p><strong>Trap.</strong> Presence does not prove a good signature. Template status/key/display can be expensive because verification may invoke GPG or SSH tooling.</p></article>
-
-<article class="command-entry" id="cmd-unsign"><h4 id="jj-unsign"><code>jj unsign</code></h4>
-<p><strong>Purpose and model.</strong> Removes cryptographic signatures from selected commits. It is metadata rewriting, not a content or ref operation.</p>
-<p><strong>Syntax/options.</strong> <code>jj unsign</code> accepts <code>-r/--revision REVSETS</code>; selection follows the command's default when omitted. Global immutability and repository-view options apply.</p>
-<p><strong>State effects.</strong> The affected commits and dependent descendants can receive new IDs while their trees remain unchanged. Change identities normally persist; bookmarks move with local successors and remotes remain unchanged until publication.</p>
-<pre>jj unsign -r 'mutable() &amp; signed()'
-jj log -r @ -T 'if(signature, "signed", "unsigned") ++ "\n"'</pre>
-<p><strong>Trap.</strong> Do not unsign imported/public immutable history casually. Treat it like any other metadata rewrite and inspect the operation log.</p></article>
-
-<h3 id="cli-refs-config">Bookmarks, tags, configuration, and review transport</h3>
+<article class="command-entry" id="cmd-bisect-run"><h4 id="jj-bisect-run"><code>jj bisect run</code></h4>
+<p>Runs a test command over candidate commits in the required <code>--range REVSET</code>. Put command arguments after <code>--</code> when they begin with a dash. The command's exit status is the test result; keep it deterministic and independent of the primary workspace.</p>
+<pre>jj bisect run --range 'good..bad' -- ./test-regression.sh</pre>
+<p>Candidate working copies are temporary and are not publication bookmarks. Inspect the discovered commit with <code>jj show</code>, then create a bookmark or new change only if that is the intended next operation.</p></article>
 
 <article class="command-entry" id="cmd-bookmark"><h4 id="jj-bookmark"><code>jj bookmark</code></h4>
 <p><strong>Purpose and model.</strong> Names a commit for local navigation or publication and manages relationships with remote bookmarks. The parent command requires a subcommand; its aliases include <code>b</code>. A bookmark is a ref-like name over the commit DAG, not the unit of ordinary local work.</p>
@@ -4510,6 +4299,16 @@ jj bookmark list --remote origin --tracked</pre>
 jj bookmark untrack main@github</pre>
 <p>Untracking is local metadata; it neither deletes the remote bookmark nor moves the local one. After untracking, a push may treat the name as a new publication, so inspect the push preview and specify the remote.</p></article>
 
+<article class="command-entry" id="cmd-commit"><h4 id="jj-commit"><code>jj commit</code></h4>
+<p><strong>Purpose and model.</strong> Describes the current working-copy change and creates a new empty child on top of it. In jj, the current filesystem is already associated with <code>@</code>; commit is a boundary in the local patch stack, not the act of transferring files into a hidden index.</p>
+<p><strong>Syntax/options.</strong> <code>jj commit [FILESETS...]</code>; a fileset commits only selected paths, <code>-i/--interactive</code> selects diff hunks, <code>--tool NAME</code> chooses the diff editor and implies interactive mode, <code>-m/--message</code> supplies a description, and <code>--editor</code> opens the editor even after a message was supplied. Global snapshot controls apply.</p>
+<p><strong>State effects.</strong> jj snapshots first, updates <code>@</code> with selected content and metadata, then creates a new empty child working-copy commit. Unselected filesystem changes remain in the new child. The old commit's change identity is preserved by the description operation; the new child receives a new change ID. A bookmark at the old <code>@</code> does not automatically follow.</p>
+<pre>jj commit -m 'API: validate quota'
+jj commit --interactive -- 'glob:src/**'
+jj describe -m 'API: split validation'
+jj status</pre>
+<p><strong>Trap.</strong> Do not use <code>jj commit</code> to save an arbitrary ancestor: use <code>jj edit</code>, <code>jj describe</code>, or <code>jj squash</code> according to intent. An accidental child is recoverable with <code>jj undo</code>.</p></article>
+
 <article class="command-entry" id="cmd-config"><h4 id="jj-config"><code>jj config</code></h4>
 <p><strong>Purpose and model.</strong> Reads and writes layered TOML configuration. The parent namespace provides <code>edit</code>, <code>gc</code>, <code>get</code>, <code>list</code>, <code>path</code>, <code>set</code>, and <code>unset</code>. Scope is part of the command contract: user, repository, and workspace files are different state locations.</p>
 <p><strong>Safety.</strong> Config can invoke editors, external tools, aliases, fixers, merge tools, and transport behaviour. Treat repository/workspace config as input, not trusted code. Inspect effective values with <code>config list</code> before running a command from an unfamiliar checkout.</p>
@@ -4565,208 +4364,78 @@ jj config set --workspace ui.default-command '["log", "-r", "stack(@)"]'</pre>
 jj config unset --repo revsets.log</pre>
 <p>Check <code>config get</code> before and after. In 0.45.1, <code>--file PATH</code> can target a specific config file; mark scripts using it as version-specific.</p></article>
 
-<article class="command-entry" id="cmd-gerrit"><h4 id="jj-gerrit-and-jj-gerrit-upload"><code>jj gerrit</code> and <code>jj gerrit upload</code></h4>
-<p><strong>Purpose and model.</strong> Provides Gerrit-aware upload on top of jj's mutable change graph. It is not a replacement for Gerrit's server identity: jj change IDs identify local evolution, while Gerrit uses a message <code>Change-Id: I...</code> footer or server/plugin policy to associate patch sets.</p>
-<p><strong>Syntax/options.</strong> The parent requires <code>upload</code>. In 0.44, <code>jj gerrit upload</code> accepts <code>-r/--revision REVSET</code>, <code>-b/--remote-branch BRANCH</code>, <code>--remote REMOTE</code>, <code>-n/--dry-run</code>, reviewer/CC/label/topic/hashtag/message options, edit/WIP/ready/private/remove-private, comment publication, notification, merged, validation, attention-set, deadline, custom and repeated <code>-o/--option</code> push options. Run local help for the exact spelling of server options.</p>
-<p><strong>State effects.</strong> Upload exports commits and review metadata; it can update remote-tracking state but does not make Gerrit a local bookmark manager. Rewriting an earlier jj change produces new commit IDs while a preserved Gerrit footer associates the new commit with its existing review. Descendants are automatically rebased locally before re-upload.</p>
-<pre>jj gerrit upload --dry-run --remote gerrit --remote-branch main
-jj gerrit upload --revision 'roots(main@origin..@)' --remote gerrit --remote-branch main
-git push gerrit 'HEAD:refs/for/main%topic=quota'</pre>
-<p><strong>Boundary.</strong> Local jj transport and footer handling are testable with fixtures; Gerrit server review, patch-set, topic, permission, and submit behaviour is server-dependent. Never claim that a jj change ID is a Gerrit Change-Id.</p></article>
+<article class="command-entry" id="cmd-converge"><h4 id="jj-converge-0-45-x"><code>jj converge</code> <span class="tag">0.45.x</span></h4>
+<p><strong>Purpose and model.</strong> Groups visible commits by change ID in a selected search space and reconciles the multiple visible revisions of one logical change into one replacement revision. Divergence usually means that the same change was rewritten independently in two operation histories, so jj can see, for example, <code>X1</code> and <code>X2</code> with the same change ID but different commit IDs. Convergence is therefore not a lateral squash: it does not move the patch owned by one independent change into another change. It resolves competing evolutions of the same change, normally preserving that change's identity while choosing or combining their content, descriptions, parents, and other metadata. It is a newer command and is not available in the normative 0.44.0 CLI.</p>
+<p><strong>Syntax/options.</strong> Use <code>jj converge -r REVSET</code>; the default search space is controlled by the 0.45 revset configuration. <code>--no-interactive</code> suppresses prompts and asks the heuristic convergence to proceed without interactive decisions. Check the 0.45.1 local help for the complete current option surface.</p>
+<p><strong>State effects.</strong> The selected divergent revisions are replaced by one new revision for that change; if other visible revisions for the same change lie outside the revset, those remain divergent. The solution may have file conflicts even when the inputs were conflict-free. Descendants of every replaced revision are rebased onto the solution, and local bookmarks pointing at those revisions are moved to it. This is not a remote merge and does not merge Gerrit Change-Ids or GitHub pull requests. Review <code>jj op show -p</code>, <code>jj evolog</code>, the resulting diff, and <code>conflicts()</code>; use <code>jj undo</code> if the selected convergence was not intended.</p>
+<pre>jj converge -r 'divergent()'
+jj converge --no-interactive -r 'mutable()'
+jj op show
+jj evolog</pre>
+<pre class="diagram">before:                 after:
+P--X1--D1               P--X*--D1'
+ \-X2--D2                    \-D2'
 
-<article class="command-entry" id="cmd-git"><h4 id="jj-git"><code>jj git</code></h4>
-<p><strong>Purpose and model.</strong> Operates the Git backend, remotes, Git-compatible refs, and colocation. The parent is a namespace for <code>clone</code>, <code>colocation</code>, <code>export</code>, <code>fetch</code>, <code>import</code>, <code>init</code>, <code>push</code>, <code>remote</code>, and <code>root</code>.</p>
-<p>Jj metadata and the Git object database are related but not identical. A commit can have a jj change ID and operation history that Git does not know. A bookmark can be exported as a Git ref; an operation ID and workspace pointer cannot.</p>
-<pre>jj git root
-jj git remote list
-jj git fetch --remote origin
-jj git import
-jj git export</pre>
-<p>Native Git commands are useful in a colocated checkout, but after Git-side ref changes explicitly import them and avoid two writers changing the worktree concurrently. The detailed backend model appears in Part VII.</p></article>
+X1 and X2 share a change ID but are different visible revisions.
+X* is the replacement; its parent shape and content depend on the
+heuristic or interactive choices. It is not a squash from X2 into X1.</pre>
+<p><strong>Version note.</strong> In a shared 0.44/0.45 workflow, replace this command with explicit divergence inspection and manual graph surgery on 0.44. Never hide the version requirement in a generic alias.</p></article>
 
-<article class="command-entry" id="cmd-git-clone"><h4 id="jj-git-clone"><code>jj git clone</code></h4>
-<p>Clones a Git repository into a jj repository. Syntax is <code>jj git clone SOURCE [DESTINATION]</code>. In 0.44 the result is colocated by default unless <code>git.colocate=false</code>; <code>--no-colocate</code> selects the hidden backing layout and <code>--colocate</code> makes the default an explicit script precondition. Important options include <code>--remote REMOTE_NAME</code>, fetch branch/tag filters, and checkout/workspace options in the installed help.</p>
-<pre>jj git clone --colocate ssh://git@example.test/project.git project
-jj git clone --remote upstream https://example.test/project.git project</pre>
-<p>A local source path is resolved to an absolute path. Colocation makes the directory usable by native Git and jj; non-colocation keeps jj metadata separate. The clone's operation DAG is new and independent of the source clone.</p></article>
+<article class="command-entry" id="cmd-describe"><h4 id="jj-describe"><code>jj describe</code></h4>
+<p><strong>Purpose and model.</strong> Rewrites the description and selected metadata of one or more commits, defaulting to <code>@</code>. It preserves logical change identity unless metadata is explicitly changed by another command; the commit ID changes because the commit object changes.</p>
+<p><strong>Syntax/options.</strong> <code>jj describe [REVSETS...]</code>; <code>-m/--message</code> avoids the editor, <code>--stdin</code> reads the description, and <code>--editor</code> forces editing after either. Multiple commits receive the same supplied description. The <code>-r</code> alias selects the commit set.</p>
+<p><strong>State effects.</strong> This is a metadata rewrite, but descendants can still be rewritten because their parent commit IDs change. The filesystem normally remains the same tree. Bookmarks follow successor graph locations; Git export sees a new Git commit when the changed commit is exported.</p>
+<pre>jj describe -m 'API: introduce quota limits'
+jj describe --stdin -r 'mutable()'
+jj log -r 'stack(@)' -T 'change_id ++ " " ++ description.first_line() ++ "\n"'</pre>
+<p><strong>Trap.</strong> Supplying one message to a set is intentional but often wrong for a stack. Use one commit or a per-commit workflow. Use <code>jj metaedit</code> for author/timestamp/signature metadata.</p></article>
 
-<article class="command-entry" id="cmd-git-init"><h4 id="jj-git-init"><code>jj git init</code></h4>
-<p>Initialises a Git-backed jj repository in the destination, defaulting to the current directory. In 0.44, <code>--colocate</code> creates/uses a top-level <code>.git</code> and is the default unless <code>git.colocate=false</code>; <code>--no-colocate</code> explicitly puts the backing Git repository under the jj metadata layout. <code>--git-repo PATH</code> selects an existing backing Git repository and is mutually exclusive with <code>--colocate</code>. There is one important same-path rule: if PATH is the same working directory as the jj destination, so that both <code>.jj</code> and <code>.git</code> are in that directory, the result is a colocated workspace and both native Git and jj commands work there. If PATH names a different directory, the jj destination is non-colocated and native Git commands must be run against the separate backing repository. <code>jj git root</code> reports the underlying Git directory, commonly the <code>.git</code> directory; it is not necessarily the workspace root. The destination is created if necessary.</p>
-<pre>jj git init --colocate
-jj git init project                 # colocated in 0.44 by default
-jj git init --no-colocate hidden-project
-mkdir -p same-path backing
-git -C same-path init
-jj git init --git-repo "$PWD/same-path" "$PWD/same-path"  # same-path, colocated
-git -C backing init
-jj git init --git-repo "$PWD/backing" "$PWD/project"      # different path, non-colocated
-git --git-dir="$PWD/backing/.git" show-ref</pre>
-<p>Choose colocation when GitHub/Gerrit tools and Git transport must share a worktree, but establish a single-writer rule for filesystem operations. Check <code>jj root</code> and <code>jj git root</code> after initialisation.</p></article>
+<article class="command-entry" id="cmd-diff"><h4 id="jj-diff"><code>jj diff</code></h4>
+<p><strong>Purpose and model.</strong> Compares trees and renders a patch. Commit selection and path selection are independent: <code>-r</code>, <code>--from</code>/<code>--to</code>, and positional filesets describe separate domains.</p>
+<p><strong>Syntax/options.</strong> <code>jj diff [FILESETS...]</code>; <code>-r/--revisions REVSETS</code> shows the total change across a set, <code>-f/--from REVSET</code> and <code>-t/--to REVSET</code> compare endpoints, and no selector defaults to <code>@</code>. Important presentation options include <code>--summary</code>, <code>--stat</code>, <code>--types</code>, <code>--name-only</code>, <code>--git</code>, <code>--color-words</code>, <code>-T/--template</code>, context controls, and external diff controls.</p>
+<p><strong>Semantics.</strong> A multi-commit set must be connected: a gap such as <code>A|C</code> in a linear chain is not a patch range. A merge commit compares its tree with the automatic merge of its parents. A range expression such as <code>B::D</code> is not the same as selecting two unrelated trees.</p>
+<pre>jj diff -r @
+jj diff --from 'main@origin' --to @ -- 'glob:src/**'
+jj diff -r 'B::D' --stat
+jj diff -r @ --name-only</pre>
+<p><strong>Trap.</strong> A diff is not proof that a commit is single-parent; merges and conflicts have special tree semantics. For scripts prefer <code>--name-only</code> or controlled templates with colour disabled. Use <code>jj interdiff</code> for successive patch versions.</p></article>
 
-<article class="command-entry" id="cmd-git-fetch"><h4 id="jj-git-fetch"><code>jj git fetch</code></h4>
-<p>Fetches Git objects and remote refs, then imports them as remote bookmarks/tags. <code>--remote REMOTE</code> selects a named remote; <code>-b/--branch</code> repeats branch patterns, <code>-t/--tag</code> repeats tag patterns, and the command has options for remotes, pruning, depth, and parallelism according to local help.</p>
-<pre>jj git fetch --remote origin
-jj git fetch --remote upstream --branch 'main'
-jj git fetch --remote origin --tag 'v*'</pre>
-<p>Fetch does not rebase your mutable stack automatically. It moves remote bookmarks; rebase explicitly onto the imported commit. Branch filters use the fetch command's documented pattern rules, which are not necessarily identical to revset string patterns.</p></article>
+<article class="command-entry" id="cmd-diffedit"><h4 id="jj-diffedit"><code>jj diffedit</code></h4>
+<p><strong>Purpose and model.</strong> Touches up the content delta of an existing commit through a configured diff editor. It changes the patch while preserving the selected change's logical identity; unlike <code>restore</code>, it is expressed as editing a diff rather than copying an entire tree.</p>
+<p><strong>Syntax/options.</strong> <code>jj diffedit [FILESETS...]</code>; <code>-r/--revision REVSET</code> edits one commit (default <code>@</code>), <code>--from</code>/<code>--to</code> choose comparison endpoints, <code>--tool NAME</code> chooses the diff editor, and <code>--restore-descendants</code> controls descendant content. Positional filesets leave unmatched paths unchanged.</p>
+<p><strong>State effects.</strong> The target and descendants can receive successor commit IDs. The filesystem is updated to the resulting working-copy tree when the target is current; conflicts may be stored if the edited patch no longer applies cleanly.</p>
+<pre>jj diffedit -r A -- 'glob:src/**'
+jj diffedit --tool meld -r @
+jj log -r '::@ &amp; conflicts()'</pre>
+<p><strong>Trap.</strong> <code>--from</code>/<code>--to</code> here define the diff shown to the editor, not rebase source/destination. Use <code>jj describe</code> for metadata and <code>jj squash</code> for patch movement.</p></article>
 
-<article class="command-entry" id="cmd-git-import"><h4 id="jj-git-import"><code>jj git import</code></h4>
-<p>Imports Git-side ref changes into jj's view without fetching from a network remote. It is the explicit bridge after native Git creates, moves, or deletes refs in a colocated repository.</p>
-<pre>git -C "$(jj root)" branch temp
-jj git import
-jj bookmark list --all-remotes</pre>
-<p>Import can alter remote bookmark/tag state and create an operation, but it does not turn a Git branch into a local jj working-copy commit or move <code>@</code>. Inspect the imported ref and rebase/publish deliberately.</p></article>
+<article class="command-entry" id="cmd-duplicate"><h4 id="jj-duplicate"><code>jj duplicate</code></h4>
+<p><strong>Purpose and model.</strong> Creates a new change whose content is equivalent to a selected commit, placed at chosen parents. It is a copy, not a successor: the new change has a new change ID even if its tree and description match.</p>
+<p><strong>Syntax/options.</strong> <code>jj duplicate [REVSETS...]</code>; source defaults to <code>@</code> and accepts <code>-r</code>. Use repeated <code>-o/--onto REVSETS</code> (alias <code>-d/--destination</code>), <code>-A/--insert-after</code>, or <code>-B/--insert-before</code>. Repeated destinations can create a merge.</p>
+<p><strong>State effects.</strong> The original remains. The duplicate and descendants at the insertion site can be rewritten; move publication bookmarks explicitly. A workspace generally stays at the resulting current location according to normal movement policy.</p>
+<pre>jj duplicate -r A -o 'main@origin'
+jj duplicate -r A -o X -o Y
+jj log -r 'A | descendants(A) | mutable()'</pre>
+<p><strong>Trap.</strong> Continue an existing logical patch with <code>jj rebase</code> or <code>jj edit</code>; publish an inverse with <code>jj revert</code>. Use duplicate when starting a new evolution is intentional.</p></article>
 
-<article class="command-entry" id="cmd-git-export"><h4 id="jj-git-export"><code>jj git export</code></h4>
-<p>Exports jj bookmarks/tags and compatible commit information to Git refs. It is useful after local ref changes when a native Git consumer or hosting tool needs the Git view updated.</p>
-<pre>jj bookmark create review -r @
-jj git export
-git -C "$(jj root)" show-ref</pre>
-<p>Export does not publish to a remote; <code>git push</code> or <code>jj git push</code> is the network operation. Operation history, change IDs, conflict structure, and workspace pointers are not made into ordinary Git concepts.</p></article>
+<article class="command-entry" id="cmd-edit"><h4 id="jj-edit"><code>jj edit</code></h4>
+<p><strong>Purpose and model.</strong> Moves the current workspace's working-copy commit to exactly one existing commit. It is how an advanced user resumes or amends an earlier change; it does not create a bookmark or move another workspace's <code>@</code>.</p>
+<p><strong>Syntax/options.</strong> <code>jj edit REVSET</code> or <code>-r REVSET</code>; exactly one commit is required. <code>--ignore-working-copy</code> is usually inappropriate because edit is intended to update the filesystem. <code>--at-op</code> is for historical inspection, not continuation.</p>
+<p><strong>State effects.</strong> jj snapshots the old workspace first, then checks out the selected tree as the new <code>@</code>. The old working-copy commit remains unless abandoned. Filesystem edits made while another change was current become part of the pre-move snapshot.</p>
+<pre>jj edit 'change_id(abc...)'
+jj edit 'bookmark(review)'
+jj status
+jj new</pre>
+<p><strong>Trap.</strong> “Edit A” is not Git checkout of a branch: A remains mutable and unnamed. Use <code>jj new A</code> to leave A unchanged and create a fresh child.</p></article>
 
-<article class="command-entry" id="cmd-git-push"><h4 id="jj-git-push"><code>jj git push</code></h4>
-<p><strong>Purpose and model.</strong> Publishes Git refs selected from local bookmarks/tags. It is the boundary where unnamed local work must acquire a publication name unless a release-specific change push mode is used.</p>
-<p><strong>Syntax/options.</strong> <code>--remote REMOTE</code> selects a named remote; <code>-b/--bookmark PATTERN</code> repeats bookmark patterns, <code>-t/--tag PATTERN</code> repeats tags, <code>--all</code> pushes all bookmarks/tags including new ones, <code>--tracked</code> pushes tracked refs, and <code>--deleted</code> pushes deletions. <code>-r/--revision REVSETS</code> selects bookmarks/tags pointing to revisions, <code>--named NAME=REVISION</code> creates or updates a named bookmark for publication, and <code>-c/--change REVSETS</code> creates a bookmark whose default name is based on the change ID. <code>--allow-empty-description</code>, <code>--allow-private</code>, and <code>--allow-conflicts</code> relax eligibility checks; <code>--dry-run</code> previews the operation. These are the jj 0.44.0 options; new-bookmark publication uses <code>--named</code> or <code>--change</code>, not an additional permission flag.</p>
-<p><strong>Safety.</strong> An untracked selected bookmark can become tracked automatically. A new bookmark is requested with <code>--named</code> or <code>--change</code>, not with a force or “allow new” switch. A backwards update is subject to jj's lease-like safety check: the remote must still match the state jj last fetched before the update is accepted. Review local and remote targets, specify the remote, and use a dry run where available.</p>
-<pre>jj git push --remote origin --bookmark review
-jj git push --remote github --bookmark 'gh/*' --dry-run
-jj git push --remote gerrit --named review=@
-jj git push --remote origin --change 'change_id(abc...)' --dry-run</pre>
-<p><strong>State effects.</strong> Push changes the remote server, not the commit DAG. It can update local remote-tracking state and operations. A later fetch observes server-side merge/rewrite. <code>--no-integrate-operation</code> only changes operation integration; it does not prevent the network push.</p></article>
-
-<article class="command-entry" id="cmd-git-remote"><h4 id="jj-git-remote"><code>jj git remote</code></h4>
-<p>Manages named Git remotes. Subcommands are <code>add</code>, <code>list</code>, <code>remove</code>, <code>rename</code>, and <code>set-url</code>. Remote names qualify remote bookmarks and select push/fetch destinations; they do not identify a workspace.</p>
-<pre>jj git remote add github git@github.com:me/project.git
-jj git remote add gerrit ssh://gerrit.example/project
-jj git remote list
-jj git remote set-url github git@github.com:me/project.git
-jj git remote rename origin upstream</pre>
-<p>Inspect full URLs before pushing. A two-remote repository should use explicit <code>--remote</code> in scripts and qualify <code>main@github</code> versus <code>main@gerrit</code> in revsets.</p></article>
-
-<article class="command-entry" id="cmd-git-remote-add"><h4 id="jj-git-remote-add"><code>jj git remote add</code></h4>
-<p>Adds a named remote with a URL. It changes Git remote configuration; no commits are fetched until <code>jj git fetch</code>.</p>
-<pre>jj git remote add origin ssh://git@example.test/project
-jj git git remote add github git@github.com:me/project.git</pre>
-<p>The second line is intentionally wrong: the command is <code>jj git remote add</code>, not <code>jj git git remote add</code>. Shell aliases should not obscure the remote name.</p></article>
-
-<article class="command-entry" id="cmd-git-remote-list"><h4 id="jj-git-remote-list"><code>jj git remote list</code></h4>
-<p>Lists configured remote names and URLs. It is read-only repository configuration inspection and is the first command to run before a dual-host push.</p>
-<pre>jj git remote list</pre></article>
-
-<article class="command-entry" id="cmd-git-remote-remove"><h4 id="jj-git-remote-remove"><code>jj git remote remove</code></h4>
-<p>Removes a configured remote. Existing imported remote bookmarks can remain as local knowledge until forgotten or pruned according to the command's policy. Removing a remote does not delete the server repository.</p>
-<pre>jj git remote remove old-origin
-jj bookmark forget --include-remotes 'main@old-origin'</pre></article>
-
-<article class="command-entry" id="cmd-git-remote-rename"><h4 id="jj-git-remote-rename"><code>jj git remote rename</code></h4>
-<p>Renames a configured remote and therefore changes the qualifier of its remote bookmarks. Review tracking relationships and scripts after renaming.</p>
-<pre>jj git remote rename origin github
-jj log -r 'main@github'</pre></article>
-
-<article class="command-entry" id="cmd-git-remote-set-url"><h4 id="jj-git-remote-set-url"><code>jj git remote set-url</code></h4>
-<p>Changes the URL for an existing remote. It does not fetch or push and does not rewrite commits. Use it when moving from HTTPS to SSH or changing a fork URL, then verify with <code>remote list</code>.</p>
-<pre>jj git remote set-url origin git@github.com:me/project.git
-jj git remote list</pre></article>
-
-<article class="command-entry" id="cmd-git-colocation"><h4 id="jj-git-colocation"><code>jj git colocation</code></h4>
-<p>Controls whether jj and Git share the repository/worktree layout. Subcommands are <code>enable</code>, <code>disable</code>, and <code>status</code>. Colocation is a backend layout property, not a branch or workspace mode.</p>
-<pre>jj git colocation status
-jj git colocation enable
-jj git colocation disable</pre>
-<p>Enable for Git-native tooling; disable only after checking scripts, Git roots, hooks, and worktree state. Existing Git objects/refs and jj metadata are not interchangeable merely because they reside nearby.</p></article>
-
-<article class="command-entry" id="cmd-git-colocation-enable"><h4 id="jj-git-colocation-enable"><code>jj git colocation enable</code></h4>
-<p>Enables Git colocation for a compatible repository. Native Git commands can then use the same worktree, but an export/import boundary still exists.</p>
-<pre>jj git colocation enable
-jj git colocation status</pre></article>
-
-<article class="command-entry" id="cmd-git-colocation-disable"><h4 id="jj-git-colocation-disable"><code>jj git colocation disable</code></h4>
-<p>Disables colocation. Git-native tools may no longer see the expected top-level Git repository, and scripts using <code>git -C</code> need revisiting. Do this only with a backup and an explicit transport plan.</p>
-<pre>jj git colocation disable
-jj root
-jj git root</pre></article>
-
-<article class="command-entry" id="cmd-git-colocation-status"><h4 id="jj-git-colocation-status"><code>jj git colocation status</code></h4>
-<p>Reports whether the current repository is colocated. It is a useful preflight for <code>git</code>, <code>gh</code>, hooks, and CI scripts.</p>
-<pre>jj git colocation status</pre></article>
-
-<article class="command-entry" id="cmd-git-root"><h4 id="jj-git-root"><code>jj git root</code></h4>
-<p>Prints the Git repository root used by the backend. It can differ in meaning from <code>jj root</code>, which prints the current workspace root. Use the result instead of assuming the current directory is a Git root.</p>
-<pre>git -C "$(jj git root)" show-ref
-GIT_DIR="$(jj git root)/.git" git status</pre>
-<p>In a non-colocated repository, native Git use may be invalid or point at another repository. In scripts, first inspect colocation status.</p></article>
-
-<article class="command-entry" id="cmd-tag"><h4 id="jj-tag"><code>jj tag</code></h4>
-<p>Manages tag names, which are release/reference names rather than moving review bookmarks. Subcommands are <code>delete</code>, <code>list</code>, <code>set</code>, <code>track</code>, and <code>untrack</code>.</p>
-<p>Tags can be local or remote and may be tracked, but their expected immutability and publication policy differ from a review bookmark. Use tags for release identity and bookmarks for moving work.</p></article>
-
-<article class="command-entry" id="cmd-tag-delete"><h4 id="jj-tag-delete"><code>jj tag delete</code></h4>
-<p>Deletes local tags matching names/patterns. It changes local tag state; a tracked deletion can be pushed according to Git/tag policy. It does not erase the tagged commit.</p>
-<pre>jj tag delete 'v0.44-*'</pre></article>
-
-<article class="command-entry" id="cmd-tag-list"><h4 id="jj-tag-list"><code>jj tag list</code></h4>
-<p>Lists tags, optionally filtered by names, remote, tracking, or commit and rendered with a template according to local help. Use it to audit release names and remote tag state before a force-sensitive operation.</p>
-<pre>jj tag list
-jj tag list --all-remotes</pre></article>
-
-<article class="command-entry" id="cmd-tag-set"><h4 id="jj-tag-set"><code>jj tag set</code></h4>
-<p>Creates or updates tags to a target commit. <code>-r/--revision REVSET</code> (alias <code>--to</code>) defaults to <code>@</code>; <code>--allow-move</code> permits moving an existing tag. Moving a release tag is a policy event, not ordinary patch editing.</p>
-<pre>jj tag set v1.2.0 -r @
-jj tag set --allow-move v1.2.0 -r release-candidate</pre></article>
-
-<article class="command-entry" id="cmd-tag-track"><h4 id="jj-tag-track"><code>jj tag track</code></h4>
-<p>Associates local tag state with a remote tag. It changes tracking metadata, not the tag target or server.</p>
-<pre>jj tag track v1.2.0@origin</pre></article>
-
-<article class="command-entry" id="cmd-tag-untrack"><h4 id="jj-tag-untrack"><code>jj tag untrack</code></h4>
-<p>Removes a local/remote tag tracking relationship without deleting either tag. Review push behaviour after untracking because a later tag publication may be interpreted as new.</p>
-<pre>jj tag untrack v1.2.0@origin</pre></article>
-
-<h3 id="cli-inspection">Inspection, navigation, files, sparse state, and operations</h3>
-
-<article class="command-entry" id="cmd-log"><h4 id="jj-log"><code>jj log</code></h4>
-<p><strong>Purpose and model.</strong> Displays a graph projection of a commit set. It does not show “branches” by default; it shows the selected visible commits, their topology, and a template rendering for each. The default revset and template are configuration, so a stable script supplies both.</p>
-<p><strong>Syntax/options.</strong> <code>jj log [FILESETS...]</code>; <code>-r/--revision REVSETS</code> selects commits, <code>-n/--limit N</code> limits after filtering and topological ordering, <code>--reversed</code> shows older first, <code>-G/--no-graph</code> produces a flat list, <code>-T/--template</code> renders commits, <code>-p/--patch</code> includes patches, and <code>--count</code> prints a count. A fileset restricts commits that modify those paths.</p>
-<pre>jj log -r 'stack(@)'
-jj log -r 'mutable() &amp; conflicts()' -p
-jj log -G --color=never -T 'commit_id ++ "\n"'
-jj log -n 20 --reversed -r 'main@origin..@'</pre>
-<p><strong>State effects.</strong> Normal log snapshots the working copy first; use <code>--ignore-working-copy</code> for a prompt or monitoring read. It never moves bookmarks or rewrites commits. The graph can contain hidden/divergent information only when the selected revset includes it.</p>
-<p><strong>Trap.</strong> Do not parse graph glyphs or assume the default revset is a complete repository view. For automation use explicit revsets, templates, colour, and pager options. A fileset is applied to changed-path history, not merely to the displayed tree.</p></article>
-
-<article class="command-entry" id="cmd-show"><h4 id="jj-show"><code>jj show</code></h4>
-<p>Shows metadata and the patch of selected commits compared with their parent(s), defaulting to <code>@</code>. <code>--reversed</code> changes ordering, <code>-T/--template</code> renders metadata, and diff formatting includes <code>--summary</code>, <code>--stat</code>, <code>--types</code>, <code>--name-only</code>, <code>--git</code>, and context/diff options from local help.</p>
-<pre>jj show -r A
-jj show -r @ --stat
-jj show -r @ -T 'change_id ++ "\n" ++ description'</pre>
-<p>For a merge, the displayed change is relative to the automatic merge of parents. Show is observational but can snapshot; it does not create a new commit. Use <code>diff</code> to compare arbitrary endpoints and <code>evolog</code> to compare versions of one logical change.</p></article>
-
-<article class="command-entry" id="cmd-status"><h4 id="jj-status"><code>jj status</code></h4>
-<p>Reports high-level workspace status: current <code>@</code>, parent relationship, working-copy modifications, conflicts, and ignored/untracked information according to the workspace. Positional filesets restrict the status display.</p>
-<pre>jj status
-jj status --ignore-working-copy
-jj status -- 'glob:src/**'</pre>
-<p>By default status snapshots, so it can turn filesystem edits into a new working-copy commit. This is a major difference from a passive Git status check. Use the global ignore option when a prompt or monitor must not mutate repository state. Status does not move bookmarks or rewrite ancestors, except for the snapshot of <code>@</code>.</p></article>
-
-<article class="command-entry" id="cmd-root"><h4 id="jj-root"><code>jj root</code></h4>
-<p>Prints the current workspace root and is a shortcut for <code>jj workspace root</code>. It is useful for scripts that need to locate the repository from a subdirectory.</p>
-<pre>cd src/lib
-git -C "$(jj root)" status</pre>
-<p>It reports the workspace root, not necessarily the Git backend root; use <code>jj git root</code> for the latter. The command is observational but follows global snapshot policy unless ignored.</p></article>
-
-<article class="command-entry" id="cmd-version"><h4 id="jj-version"><code>jj version</code></h4>
-<p>Prints jj version/build information. Use it as the first line of a bug report, validation log, and version-sensitive script.</p>
-<pre>jj version
-jj --version</pre>
-<p>The book's normative baseline is 0.44.0; 0.45.1 is separately inventoried. Never infer feature availability from current online documentation alone.</p></article>
-
-<article class="command-entry" id="cmd-help"><h4 id="jj-help"><code>jj help</code></h4>
-<p>Prints help for the root or a command path. <code>jj help --help</code> documents the help command itself; <code>jj help command</code> and <code>jj help command subcommand</code> select paths. Keyword search exposes language and conceptual material in the installed documentation.</p>
-<pre>jj help rebase
-jj help bookmark track
-jj help -k revsets
-jj help -k templates</pre>
-<p>Help is the normative installed-CLI authority for syntax/defaults. It may link to a current documentation site; use the local version for behaviour. In a release audit capture root help recursively rather than relying on memory.</p></article>
+<article class="command-entry" id="cmd-evolog"><h4 id="jj-evolog"><code>jj evolog</code></h4>
+<p><strong>Purpose and model.</strong> Shows the evolution of a logical change: successive commit versions and their predecessor relationships. It answers what happened to one change, not what every repository operation did.</p>
+<p><strong>Syntax/options.</strong> <code>jj evolog [OPTIONS]</code>; <code>-r/--revisions REVSETS</code> follows changes (default <code>@</code>), <code>-n/--limit</code> bounds entries, <code>--reversed</code> reverses order, <code>-G/--no-graph</code> flattens output, <code>-T/--template</code> renders an evolution entry, and <code>-p/--patch</code> shows an inter-diff.</p>
+<p><strong>State effects.</strong> Observational, but normal snapshot rules apply unless disabled. It does not restore a commit or move a bookmark. Evolution entries link to operations, allowing a rewrite to be correlated with <code>jj op log</code>.</p>
+<pre>jj evolog -r 'change_id(abc...)'
+jj evolog -p -r @
+jj evolog --reversed -n 10</pre>
+<p><strong>Trap.</strong> Evolution is not a ref reflog and does not record every unrelated abandoned change. Use operation history for repository-wide recovery.</p></article>
 
 <article class="command-entry" id="cmd-file"><h4 id="jj-file"><code>jj file</code></h4>
 <p>Provides file-oriented inspection and metadata commands: <code>annotate</code>, <code>chmod</code>, <code>list</code>, <code>search</code>, <code>show</code>, <code>track</code>, and <code>untrack</code>. These operate on filesets and often a single commit; they are not Git's index commands.</p>
@@ -4816,6 +4485,366 @@ jj file track -- 'glob:vendor/**'</pre>
 jj status</pre>
 <p>Check status and sparse configuration afterward. Do not confuse untracking with deleting a file from a commit; use restore or filesystem deletion for content changes.</p></article>
 
+<article class="command-entry" id="cmd-fix"><h4 id="jj-fix"><code>jj fix</code></h4>
+<p><strong>Purpose and model.</strong> Runs configured fixer programs against files in selected commits. It is a history rewrite operation whose input is a commit domain and whose file scope is a fileset/configured fixer policy.</p>
+<p><strong>Syntax/options.</strong> <code>jj fix [FILESETS...]</code>; <code>-s/--source REVSETS</code> selects commits and descendants, defaulting to <code>revsets.fix</code> or <code>reachable(@, mutable())</code>. <code>--include-unchanged-files</code> fixes files even when not changed in the target; <code>-a/--all-lines</code> asks for all lines rather than modified lines when the fixer supports ranges.</p>
+<p><strong>State effects.</strong> Fixers can rewrite many commits and trigger descendant rebasing/conflicts. A failing fixer may leave a useful operation to inspect, but do not assume partial output is a valid stack. Fix configuration supplies commands, environment, file patterns, and range protocol; the working-copy commit is not special except as a selected commit.</p>
+<pre>jj fix -s 'stack(@)' -- 'glob:src/**'
+jj fix --all-lines -s 'mutable()'
+jj log -r 'mutable() &amp; conflicts()'</pre>
+<p><strong>Trap.</strong> Run first on a small revset and inspect the diff. A formatter that does not understand modified-line ranges can rewrite entire files. For reproducible automation, pin the fixer executable/version and use <code>run --ignore-changes</code> for checks that should not rewrite history.</p></article>
+
+<article class="command-entry" id="cmd-gerrit"><h4 id="jj-gerrit-and-jj-gerrit-upload"><code>jj gerrit</code> and <code>jj gerrit upload</code></h4>
+<p><strong>Purpose and model.</strong> Provides Gerrit-aware upload on top of jj's mutable change graph. It is not a replacement for Gerrit's server identity: jj change IDs identify local evolution, while Gerrit uses a message <code>Change-Id: I...</code> footer or server/plugin policy to associate patch sets.</p>
+<p><strong>Syntax/options.</strong> The parent requires <code>upload</code>. In 0.44, <code>jj gerrit upload</code> accepts <code>-r/--revision REVSET</code>, <code>-b/--remote-branch BRANCH</code>, <code>--remote REMOTE</code>, <code>-n/--dry-run</code>, reviewer/CC/label/topic/hashtag/message options, edit/WIP/ready/private/remove-private, comment publication, notification, merged, validation, attention-set, deadline, custom and repeated <code>-o/--option</code> push options. Run local help for the exact spelling of server options.</p>
+<p><strong>State effects.</strong> Upload exports commits and review metadata; it can update remote-tracking state but does not make Gerrit a local bookmark manager. Rewriting an earlier jj change produces new commit IDs while a preserved Gerrit footer associates the new commit with its existing review. Descendants are automatically rebased locally before re-upload.</p>
+<pre>jj gerrit upload --dry-run --remote gerrit --remote-branch main
+jj gerrit upload --revision 'roots(main@origin..@)' --remote gerrit --remote-branch main
+git push gerrit 'HEAD:refs/for/main%topic=quota'</pre>
+<p><strong>Boundary.</strong> Local jj transport and footer handling are testable with fixtures; Gerrit server review, patch-set, topic, permission, and submit behaviour is server-dependent. Never claim that a jj change ID is a Gerrit Change-Id.</p></article>
+
+<article class="command-entry" id="cmd-gerrit-upload"><h4 id="jj-gerrit-upload"><code>jj gerrit upload</code></h4>
+<p>Uploads the selected commit stack to a Gerrit remote and branch. The principal selectors are <code>-r/--revision REVSET</code>, <code>-b/--remote-branch BRANCH</code>, <code>--remote REMOTE</code>, and <code>-n/--dry-run</code>. Reviewer, CC, label, topic, hashtag, WIP/ready/private, notification, validation, attention-set, deadline, custom, and repeated <code>--option</code> flags alter server-facing review metadata.</p>
+<pre>jj gerrit upload --dry-run --remote gerrit --remote-branch main --revision 'roots(main@gerrit..@)::'
+jj gerrit upload --remote gerrit --remote-branch main --revision 'roots(main@gerrit..@)::'</pre>
+<p>Local jj change IDs do not replace Gerrit Change-Id footers. Server acceptance, patch-set association, and permissions remain Gerrit-dependent.</p></article>
+
+<article class="command-entry" id="cmd-git"><h4 id="jj-git"><code>jj git</code></h4>
+<p><strong>Purpose and model.</strong> Operates the Git backend, remotes, Git-compatible refs, and colocation. The parent is a namespace for <code>clone</code>, <code>colocation</code>, <code>export</code>, <code>fetch</code>, <code>import</code>, <code>init</code>, <code>push</code>, <code>remote</code>, and <code>root</code>.</p>
+<p>Jj metadata and the Git object database are related but not identical. A commit can have a jj change ID and operation history that Git does not know. A bookmark can be exported as a Git ref; an operation ID and workspace pointer cannot.</p>
+<pre>jj git root
+jj git remote list
+jj git fetch --remote origin
+jj git import
+jj git export</pre>
+<p>Native Git commands are useful in a colocated checkout, but after Git-side ref changes explicitly import them and avoid two writers changing the worktree concurrently. The detailed backend model appears in Part VII.</p></article>
+
+<article class="command-entry" id="cmd-git-clone"><h4 id="jj-git-clone"><code>jj git clone</code></h4>
+<p>Clones a Git repository into a jj repository. Syntax is <code>jj git clone SOURCE [DESTINATION]</code>. In 0.44 the result is colocated by default unless <code>git.colocate=false</code>; <code>--no-colocate</code> selects the hidden backing layout and <code>--colocate</code> makes the default an explicit script precondition. Important options include <code>--remote REMOTE_NAME</code>, fetch branch/tag filters, and checkout/workspace options in the installed help.</p>
+<pre>jj git clone --colocate ssh://git@example.test/project.git project
+jj git clone --remote upstream https://example.test/project.git project</pre>
+<p>A local source path is resolved to an absolute path. Colocation makes the directory usable by native Git and jj; non-colocation keeps jj metadata separate. The clone's operation DAG is new and independent of the source clone.</p></article>
+
+<article class="command-entry" id="cmd-git-colocation"><h4 id="jj-git-colocation"><code>jj git colocation</code></h4>
+<p>Controls whether jj and Git share the repository/worktree layout. Subcommands are <code>enable</code>, <code>disable</code>, and <code>status</code>. Colocation is a backend layout property, not a branch or workspace mode.</p>
+<pre>jj git colocation status
+jj git colocation enable
+jj git colocation disable</pre>
+<p>Enable for Git-native tooling; disable only after checking scripts, Git roots, hooks, and worktree state. Existing Git objects/refs and jj metadata are not interchangeable merely because they reside nearby.</p></article>
+
+<article class="command-entry" id="cmd-git-colocation-disable"><h4 id="jj-git-colocation-disable"><code>jj git colocation disable</code></h4>
+<p>Disables colocation. Git-native tools may no longer see the expected top-level Git repository, and scripts using <code>git -C</code> need revisiting. Do this only with a backup and an explicit transport plan.</p>
+<pre>jj git colocation disable
+jj root
+jj git root</pre></article>
+
+<article class="command-entry" id="cmd-git-colocation-enable"><h4 id="jj-git-colocation-enable"><code>jj git colocation enable</code></h4>
+<p>Enables Git colocation for a compatible repository. Native Git commands can then use the same worktree, but an export/import boundary still exists.</p>
+<pre>jj git colocation enable
+jj git colocation status</pre></article>
+
+<article class="command-entry" id="cmd-git-colocation-status"><h4 id="jj-git-colocation-status"><code>jj git colocation status</code></h4>
+<p>Reports whether the current repository is colocated. It is a useful preflight for <code>git</code>, <code>gh</code>, hooks, and CI scripts.</p>
+<pre>jj git colocation status</pre></article>
+
+<article class="command-entry" id="cmd-git-export"><h4 id="jj-git-export"><code>jj git export</code></h4>
+<p>Exports jj bookmarks/tags and compatible commit information to Git refs. It is useful after local ref changes when a native Git consumer or hosting tool needs the Git view updated.</p>
+<pre>jj bookmark create review -r @
+jj git export
+git -C "$(jj root)" show-ref</pre>
+<p>Export does not publish to a remote; <code>git push</code> or <code>jj git push</code> is the network operation. Operation history, change IDs, conflict structure, and workspace pointers are not made into ordinary Git concepts.</p></article>
+
+<article class="command-entry" id="cmd-git-fetch"><h4 id="jj-git-fetch"><code>jj git fetch</code></h4>
+<p>Fetches Git objects and remote refs, then imports them as remote bookmarks/tags. <code>--remote REMOTE</code> selects a named remote; <code>-b/--branch</code> repeats branch patterns, <code>-t/--tag</code> repeats tag patterns, and the command has options for remotes, pruning, depth, and parallelism according to local help.</p>
+<pre>jj git fetch --remote origin
+jj git fetch --remote upstream --branch 'main'
+jj git fetch --remote origin --tag 'v*'</pre>
+<p>Fetch does not rebase your mutable stack automatically. It moves remote bookmarks; rebase explicitly onto the imported commit. Branch filters use the fetch command's documented pattern rules, which are not necessarily identical to revset string patterns.</p></article>
+
+<article class="command-entry" id="cmd-git-import"><h4 id="jj-git-import"><code>jj git import</code></h4>
+<p>Imports Git-side ref changes into jj's view without fetching from a network remote. It is the explicit bridge after native Git creates, moves, or deletes refs in a colocated repository.</p>
+<pre>git -C "$(jj root)" branch temp
+jj git import
+jj bookmark list --all-remotes</pre>
+<p>Import can alter remote bookmark/tag state and create an operation, but it does not turn a Git branch into a local jj working-copy commit or move <code>@</code>. Inspect the imported ref and rebase/publish deliberately.</p></article>
+
+<article class="command-entry" id="cmd-git-init"><h4 id="jj-git-init"><code>jj git init</code></h4>
+<p>Initialises a Git-backed jj repository in the destination, defaulting to the current directory. In 0.44, <code>--colocate</code> creates/uses a top-level <code>.git</code> and is the default unless <code>git.colocate=false</code>; <code>--no-colocate</code> explicitly puts the backing Git repository under the jj metadata layout. <code>--git-repo PATH</code> selects an existing backing Git repository and is mutually exclusive with <code>--colocate</code>. There is one important same-path rule: if PATH is the same working directory as the jj destination, so that both <code>.jj</code> and <code>.git</code> are in that directory, the result is a colocated workspace and both native Git and jj commands work there. If PATH names a different directory, the jj destination is non-colocated and native Git commands must be run against the separate backing repository. <code>jj git root</code> reports the underlying Git directory, commonly the <code>.git</code> directory; it is not necessarily the workspace root. The destination is created if necessary.</p>
+<pre>jj git init --colocate
+jj git init project                 # colocated in 0.44 by default
+jj git init --no-colocate hidden-project
+mkdir -p same-path backing
+git -C same-path init
+jj git init --git-repo "$PWD/same-path" "$PWD/same-path"  # same-path, colocated
+git -C backing init
+jj git init --git-repo "$PWD/backing" "$PWD/project"      # different path, non-colocated
+git --git-dir="$PWD/backing/.git" show-ref</pre>
+<p>Choose colocation when GitHub/Gerrit tools and Git transport must share a worktree, but establish a single-writer rule for filesystem operations. Check <code>jj root</code> and <code>jj git root</code> after initialisation.</p></article>
+
+<article class="command-entry" id="cmd-git-push"><h4 id="jj-git-push"><code>jj git push</code></h4>
+<p><strong>Purpose and model.</strong> Publishes Git refs selected from local bookmarks/tags. It is the boundary where unnamed local work must acquire a publication name unless a release-specific change push mode is used.</p>
+<p><strong>Syntax/options.</strong> <code>--remote REMOTE</code> selects a named remote; <code>-b/--bookmark PATTERN</code> repeats bookmark patterns, <code>-t/--tag PATTERN</code> repeats tags, <code>--all</code> pushes all bookmarks/tags including new ones, <code>--tracked</code> pushes tracked refs, and <code>--deleted</code> pushes deletions. <code>-r/--revision REVSETS</code> selects bookmarks/tags pointing to revisions, <code>--named NAME=REVISION</code> creates or updates a named bookmark for publication, and <code>-c/--change REVSETS</code> creates a bookmark whose default name is based on the change ID. <code>--allow-empty-description</code>, <code>--allow-private</code>, and <code>--allow-conflicts</code> relax eligibility checks; <code>--dry-run</code> previews the operation. These are the jj 0.44.0 options; new-bookmark publication uses <code>--named</code> or <code>--change</code>, not an additional permission flag.</p>
+<p><strong>Safety.</strong> An untracked selected bookmark can become tracked automatically. A new bookmark is requested with <code>--named</code> or <code>--change</code>, not with a force or “allow new” switch. A backwards update is subject to jj's lease-like safety check: the remote must still match the state jj last fetched before the update is accepted. Review local and remote targets, specify the remote, and use a dry run where available.</p>
+<pre>jj git push --remote origin --bookmark review
+jj git push --remote github --bookmark 'gh/*' --dry-run
+jj git push --remote gerrit --named review=@
+jj git push --remote origin --change 'change_id(abc...)' --dry-run</pre>
+<p><strong>State effects.</strong> Push changes the remote server, not the commit DAG. It can update local remote-tracking state and operations. A later fetch observes server-side merge/rewrite. <code>--no-integrate-operation</code> only changes operation integration; it does not prevent the network push.</p></article>
+
+<article class="command-entry" id="cmd-git-remote"><h4 id="jj-git-remote"><code>jj git remote</code></h4>
+<p>Manages named Git remotes. Subcommands are <code>add</code>, <code>list</code>, <code>remove</code>, <code>rename</code>, and <code>set-url</code>. Remote names qualify remote bookmarks and select push/fetch destinations; they do not identify a workspace.</p>
+<pre>jj git remote add github git@github.com:me/project.git
+jj git remote add gerrit ssh://gerrit.example/project
+jj git remote list
+jj git remote set-url github git@github.com:me/project.git
+jj git remote rename origin upstream</pre>
+<p>Inspect full URLs before pushing. A two-remote repository should use explicit <code>--remote</code> in scripts and qualify <code>main@github</code> versus <code>main@gerrit</code> in revsets.</p></article>
+
+<article class="command-entry" id="cmd-git-remote-add"><h4 id="jj-git-remote-add"><code>jj git remote add</code></h4>
+<p>Adds a named remote with a URL. It changes Git remote configuration; no commits are fetched until <code>jj git fetch</code>.</p>
+<pre>jj git remote add origin ssh://git@example.test/project
+jj git git remote add github git@github.com:me/project.git</pre>
+<p>The second line is intentionally wrong: the command is <code>jj git remote add</code>, not <code>jj git git remote add</code>. Shell aliases should not obscure the remote name.</p></article>
+
+<article class="command-entry" id="cmd-git-remote-list"><h4 id="jj-git-remote-list"><code>jj git remote list</code></h4>
+<p>Lists configured remote names and URLs. It is read-only repository configuration inspection and is the first command to run before a dual-host push.</p>
+<pre>jj git remote list</pre></article>
+
+<article class="command-entry" id="cmd-git-remote-remove"><h4 id="jj-git-remote-remove"><code>jj git remote remove</code></h4>
+<p>Removes a configured remote. Existing imported remote bookmarks can remain as local knowledge until forgotten or pruned according to the command's policy. Removing a remote does not delete the server repository.</p>
+<pre>jj git remote remove old-origin
+jj bookmark forget --include-remotes 'main@old-origin'</pre></article>
+
+<article class="command-entry" id="cmd-git-remote-rename"><h4 id="jj-git-remote-rename"><code>jj git remote rename</code></h4>
+<p>Renames a configured remote and therefore changes the qualifier of its remote bookmarks. Review tracking relationships and scripts after renaming.</p>
+<pre>jj git remote rename origin github
+jj log -r 'main@github'</pre></article>
+
+<article class="command-entry" id="cmd-git-remote-set-url"><h4 id="jj-git-remote-set-url"><code>jj git remote set-url</code></h4>
+<p>Changes the URL for an existing remote. It does not fetch or push and does not rewrite commits. Use it when moving from HTTPS to SSH or changing a fork URL, then verify with <code>remote list</code>.</p>
+<pre>jj git remote set-url origin git@github.com:me/project.git
+jj git remote list</pre></article>
+
+<article class="command-entry" id="cmd-git-root"><h4 id="jj-git-root"><code>jj git root</code></h4>
+<p>Prints the Git repository root used by the backend. It can differ in meaning from <code>jj root</code>, which prints the current workspace root. Use the result instead of assuming the current directory is a Git root.</p>
+<pre>git -C "$(jj git root)" show-ref
+GIT_DIR="$(jj git root)/.git" git status</pre>
+<p>In a non-colocated repository, native Git use may be invalid or point at another repository. In scripts, first inspect colocation status.</p></article>
+
+<article class="command-entry" id="cmd-help"><h4 id="jj-help"><code>jj help</code></h4>
+<p>Prints help for the root or a command path. <code>jj help --help</code> documents the help command itself; <code>jj help command</code> and <code>jj help command subcommand</code> select paths. Keyword search exposes language and conceptual material in the installed documentation.</p>
+<pre>jj help rebase
+jj help bookmark track
+jj help -k revsets
+jj help -k templates</pre>
+<p>Help is the normative installed-CLI authority for syntax/defaults. It may link to a current documentation site; use the local version for behaviour. In a release audit capture root help recursively rather than relying on memory.</p></article>
+
+<article class="command-entry" id="cmd-interdiff"><h4 id="jj-interdiff"><code>jj interdiff</code></h4>
+<p>Compares the patch changes between two commit versions. Use <code>--from REVSET</code> and <code>--to REVSET</code> as required by the 0.44 syntax, plus positional filesets and diff-formatting options. It is the right comparison for successive versions of one logical change whose parent context changed.</p>
+<pre>jj interdiff --from A --to B
+jj interdiff --from A --to B --stat -- 'glob:src/**'</pre>
+<p>It does not rewrite commits or move refs, but normal snapshot policy still applies. Use <code>diff</code> for endpoint tree comparison and <code>evolog -p</code> when the commits are known successors of one change.</p></article>
+
+<article class="command-entry" id="cmd-log"><h4 id="jj-log"><code>jj log</code></h4>
+<p><strong>Purpose and model.</strong> Displays a graph projection of a commit set. It does not show “branches” by default; it shows the selected visible commits, their topology, and a template rendering for each. The default revset and template are configuration, so a stable script supplies both.</p>
+<p><strong>Syntax/options.</strong> <code>jj log [FILESETS...]</code>; <code>-r/--revision REVSETS</code> selects commits, <code>-n/--limit N</code> limits after filtering and topological ordering, <code>--reversed</code> shows older first, <code>-G/--no-graph</code> produces a flat list, <code>-T/--template</code> renders commits, <code>-p/--patch</code> includes patches, and <code>--count</code> prints a count. A fileset restricts commits that modify those paths.</p>
+<pre>jj log -r 'stack(@)'
+jj log -r 'mutable() &amp; conflicts()' -p
+jj log -G --color=never -T 'commit_id ++ "\n"'
+jj log -n 20 --reversed -r 'main@origin..@'</pre>
+<p><strong>State effects.</strong> Normal log snapshots the working copy first; use <code>--ignore-working-copy</code> for a prompt or monitoring read. It never moves bookmarks or rewrites commits. The graph can contain hidden/divergent information only when the selected revset includes it.</p>
+<p><strong>Trap.</strong> Do not parse graph glyphs or assume the default revset is a complete repository view. For automation use explicit revsets, templates, colour, and pager options. A fileset is applied to changed-path history, not merely to the displayed tree.</p></article>
+
+<article class="command-entry" id="cmd-metaedit"><h4 id="jj-metaedit"><code>jj metaedit</code></h4>
+<p><strong>Purpose and model.</strong> Rewrites commit metadata without changing file content. It is the precise tool for author, timestamp, description, change ID, and related metadata edits.</p>
+<p><strong>Syntax/options.</strong> The commit set defaults to <code>@</code>. Important 0.44 options include <code>--update-change-id</code>, <code>-m/--message</code>, <code>--update-author-timestamp</code>, <code>--update-author</code>, <code>--author</code>, <code>--author-timestamp</code>, and committer controls shown by local help. The <code>-r</code> alias selects commits.</p>
+<p><strong>State effects.</strong> The tree is unchanged, but metadata changes the commit ID. Descendants may be rewritten because their parent ID changes; bookmarks follow successors. <code>--update-change-id</code> intentionally breaks local evolution continuity and should not be used merely because a commit ID changed.</p>
+<pre>jj metaedit --author 'A. Engineer &lt;a@example.test&gt;' -r @
+jj metaedit --update-author-timestamp
+jj metaedit --update-change-id -r 'mutable()'</pre>
+<p><strong>Trap.</strong> Author/committer identity, jj change ID, and Gerrit Change-Id are separate. Use <code>jj describe</code> for editor-driven descriptions and <code>jj sign</code> for cryptographic signing.</p></article>
+
+<article class="command-entry" id="cmd-new"><h4 id="jj-new"><code>jj new</code></h4>
+<p><strong>Purpose and model.</strong> Creates an empty working-copy change with supplied parents. One parent creates a child; multiple parents create a merge. It is the ordinary boundary between patch-stack changes.</p>
+<p><strong>Syntax/options.</strong> <code>jj new [REVSETS...]</code> defaults to <code>@</code>; <code>-m/--message</code> describes it, <code>--no-edit</code> leaves the workspace where it is, <code>-A/--insert-after</code> inserts after selected commits and rebases their children, and <code>-B/--insert-before</code> inserts before selected commits. <code>-o/--onto</code> is an alias for parent selection in 0.44.</p>
+<p><strong>State effects.</strong> The old <code>@</code> becomes a parent and remains intact. Insert modes are graph surgery and can rewrite descendants. Bookmarks at the old commit do not automatically move to the new child.</p>
+<pre>jj new main@origin -m 'API: introduce quota'
+jj new @- @--
+jj new --no-edit A
+jj new --insert-after A</pre>
+<p><strong>Trap.</strong> Multiple commits are explicit merge parents, not alternatives. Use <code>jj edit</code> when continuing an existing change.</p></article>
+
+<article class="command-entry" id="cmd-next"><h4 id="jj-next"><code>jj next</code></h4>
+<p><strong>Purpose and model.</strong> Moves from the current working-copy commit toward a child, optionally jumping to the next conflicted descendant. It can create a new child or edit the target directly according to movement policy.</p>
+<p><strong>Syntax/options.</strong> <code>jj next [OFFSET]</code> defaults to one step. <code>-e/--edit</code> edits the target; <code>-n/--no-edit</code> creates a new working-copy commit on the target; <code>--conflict</code> searches for the next conflicted descendant. These override <code>ui.movement.edit</code>.</p>
+<p><strong>State effects.</strong> Normal snapshotting records current edits before movement. Forks may not have a unique next child. No bookmark is moved merely by navigation.</p>
+<pre>jj next
+jj next --edit
+jj next --conflict
+jj next 2 --no-edit</pre>
+<p><strong>Trap.</strong> “Next” is graph navigation, not next commit on a branch. Use an explicit revset with <code>jj edit</code> or <code>jj new</code> when precision matters.</p></article>
+
+<article class="command-entry" id="cmd-operation"><h4 id="jj-operation-jj-op"><code>jj operation</code> / <code>jj op</code></h4>
+<p>Manages the operation DAG. Subcommands are <code>abandon</code>, <code>diff</code>, <code>integrate</code>, <code>log</code>, <code>restore</code>, <code>revert</code>, and <code>show</code>. Operation IDs identify repository transformations in this clone; they are not commit IDs and do not transfer through Git.</p>
+<pre>jj op log
+jj op show
+jj op diff --from OP1 --to OP2
+jj undo</pre>
+<p>Use operation commands when repository state surprises you, especially after a rewrite, concurrent operation, or ref movement. The command family is explained in the recovery chapter and laboratory.</p></article>
+
+<article class="command-entry" id="cmd-operation-abandon"><h4 id="jj-operation-abandon-alias-jj-op-abandon"><code>jj operation abandon</code> <span class="tag">alias: jj op abandon</span></h4>
+<p>Abandons an operation from the operation DAG. It is a history-maintenance action on local operation records, not the same as abandoning a commit. Do not use it until recovery is complete and retention policy is understood.</p>
+<pre>jj op abandon OP
+jj op log</pre>
+<p>Once operation evidence is abandoned, recovery may become harder. Keep an external record of important operation IDs before pruning.</p></article>
+
+<article class="command-entry" id="cmd-operation-diff"><h4 id="jj-operation-diff-alias-jj-op-diff"><code>jj operation diff</code> <span class="tag">alias: jj op diff</span></h4>
+<p>Compares repository state between operations. <code>--operation OP</code> compares an operation with its parent; <code>-f/--from</code> and <code>-t/--to</code> compare endpoints; <code>-G/--no-graph</code> flattens changes and <code>-p/--patch</code> includes rebased patch detail.</p>
+<pre>jj op diff --operation OP
+jj op diff --from OP1 --to OP2 --patch</pre>
+<p>It is especially useful when later operations have changed commit IDs: compare repository views, not only remembered IDs. It is observational and does not restore either state.</p></article>
+
+<article class="command-entry" id="cmd-operation-integrate"><h4 id="jj-operation-integrate-alias-jj-op-integrate"><code>jj operation integrate</code> <span class="tag">alias: jj op integrate</span></h4>
+<p>Integrates an operation created with <code>--no-integrate-operation</code> into the current operation head. It is the explicit convergence point for concurrent/unintegrated local operations.</p>
+<pre>jj status --no-integrate-operation
+# record the printed operation ID
+jj op integrate OP</pre>
+<p>Integration can expose conflicts or divergent operation history. It does not suppress or reverse external side effects performed by the original command.</p></article>
+
+<article class="command-entry" id="cmd-operation-log"><h4 id="jj-operation-log-alias-jj-op-log"><code>jj operation log</code> <span class="tag">alias: jj op log</span></h4>
+<p>Displays operation history as a graph. Options include commit/operation selection, <code>-n/--limit</code>, <code>--reversed</code>, <code>-G/--no-graph</code>, <code>-T/--template</code>, and patch/detail output according to local help.</p>
+<pre>jj op log
+jj op log -n 20
+jj op log -T 'id.short(12) ++ " " ++ description ++ "\n"'</pre>
+<p>Operation log is the first recovery command. Record the current head before attempting repair; a later operation can make an earlier state harder to recognise but does not necessarily remove it.</p></article>
+
+<article class="command-entry" id="cmd-operation-restore"><h4 id="jj-operation-restore-alias-jj-op-restore"><code>jj operation restore</code> <span class="tag">alias: jj op restore</span></h4>
+<p>Restores repository state to an operation. The operation must be selected explicitly; inspect it with <code>jj --at-op OP log</code> first.</p>
+<p><code>--what</code> can repeat and, in the experimental 0.44 surface, selects <code>repo</code> and/or <code>remote-tracking</code>. Omitting remote-tracking state can preserve the ability to push after undo; restoring it can make the local view match the old state exactly.</p>
+<pre>jj --at-op OP log -r 'all()'
+jj op restore OP
+jj op restore --what repo OP</pre>
+<p>Restore creates a new operation representing the restoration; it does not move a server and does not make the filesystem historical unless the workspace is updated. Treat it as a deliberate state change, then inspect the new operation.</p></article>
+
+<article class="command-entry" id="cmd-operation-revert"><h4 id="jj-operation-revert-alias-jj-op-revert"><code>jj operation revert</code> <span class="tag">alias: jj op revert</span></h4>
+<p>Creates a repository operation that reverses the effect of a selected operation while retaining later state as appropriate. It is not commit <code>jj revert</code>: the former operates on repository metadata/graph state, the latter creates an inverse commit.</p>
+<pre>jj op revert OP</pre>
+<p>Use operation diff first. Operation revert is a recovery tool for an operation-level mistake, not a way to undo a public remote push.</p></article>
+
+<article class="command-entry" id="cmd-operation-show"><h4 id="jj-operation-show-alias-jj-op-show"><code>jj operation show</code> <span class="tag">alias: jj op show</span></h4>
+<p>Shows one operation's metadata and repository changes. Select an operation ID from <code>jj op log</code>; options include patch and graph formatting.</p>
+<pre>jj op show OP
+jj op show -p OP</pre>
+<p>Use it to answer what a rewrite actually changed. It does not change state. For the state itself, use <code>jj --at-op OP log</code>; for a controlled restore, use <code>jj op restore OP</code>.</p></article>
+
+<article class="command-entry" id="cmd-parallelize"><h4 id="jj-parallelize"><code>jj parallelize</code></h4>
+<p><strong>Purpose and model.</strong> Makes selected commits siblings by removing the edge that serialises them. It is useful when changes were accidentally stacked but should be independent.</p>
+<p><strong>Syntax/options.</strong> <code>jj parallelize [REVSETS...]</code>; <code>-r</code> is the commit alias and there are no additional 0.44 command-specific options.</p>
+<p><strong>State effects.</strong> New parent edges cause selected commits and descendants to receive successors. A child that depended on removed content may conflict or change patch. Bookmarks follow affected successors; remote publication does not happen automatically.</p>
+<pre>jj parallelize -r 'B|C'
+jj log -r '::@'
+jj log -r 'conflicts()'</pre>
+<p><strong>Trap.</strong> Parallelisation is not reverting a dependency's files. Check every descendant; use <code>jj rebase</code> when an explicit destination describes the intention better.</p></article>
+
+<article class="command-entry" id="cmd-prev"><h4 id="jj-prev"><code>jj prev</code></h4>
+<p><strong>Purpose and model.</strong> Moves backward from the current working-copy commit. It can create a new child on the selected parent or edit the parent directly, mirroring <code>next</code>.</p>
+<p><strong>Syntax/options.</strong> <code>jj prev [OFFSET]</code> defaults to one parent. <code>-e/--edit</code> edits the parent; <code>-n/--no-edit</code> creates a new working-copy change; <code>--conflict</code> jumps to the previous conflicted ancestor.</p>
+<p><strong>State effects.</strong> Current edits are snapshotted first. A merge may have no unique parent, and an offset is graph navigation rather than a first-parent promise. Existing commits are not rewritten unless subsequently edited.</p>
+<pre>jj prev
+jj prev --edit
+jj prev --conflict
+jj prev 2 --no-edit</pre>
+<p><strong>Trap.</strong> Use <code>jj edit</code> for a non-linear review target. A new child protects the parent; edit mode makes later edits part of it.</p></article>
+
+<article class="command-entry" id="cmd-rebase"><h4 id="jj-rebase"><code>jj rebase</code></h4>
+<p><strong>Purpose and model.</strong> Rewrites parent edges for a selected set while preserving each selected commit's patch as far as possible. Source selection and destination placement are independent dimensions.</p>
+<p><strong>Syntax.</strong> <code>jj rebase &lt;destination option&gt; [source option]</code>. Source options are <code>-r/--revisions REVSETS</code> for explicit commits, <code>-s/--source REVSET</code> for a commit and descendants, and <code>-b/--branch REVSET</code> for the branch relative to the destination (default <code>@</code>). Exactly one destination mode is required: <code>-o/--onto</code> (aliases <code>-d/--destination</code>), <code>-A/--insert-after</code> (alias <code>--after</code>), or <code>-B/--insert-before</code> (alias <code>--before</code>).</p>
+<table><thead><tr><th>Mode</th><th>Transformation</th><th>Typical intent</th></tr></thead><tbody>
+<tr><td><code>-r X -o Y</code></td><td>Rewrite exactly X onto Y.</td><td>Surgical move; useful with holes in a stack.</td></tr>
+<tr><td><code>-s X -o Y</code></td><td>X and descendants onto Y.</td><td>Move a whole stack.</td></tr>
+<tr><td><code>-b X -o Y</code></td><td>Branch of X relative to Y onto Y.</td><td>Update a current line without naming every node.</td></tr>
+<tr><td><code>-A Y</code></td><td>Insert selected changes after Y and rebase Y's descendants.</td><td>Insert between Y and its children.</td></tr>
+<tr><td><code>-B Y</code></td><td>Insert before Y and rebase Y and descendants.</td><td>Place a patch before a known commit.</td></tr>
+<tr><td>repeat <code>-o</code></td><td>Multiple destination parents.</td><td>Create an intentional merge.</td></tr>
+</tbody></table>
+<p><strong>State effects.</strong> Rebased commits get successor commit IDs; change IDs normally persist. Descendants automatically rebase. Conflicts are stored in the resulting commits. Bookmarks follow rewritten graph targets, but remote publication requires an explicit push.</p>
+<pre>jj rebase -b 'roots(main@origin..@)' -o main@origin
+jj rebase -r 'A|C' -o B
+jj rebase -s A -A X
+jj rebase -r D -o K -o M</pre>
+<p><strong>Trap.</strong> Several source roots can produce several direct children, and a destination must satisfy its own cardinality. Inspect log, evolution, and operation state after a non-trivial rebase. There is no Git-style continuation session: resolve the stored conflict or perform another rewrite.</p></article>
+
+<article class="command-entry" id="cmd-redo"><h4 id="jj-redo"><code>jj redo</code></h4>
+<p>Reapplies the most recently undone operation when redo state is available. It is repository-operation recovery, not replay of a Git reflog entry.</p>
+<pre>jj undo
+jj redo</pre>
+<p>Any unrelated mutating operation can affect the redo chain. Inspect operation log before assuming redo is available or safe.</p></article>
+
+<article class="command-entry" id="cmd-resolve"><h4 id="jj-resolve"><code>jj resolve</code></h4>
+<p><strong>Purpose and model.</strong> Resolves stored file conflicts with a merge tool. It changes the conflict value in a selected commit; it is not a Git index continuation phase.</p>
+<p><strong>Syntax/options.</strong> <code>jj resolve [FILESETS...]</code>; <code>-r/--revision REVSET</code> defaults to <code>@</code>, <code>-l/--list</code> lists paths instead of resolving, and <code>--tool NAME</code> selects a configured three-way merge tool. Built-in <code>:ours</code> and <code>:theirs</code> choose sides one and two for applicable conflicts.</p>
+<p><strong>State effects.</strong> The selected commit is rewritten with resolved file content; descendants that depend on its tree may be rebased and conflicts can disappear or move. The filesystem is materialised for the current workspace, but the stored conflict value is authoritative. A fileset limits conflicted paths.</p>
+<pre>jj resolve --list -r @
+jj resolve --tool meld -r @ -- 'glob:src/**'
+jj resolve --tool :ours
+jj log -r '::@ &amp; conflicts()'</pre>
+<p><strong>Trap.</strong> Multi-sided conflicts are not necessarily two-way, and marker files are a rendering. Inspect the resulting diff and conflict predicate. Resolving a child does not necessarily resolve an independent conflict in its descendant.</p></article>
+
+<article class="command-entry" id="cmd-restore"><h4 id="jj-restore"><code>jj restore</code></h4>
+<p><strong>Purpose and model.</strong> Restores selected file contents from one commit into another, or undoes the patch represented by a commit. It is a content operation, not a ref reset and not the same as <code>revert</code>. Ask whether the source tree, destination tree, or a commit's visible changes define the operation.</p>
+<p><strong>Syntax/options.</strong> <code>jj restore [FILESETS...]</code>; <code>-f/--from REVSET</code> is the source, <code>-t/--into REVSET</code> the destination, and <code>-c/--changes-in REVSET</code> undoes changes visible in a commit compared with the merge of its parents. Without options the default is effectively <code>--changes-in @</code>. <code>-i/--interactive</code> and <code>--tool NAME</code> select individual diff hunks; <code>--restore-descendants</code> preserves descendant content during rebasing.</p>
+<p><strong>State effects.</strong> The destination is rewritten with selected paths copied from the source or parent-derived inverse. Descendants may be rebased and conflicts may be stored. A fileset narrows paths, not commit selection. Restoring into <code>@</code> changes the working-copy tree at the next snapshot.</p>
+<pre>jj restore --from main@origin --into @ -- 'glob:src/**'
+jj restore --changes-in A
+jj restore --from @- --into @ --interactive</pre>
+<p><strong>Trap.</strong> Use <code>revert</code> for a review-visible inverse; use restore from a parent for local cleanup. Verify with <code>jj diff</code> before publishing.</p></article>
+
+<article class="command-entry" id="cmd-revert"><h4 id="jj-revert"><code>jj revert</code></h4>
+<p><strong>Purpose and model.</strong> Creates a new change that applies the reverse of selected commits. It preserves original history and expresses the reversal as a reviewable patch.</p>
+<p><strong>Syntax/options.</strong> <code>jj revert --revision REVSETS --onto REVSETS</code>, or use <code>-A/--insert-after</code>/<code>-B/--insert-before</code>. <code>-r/--revision</code> is required; <code>-o/--onto</code> (alias <code>-d/--destination</code>) supplies the destination. Multiple destinations can create a merge.</p>
+<p><strong>State effects.</strong> Original commits are not rewritten. A new change with a new change ID is created; conflicts can occur when the inverse no longer applies. Bookmarks move only if they point at the result or are advanced explicitly.</p>
+<pre>jj revert -r A -o @
+jj revert --revision 'A::C' --onto main@origin
+jj log -r '::@'</pre>
+<p><strong>Trap.</strong> Revert is not abandon and does not erase a public patch. For unpublished cleanup, restore/squash may communicate intent better.</p></article>
+
+<article class="command-entry" id="cmd-root"><h4 id="jj-root"><code>jj root</code></h4>
+<p>Prints the current workspace root and is a shortcut for <code>jj workspace root</code>. It is useful for scripts that need to locate the repository from a subdirectory.</p>
+<pre>cd src/lib
+git -C "$(jj root)" status</pre>
+<p>It reports the workspace root, not necessarily the Git backend root; use <code>jj git root</code> for the latter. The command is observational but follows global snapshot policy unless ignored.</p></article>
+
+<article class="command-entry" id="cmd-run"><h4 id="jj-run"><code>jj run</code></h4>
+<p>Runs a command over selected commits. <code>-r/--revision REVSETS</code> selects the set, <code>-j/--jobs N</code> controls parallelism, <code>--root</code> changes the working directory, <code>--clean</code> discards reusable private workspaces, <code>--passthrough</code> connects output and requires one job, and <code>--ignore-changes</code> prevents rewriting commits.</p>
+<pre>jj run --ignore-changes --clean -r 'main@origin..@' -- ./check.sh
+jj run -r 'stack(@)' -- ./format-and-test.sh</pre>
+<p>Without <code>--ignore-changes</code>, files written by the command can become commit rewrites and rebase descendants. The full execution model is in Part XVI.</p></article>
+
+<article class="command-entry" id="cmd-show"><h4 id="jj-show"><code>jj show</code></h4>
+<p>Shows metadata and the patch of selected commits compared with their parent(s), defaulting to <code>@</code>. <code>--reversed</code> changes ordering, <code>-T/--template</code> renders metadata, and diff formatting includes <code>--summary</code>, <code>--stat</code>, <code>--types</code>, <code>--name-only</code>, <code>--git</code>, and context/diff options from local help.</p>
+<pre>jj show -r A
+jj show -r @ --stat
+jj show -r @ -T 'change_id ++ "\n" ++ description'</pre>
+<p>For a merge, the displayed change is relative to the automatic merge of parents. Show is observational but can snapshot; it does not create a new commit. Use <code>diff</code> to compare arbitrary endpoints and <code>evolog</code> to compare versions of one logical change.</p></article>
+
+<article class="command-entry" id="cmd-sign"><h4 id="jj-sign"><code>jj sign</code></h4>
+<p><strong>Purpose and model.</strong> Adds or replaces a cryptographic signature on selected commits. Signing rewrites commits because the signature is metadata; it is separate from a Git hosting server's verification policy.</p>
+<p><strong>Syntax/options.</strong> <code>jj sign</code> selects commits with <code>-r/--revision REVSETS</code>, defaulting to <code>revsets.sign</code>, and accepts <code>--key KEY</code>. Commits are re-signed even if they appear already signed; hardware-key workflows should account for that.</p>
+<p><strong>State effects.</strong> Signed commits receive new commit IDs and may cause descendant successors. Change IDs normally persist. Bookmarks follow successors locally; pushing signed commits still requires the relevant bookmark/ref and server policy.</p>
+<pre>jj sign -r 'bookmark(release)'
+jj sign --key KEYID -r @
+jj log -r @ -T 'if(signature, signature.status(), "unsigned") ++ "\n"'</pre>
+<p><strong>Trap.</strong> Presence does not prove a good signature. Template status/key/display can be expensive because verification may invoke GPG or SSH tooling.</p></article>
+
+<article class="command-entry" id="cmd-simplify-parents"><h4 id="jj-simplify-parents"><code>jj simplify-parents</code></h4>
+<p><strong>Purpose and model.</strong> Removes redundant parent edges while preserving the selected commits' tree meaning. It is graph normalisation: it does not turn a merge into an arbitrary squash and should be used when parent reachability makes an edge unnecessary.</p>
+<p><strong>Syntax/options.</strong> <code>jj simplify-parents</code>; <code>-s/--source REVSETS</code> simplifies commits together with their descendant trees, while <code>-r/--revision REVSETS</code> limits the operation to specified commits. If neither is supplied, 0.44 uses <code>revsets.simplify-parents</code> or <code>reachable(@, mutable())</code>.</p>
+<p><strong>State effects.</strong> Parent edges and therefore commit IDs can change; descendants may be rewritten. Filesystem content should remain semantically equivalent, but conflicts and merges must be inspected. Bookmarks follow target successors.</p>
+<pre>jj simplify-parents -r @
+jj simplify-parents --source 'mutable()'
+jj log -r 'merges()'</pre>
+<p><strong>Trap.</strong> Use <code>rebase</code> when you want a particular destination, and do not treat parent simplification as a content cleanup. Compare before/after graph and diff.</p></article>
+
 <article class="command-entry" id="cmd-sparse"><h4 id="jj-sparse"><code>jj sparse</code></h4>
 <p>Manages which repository paths are materialised in the current workspace. Subcommands are <code>edit</code>, <code>list</code>, <code>reset</code>, and <code>set</code>. Sparse state changes the filesystem view, not the complete commit tree.</p>
 <p>A sparse workspace can therefore run a build or review focused on one subtree while commits still contain paths outside the materialised set. A rewrite can update absent paths in the commit without writing them into the sparse filesystem.</p></article>
@@ -4843,58 +4872,58 @@ jj sparse list</pre>
 jj sparse set --clear --add Cargo.toml --add Cargo.lock</pre>
 <p>Patterns are workspace state, not history filters. A command such as <code>jj diff</code> can still see complete commit trees; use filesets separately when the diff itself should be narrowed.</p></article>
 
-<article class="command-entry" id="cmd-operation"><h4 id="jj-operation-jj-op"><code>jj operation</code> / <code>jj op</code></h4>
-<p>Manages the operation DAG. Subcommands are <code>abandon</code>, <code>diff</code>, <code>integrate</code>, <code>log</code>, <code>restore</code>, <code>revert</code>, and <code>show</code>. Operation IDs identify repository transformations in this clone; they are not commit IDs and do not transfer through Git.</p>
-<pre>jj op log
-jj op show
-jj op diff --from OP1 --to OP2
-jj undo</pre>
-<p>Use operation commands when repository state surprises you, especially after a rewrite, concurrent operation, or ref movement. The command family is explained in the recovery chapter and laboratory.</p></article>
+<article class="command-entry" id="cmd-split"><h4 id="jj-split"><code>jj split</code></h4>
+<p><strong>Purpose and model.</strong> Divides one commit into two changes. The first result contains selected content and the second contains the remainder; this is a graph replacement, not merely a file move. By default the target is <code>@</code>.</p>
+<p><strong>Syntax/options.</strong> <code>jj split [FILESETS...]</code>; <code>-r/--revision REVSET</code> chooses the commit, <code>-i/--interactive</code> and <code>--tool NAME</code> select diff hunks, <code>-o/--onto</code>/<code>-d/--destination</code> and <code>-A</code>/<code>-B</code> place the resulting changes, <code>-m/--message</code> supplies a description, <code>--editor</code> opens the editor, and <code>-p/--parallel</code> controls parallel handling in the installed surface. A fileset selects paths for the first side when non-interactive.</p>
+<p><strong>State effects.</strong> The original commit receives successors representing the split. Descendants are rebased onto the second resulting change and can conflict. The split changes have distinct change IDs; neither should be assumed to be the original change's sole continuation without checking evolution. Bookmarks at the original target follow the command's successor policy, but publication bookmarks may need to be moved.</p>
+<pre>jj split -r @ -- 'glob:tests/**'
+jj split --interactive -r A
+jj split -r @ -m 'API: implementation'
+jj log -r '::@'</pre>
+<p><strong>Trap.</strong> A fileset is a path selection, not a semantic diff-hunk classifier. Check both diffs and descriptions. If the operation is wrong, undo before further edits; later, use evolution to identify the split successors.</p></article>
 
-<article class="command-entry" id="cmd-operation-log"><h4 id="jj-operation-log-alias-jj-op-log"><code>jj operation log</code> <span class="tag">alias: jj op log</span></h4>
-<p>Displays operation history as a graph. Options include commit/operation selection, <code>-n/--limit</code>, <code>--reversed</code>, <code>-G/--no-graph</code>, <code>-T/--template</code>, and patch/detail output according to local help.</p>
-<pre>jj op log
-jj op log -n 20
-jj op log -T 'id.short(12) ++ " " ++ description ++ "\n"'</pre>
-<p>Operation log is the first recovery command. Record the current head before attempting repair; a later operation can make an earlier state harder to recognise but does not necessarily remove it.</p></article>
+<article class="command-entry" id="cmd-squash"><h4 id="jj-squash"><code>jj squash</code></h4>
+<p><strong>Purpose and model.</strong> Moves content from one or more source commits into a destination, normally the parent of the current change. It can fold all or selected paths and can perform experimental insertion-style rewrites in 0.44.</p>
+<p><strong>Syntax/options.</strong> <code>jj squash [FILESETS...]</code>; ordinary mode uses <code>-r/--revision REVSET</code> to squash a commit into its parent, or <code>-f/--from REVSETS</code> and <code>-t/--into REVSET</code> to name source and destination. <code>-i/--interactive</code>/<code>--tool NAME</code> select content. <code>-m/--message</code> sets the destination description, <code>-u/--use-destination-message</code> discards source descriptions, and <code>--editor</code> opens the editor. Experimental <code>-o/--onto</code>, <code>-A</code>, and <code>-B</code> insert the new commit.</p>
+<p><strong>State effects.</strong> Source and destination are rewritten; source may become empty and descendants receive new commit IDs. Change IDs of the surviving logical patches can persist, but moving content between changes changes which change owns the patch. Bookmarks at source/destination follow the resulting graph; remote bookmarks are not updated until push.</p>
+<pre>jj squash                         # current patch into parent
+jj squash --from @ --into @- -- 'glob:src/**'
+jj squash --use-destination-message
+jj squash --interactive --tool meld</pre>
+<p><strong>Trap.</strong> <code>--revision</code> mode is incompatible with experimental insertion options. Distinguish “copy these paths into a tree” (<code>restore</code>) from “move this patch ownership” (<code>squash</code>). Review descriptions and empty changes after a partial squash.</p></article>
 
-<article class="command-entry" id="cmd-operation-show"><h4 id="jj-operation-show-alias-jj-op-show"><code>jj operation show</code> <span class="tag">alias: jj op show</span></h4>
-<p>Shows one operation's metadata and repository changes. Select an operation ID from <code>jj op log</code>; options include patch and graph formatting.</p>
-<pre>jj op show OP
-jj op show -p OP</pre>
-<p>Use it to answer what a rewrite actually changed. It does not change state. For the state itself, use <code>jj --at-op OP log</code>; for a controlled restore, use <code>jj op restore OP</code>.</p></article>
+<article class="command-entry" id="cmd-status"><h4 id="jj-status"><code>jj status</code></h4>
+<p>Reports high-level workspace status: current <code>@</code>, parent relationship, working-copy modifications, conflicts, and ignored/untracked information according to the workspace. Positional filesets restrict the status display.</p>
+<pre>jj status
+jj status --ignore-working-copy
+jj status -- 'glob:src/**'</pre>
+<p>By default status snapshots, so it can turn filesystem edits into a new working-copy commit. This is a major difference from a passive Git status check. Use the global ignore option when a prompt or monitor must not mutate repository state. Status does not move bookmarks or rewrite ancestors, except for the snapshot of <code>@</code>.</p></article>
 
-<article class="command-entry" id="cmd-operation-diff"><h4 id="jj-operation-diff-alias-jj-op-diff"><code>jj operation diff</code> <span class="tag">alias: jj op diff</span></h4>
-<p>Compares repository state between operations. <code>--operation OP</code> compares an operation with its parent; <code>-f/--from</code> and <code>-t/--to</code> compare endpoints; <code>-G/--no-graph</code> flattens changes and <code>-p/--patch</code> includes rebased patch detail.</p>
-<pre>jj op diff --operation OP
-jj op diff --from OP1 --to OP2 --patch</pre>
-<p>It is especially useful when later operations have changed commit IDs: compare repository views, not only remembered IDs. It is observational and does not restore either state.</p></article>
+<article class="command-entry" id="cmd-tag"><h4 id="jj-tag"><code>jj tag</code></h4>
+<p>Manages tag names, which are release/reference names rather than moving review bookmarks. Subcommands are <code>delete</code>, <code>list</code>, <code>set</code>, <code>track</code>, and <code>untrack</code>.</p>
+<p>Tags can be local or remote and may be tracked, but their expected immutability and publication policy differ from a review bookmark. Use tags for release identity and bookmarks for moving work.</p></article>
 
-<article class="command-entry" id="cmd-operation-restore"><h4 id="jj-operation-restore-alias-jj-op-restore"><code>jj operation restore</code> <span class="tag">alias: jj op restore</span></h4>
-<p>Restores repository state to an operation. The operation must be selected explicitly; inspect it with <code>jj --at-op OP log</code> first.</p>
-<p><code>--what</code> can repeat and, in the experimental 0.44 surface, selects <code>repo</code> and/or <code>remote-tracking</code>. Omitting remote-tracking state can preserve the ability to push after undo; restoring it can make the local view match the old state exactly.</p>
-<pre>jj --at-op OP log -r 'all()'
-jj op restore OP
-jj op restore --what repo OP</pre>
-<p>Restore creates a new operation representing the restoration; it does not move a server and does not make the filesystem historical unless the workspace is updated. Treat it as a deliberate state change, then inspect the new operation.</p></article>
+<article class="command-entry" id="cmd-tag-delete"><h4 id="jj-tag-delete"><code>jj tag delete</code></h4>
+<p>Deletes local tags matching names/patterns. It changes local tag state; a tracked deletion can be pushed according to Git/tag policy. It does not erase the tagged commit.</p>
+<pre>jj tag delete 'v0.44-*'</pre></article>
 
-<article class="command-entry" id="cmd-operation-revert"><h4 id="jj-operation-revert-alias-jj-op-revert"><code>jj operation revert</code> <span class="tag">alias: jj op revert</span></h4>
-<p>Creates a repository operation that reverses the effect of a selected operation while retaining later state as appropriate. It is not commit <code>jj revert</code>: the former operates on repository metadata/graph state, the latter creates an inverse commit.</p>
-<pre>jj op revert OP</pre>
-<p>Use operation diff first. Operation revert is a recovery tool for an operation-level mistake, not a way to undo a public remote push.</p></article>
+<article class="command-entry" id="cmd-tag-list"><h4 id="jj-tag-list"><code>jj tag list</code></h4>
+<p>Lists tags, optionally filtered by names, remote, tracking, or commit and rendered with a template according to local help. Use it to audit release names and remote tag state before a force-sensitive operation.</p>
+<pre>jj tag list
+jj tag list --all-remotes</pre></article>
 
-<article class="command-entry" id="cmd-operation-abandon"><h4 id="jj-operation-abandon-alias-jj-op-abandon"><code>jj operation abandon</code> <span class="tag">alias: jj op abandon</span></h4>
-<p>Abandons an operation from the operation DAG. It is a history-maintenance action on local operation records, not the same as abandoning a commit. Do not use it until recovery is complete and retention policy is understood.</p>
-<pre>jj op abandon OP
-jj op log</pre>
-<p>Once operation evidence is abandoned, recovery may become harder. Keep an external record of important operation IDs before pruning.</p></article>
+<article class="command-entry" id="cmd-tag-set"><h4 id="jj-tag-set"><code>jj tag set</code></h4>
+<p>Creates or updates tags to a target commit. <code>-r/--revision REVSET</code> (alias <code>--to</code>) defaults to <code>@</code>; <code>--allow-move</code> permits moving an existing tag. Moving a release tag is a policy event, not ordinary patch editing.</p>
+<pre>jj tag set v1.2.0 -r @
+jj tag set --allow-move v1.2.0 -r release-candidate</pre></article>
 
-<article class="command-entry" id="cmd-operation-integrate"><h4 id="jj-operation-integrate-alias-jj-op-integrate"><code>jj operation integrate</code> <span class="tag">alias: jj op integrate</span></h4>
-<p>Integrates an operation created with <code>--no-integrate-operation</code> into the current operation head. It is the explicit convergence point for concurrent/unintegrated local operations.</p>
-<pre>jj status --no-integrate-operation
-# record the printed operation ID
-jj op integrate OP</pre>
-<p>Integration can expose conflicts or divergent operation history. It does not suppress or reverse external side effects performed by the original command.</p></article>
+<article class="command-entry" id="cmd-tag-track"><h4 id="jj-tag-track"><code>jj tag track</code></h4>
+<p>Associates local tag state with a remote tag. It changes tracking metadata, not the tag target or server.</p>
+<pre>jj tag track v1.2.0@origin</pre></article>
+
+<article class="command-entry" id="cmd-tag-untrack"><h4 id="jj-tag-untrack"><code>jj tag untrack</code></h4>
+<p>Removes a local/remote tag tracking relationship without deleting either tag. Review push behaviour after untracking because a later tag publication may be interpreted as new.</p>
+<pre>jj tag untrack v1.2.0@origin</pre></article>
 
 <article class="command-entry" id="cmd-undo"><h4 id="jj-undo"><code>jj undo</code></h4>
 <p>Undoes the most recent integrated operation by creating a reverse repository operation. It is the fast recovery path for a mistake noticed immediately.</p>
@@ -4903,40 +4932,13 @@ jj op log
 jj redo</pre>
 <p>Undo does not automatically undo an already-pushed remote change, and it may not be the desired repair when several operations have happened. Use operation restore/diff for a named historical state and evolution for one change's identity.</p></article>
 
-<article class="command-entry" id="cmd-bisect-run"><h4 id="jj-bisect-run"><code>jj bisect run</code></h4>
-<p>Runs a test command over candidate commits in the required <code>--range REVSET</code>. Put command arguments after <code>--</code> when they begin with a dash. The command's exit status is the test result; keep it deterministic and independent of the primary workspace.</p>
-<pre>jj bisect run --range 'good..bad' -- ./test-regression.sh</pre>
-<p>Candidate working copies are temporary and are not publication bookmarks. Inspect the discovered commit with <code>jj show</code>, then create a bookmark or new change only if that is the intended next operation.</p></article>
-
-<article class="command-entry" id="cmd-interdiff"><h4 id="jj-interdiff"><code>jj interdiff</code></h4>
-<p>Compares the patch changes between two commit versions. Use <code>--from REVSET</code> and <code>--to REVSET</code> as required by the 0.44 syntax, plus positional filesets and diff-formatting options. It is the right comparison for successive versions of one logical change whose parent context changed.</p>
-<pre>jj interdiff --from A --to B
-jj interdiff --from A --to B --stat -- 'glob:src/**'</pre>
-<p>It does not rewrite commits or move refs, but normal snapshot policy still applies. Use <code>diff</code> for endpoint tree comparison and <code>evolog -p</code> when the commits are known successors of one change.</p></article>
-
-<article class="command-entry" id="cmd-run"><h4 id="jj-run"><code>jj run</code></h4>
-<p>Runs a command over selected commits. <code>-r/--revision REVSETS</code> selects the set, <code>-j/--jobs N</code> controls parallelism, <code>--root</code> changes the working directory, <code>--clean</code> discards reusable private workspaces, <code>--passthrough</code> connects output and requires one job, and <code>--ignore-changes</code> prevents rewriting commits.</p>
-<pre>jj run --ignore-changes --clean -r 'main@origin..@' -- ./check.sh
-jj run -r 'stack(@)' -- ./format-and-test.sh</pre>
-<p>Without <code>--ignore-changes</code>, files written by the command can become commit rewrites and rebase descendants. The full execution model is in Part XVI.</p></article>
-
-<article class="command-entry" id="cmd-gerrit-upload"><h4 id="jj-gerrit-upload"><code>jj gerrit upload</code></h4>
-<p>Uploads the selected commit stack to a Gerrit remote and branch. The principal selectors are <code>-r/--revision REVSET</code>, <code>-b/--remote-branch BRANCH</code>, <code>--remote REMOTE</code>, and <code>-n/--dry-run</code>. Reviewer, CC, label, topic, hashtag, WIP/ready/private, notification, validation, attention-set, deadline, custom, and repeated <code>--option</code> flags alter server-facing review metadata.</p>
-<pre>jj gerrit upload --dry-run --remote gerrit --remote-branch main --revision 'roots(main@gerrit..@)::'
-jj gerrit upload --remote gerrit --remote-branch main --revision 'roots(main@gerrit..@)::'</pre>
-<p>Local jj change IDs do not replace Gerrit Change-Id footers. Server acceptance, patch-set association, and permissions remain Gerrit-dependent.</p></article>
-
-<article class="command-entry" id="cmd-util-backend-name"><h4 id="jj-util-backend-name"><code>jj util backend name</code></h4>
-<p>Prints the active backend name for diagnostics. It does not report colocation, Git remote configuration, or the current workspace. Pair it with <code>jj git colocation status</code> and <code>jj version</code> in an environment report.</p>
-<pre>jj util backend name</pre></article>
-
-<article class="command-entry" id="cmd-redo"><h4 id="jj-redo"><code>jj redo</code></h4>
-<p>Reapplies the most recently undone operation when redo state is available. It is repository-operation recovery, not replay of a Git reflog entry.</p>
-<pre>jj undo
-jj redo</pre>
-<p>Any unrelated mutating operation can affect the redo chain. Inspect operation log before assuming redo is available or safe.</p></article>
-
-<h3 id="cli-tools-workspaces">Utilities and workspaces</h3>
+<article class="command-entry" id="cmd-unsign"><h4 id="jj-unsign"><code>jj unsign</code></h4>
+<p><strong>Purpose and model.</strong> Removes cryptographic signatures from selected commits. It is metadata rewriting, not a content or ref operation.</p>
+<p><strong>Syntax/options.</strong> <code>jj unsign</code> accepts <code>-r/--revision REVSETS</code>; selection follows the command's default when omitted. Global immutability and repository-view options apply.</p>
+<p><strong>State effects.</strong> The affected commits and dependent descendants can receive new IDs while their trees remain unchanged. Change identities normally persist; bookmarks move with local successors and remotes remain unchanged until publication.</p>
+<pre>jj unsign -r 'mutable() &amp; signed()'
+jj log -r @ -T 'if(signature, "signed", "unsigned") ++ "\n"'</pre>
+<p><strong>Trap.</strong> Do not unsign imported/public immutable history casually. Treat it like any other metadata rewrite and inspect the operation log.</p></article>
 
 <article class="command-entry" id="cmd-util"><h4 id="jj-util"><code>jj util</code></h4>
 <p>Contains infrequently used administrative and generation commands: <code>backend</code>, <code>completion</code>, <code>config-schema</code>, <code>exec</code>, <code>gc</code>, <code>install-man-pages</code>, <code>markdown-help</code>, and <code>snapshot</code>. Treat this namespace as an implementation/tooling surface; commands can be version-sensitive and some can affect repository maintenance or external files.</p>
@@ -4948,6 +4950,10 @@ jj util backend name</pre></article>
 <p>Inspects backend information. The <code>name</code> subcommand prints the active backend name. These are diagnostics, not commands for changing commit content.</p>
 <pre>jj util backend name</pre>
 <p>Use this in bug reports and environment audits. A backend name does not describe colocation; check <code>jj git colocation status</code> separately.</p></article>
+
+<article class="command-entry" id="cmd-util-backend-name"><h4 id="jj-util-backend-name"><code>jj util backend name</code></h4>
+<p>Prints the active backend name for diagnostics. It does not report colocation, Git remote configuration, or the current workspace. Pair it with <code>jj git colocation status</code> and <code>jj version</code> in an environment report.</p>
+<pre>jj util backend name</pre></article>
 
 <article class="command-entry" id="cmd-util-completion"><h4 id="jj-util-completion"><code>jj util completion</code></h4>
 <p>Generates shell completion for the requested shell. It is output generation, not repository mutation.</p>
@@ -4988,6 +4994,12 @@ jj util gc</pre>
 <pre>jj util snapshot
 jj status --ignore-working-copy</pre>
 <p>Coordinate with editors, build tools, and other jj processes. Snapshotting can create an operation and rewrite the working-copy commit; use the operation log when diagnosing unexpected changes.</p></article>
+
+<article class="command-entry" id="cmd-version"><h4 id="jj-version"><code>jj version</code></h4>
+<p>Prints jj version/build information. Use it as the first line of a bug report, validation log, and version-sensitive script.</p>
+<pre>jj version
+jj --version</pre>
+<p>The book's normative baseline is 0.44.0; 0.45.1 is separately inventoried. Never infer feature availability from current online documentation alone.</p></article>
 
 <article class="command-entry" id="cmd-workspace"><h4 id="jj-workspace"><code>jj workspace</code></h4>
 <p>Manages multiple working directories over one repository commit/operation store. Subcommands are <code>add</code>, <code>forget</code>, <code>list</code>, <code>rename</code>, <code>root</code>, and <code>update-stale</code>. Each workspace has a local <code>@</code>; a graph rewrite is shared.</p>
@@ -5050,15 +5062,7 @@ jj -R ../project-build status</pre>
 </tbody></table>
 <p>Global options are parsed before/alongside command options according to jj's CLI parser. Repeatable options such as <code>--config</code> accumulate. When combining a historical view, <code>--ignore-working-copy</code> is implied and filesystem state is deliberately not reconciled. When using <code>--no-integrate-operation</code>, the command's repository operation exists but another process may still advance the integrated operation head before you integrate it.</p>
 
-<article class="command-entry" id="cmd-converge"><h4 id="jj-converge-0-45-x"><code>jj converge</code> <span class="tag">0.45.x</span></h4>
-<p><strong>Purpose and model.</strong> Groups visible commits by change ID in a selected search space and attempts to converge divergent evolutions. It is a newer command and is not available in the normative 0.44.0 CLI.</p>
-<p><strong>Syntax/options.</strong> Use <code>jj converge -r REVSET</code>; the default search space is controlled by the 0.45 revset configuration. <code>--no-interactive</code> suppresses prompts and asks the heuristic convergence to proceed without interactive decisions. Check the 0.45.1 local help for the complete current option surface.</p>
-<p><strong>State effects.</strong> Convergence rewrites commits and can rebase descendants, move local bookmarks that point at divergent successors, and create conflicts. It is not a remote merge and does not resolve Gerrit or GitHub review identity. Review <code>jj op show</code> and <code>jj evolog</code> after it; use <code>jj undo</code> if the selected convergence was not intended.</p>
-<pre>jj converge -r 'divergent()'
-jj converge --no-interactive -r 'mutable()'
-jj op show
-jj evolog</pre>
-<p><strong>Version note.</strong> In a shared 0.44/0.45 workflow, replace this command with explicit divergence inspection and manual graph surgery on 0.44. Never hide the version requirement in a generic alias.</p></article>
+
 <h3 id="global-options">Global options</h3>
 <p>The 0.44 global surface includes <code>-R/--repository</code>, <code>--ignore-working-copy</code>, <code>--no-integrate-operation</code>, <code>--ignore-immutable</code>, <code>--at-operation/--at-op</code>, <code>--debug</code>, <code>--color</code>, <code>--quiet</code>, <code>--no-pager</code>, repeatable <code>--config</code>, and repeatable <code>--config-file</code>, plus <code>-h/--help</code> and <code>-V/--version</code>. The raw help capture is the option index because defaults and accepted values are version-sensitive.</p>
 <h3 id="0-45-x-comparison-track">0.45.x comparison track</h3>
@@ -5082,7 +5086,7 @@ jj evolog</pre>
 <tr><td>Commit graph</td><td><code>log</code>, <code>show</code></td><td><code>rebase</code>, <code>split</code>, <code>abandon</code></td><td>Which source set and destination set?</td></tr>
 <tr><td>Content ownership</td><td><code>diff</code>, <code>interdiff</code></td><td><code>squash</code>, <code>restore</code>, <code>absorb</code></td><td>Which tree contributes which paths?</td></tr>
 <tr><td>Local refs</td><td><code>bookmark list</code></td><td><code>bookmark move/set/delete</code></td><td>Which name should point where after the operation?</td></tr>
-<tr><td>Remote state</td><td><code>git fetch</code>, remote bookmarks</td><td><code>git push</code>, Gerrit upload</td><td>Which remote and publication ref are explicit?</td></tr>
+<tr><td>Remote state</td><td><code>git fetch</code>, remote bookmarks</td><td><code>git push</code>, <code>gerrit upload</code></td><td>Which remote and publication ref are explicit?</td></tr>
 <tr><td>Operation state</td><td><code>op log/show/diff</code></td><td><code>undo</code>, <code>op restore/revert</code></td><td>Can this be reversed and how will it be identified?</td></tr>
 </tbody></table>
 
@@ -5545,14 +5549,14 @@ jj log -r 'conflicts() &amp; ::@'
 <p>Its default selection is version/configuration-sensitive; 0.44 help describes source and commit selection and a configured default. A simplification can change commit IDs and descendant contexts even if the visible file tree remains equivalent. Save a safety bookmark and compare before/after parent lists.</p>
 
 <h4 id="jj-converge-0-45-x-only"><code>jj converge</code> — 0.45.x only</h4>
-<p>Converge groups divergent visible commits by change ID and attempts to produce one converged evolution. It is not available in the 0.44.0 baseline. Use it only after inspecting which evolutions exist, what each patch contains, and which description/metadata should survive.</p>
+<p>Converge handles one specific kind of divergence: several visible commit revisions share one jj change ID because the change evolved independently. It creates a replacement revision for that same logical change, choosing or combining content and metadata, rather than transferring content between two unrelated changes. In other words, it is closer to reconciling two versions of one patch than to a lateral squash. It is not available in the 0.44.0 baseline. Inspect the divergent revisions, their parent edges, descendants, and publication refs before invoking it.</p>
 <pre># 0.45.x
 jj log -r 'divergent()'
 jj converge -r 'divergent()'
 jj op show
 jj evolog
 </pre>
-<p>The operation can require interactive decisions unless <code>--no-interactive</code> is supplied. Suppressing interaction does not make the heuristic semantically correct; it only changes how decisions are made. In a mixed-version team, use explicit 0.44 graph surgery and mark the difference in scripts.</p>
+<p>The operation can require interactive decisions about the description, parents, and rarely the author unless <code>--no-interactive</code> is supplied. The replacement can contain conflicts even when neither input did, and descendants are rebased onto it. Suppressing interaction does not make the heuristic semantically correct; it only changes whether an inconclusive case is warned about or prompted. Review <code>jj op show -p</code> and <code>jj evolog</code>, and use <code>jj undo</code> if the result is wrong. In a mixed-version team, use explicit 0.44 graph surgery and mark the difference in scripts.</p>
 
 <h4 id="jj-next-and-jj-prev"><code>jj next</code> and <code>jj prev</code></h4>
 <p>Navigation moves the workspace’s working-copy commit through nearby mutable commits. It changes filesystem state and can snapshot the current workspace. It does not create a bookmark and does not rewrite a commit merely because the workspace moved.</p>

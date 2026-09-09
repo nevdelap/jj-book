@@ -1,11 +1,12 @@
+import html
 import re
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[1]
 inventory = root / "research" / "command-inventory.md"
-html = root / "src" / "book.html"
+book = root / "src" / "book.html"
 expected = set(re.findall(r"^\| (jj .+?) \|", inventory.read_text(encoding="utf-8"), re.M))
-text = html.read_text(encoding="utf-8")
+text = book.read_text(encoding="utf-8")
 headings = set(re.findall(r"<h4[^>]*><code>(jj [^<]+)</code>", text))
 missing = sorted(expected - headings)
 if missing:
@@ -14,3 +15,27 @@ converge = re.search(r"<h4[^>]*><code>jj converge</code>.*?0\.45\.x", text, re.S
 if not converge:
     raise SystemExit("0.45.x converge entry is not explicitly version-labelled")
 print(f"CLI reference valid: {len(expected)} canonical 0.44 paths; 0.45-only converge labelled")
+
+start = text.index('<h3 id="cli-command-reference-alphabetical">')
+end = text.index('<h3 id="cli-global-detail">', start)
+entries = re.findall(
+    r'<article class="command-entry".*?</article>', text[start:end], re.S
+)
+
+
+def command_key(entry: str) -> str:
+    heading = re.search(r"<h4[^>]*>(.*?)</h4>", entry, re.S)
+    code = re.search(r"<code>(.*?)</code>", heading.group(1), re.S)
+    return html.unescape(re.sub(r"<[^>]+>", "", code.group(1))).casefold()
+
+
+keys = [command_key(entry) for entry in entries]
+if keys != sorted(keys):
+    for previous, current in zip(keys, keys[1:]):
+        if previous > current:
+            raise SystemExit(
+                f"Part XV command entries are not alphabetical: {previous!r} "
+                f"precedes {current!r}"
+            )
+    raise SystemExit("Part XV command entries are not alphabetical")
+print(f"Part XV command order valid: {len(keys)} entries")
