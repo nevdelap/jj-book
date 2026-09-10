@@ -1,6 +1,6 @@
 # Kindle Scribe print acceptance
 
-Edition checked: 2026-09-11 UTC. PDF SHA-256:
+Edition checked: 2026-09-10 UTC. PDF SHA-256:
 `76f78e269446d74417d6e49dddbd1a86cd9145a08b929281ebd2e05bd68084e0`.
 Target page box: 7.5 × 10 inches (540 × 720 points), portrait. The final
 edition is 496 pages: the cover is page 1, printed contents begin on page 2
@@ -46,7 +46,7 @@ recovery material, command/reference pages, and Appendix D/E/F/H/I/J/K landing
 destinations. The heading-based pages cover the sections most likely to move
 when configuration or workspace prose changes.
 
-Inspection performed on 2026-09-11 UTC with PDFium 5.13.0: the monochrome DAG
+Inspection performed on 2026-09-10 UTC with PDFium 5.13.0: the monochrome DAG
 cover image and title have consistent margins; both contents pages have
 consistent margins; the contents ends before the preface;
 the Part XII workspace start, workspace laboratory, Part XII–XIII transition,

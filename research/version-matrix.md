@@ -1,6 +1,6 @@
 # Version matrix
 
-Build date: 2026-09-11 (UTC)
+Build date: 2026-09-10 (UTC)
 
 ## Targets
 
