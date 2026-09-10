@@ -11,10 +11,14 @@ https://github.com/jj-vcs/jj/blob/v0.45.1/LICENSE. The Apache 2.0 text is in
 LICENSES/Apache-2.0.txt. These captures are included for reproducibility and
 are not part of the book's original prose.
 
-No third-party images, fonts, logos, JavaScript libraries, or long quotations
-are embedded in the authored HTML or generated PDF. External documentation is
-referenced and paraphrased; source URLs and licensing decisions are recorded
-in research/sources.md and research/licenses.md.
+The selected cover image is a project-owner-supplied/generated asset. Its
+hash, provenance, permission, attribution decision, and inclusion status are
+recorded in research/assets.md and research/licenses.md. It is not a
+Jujutsu logo, GitHub/Gerrit logo, or documentation image. No third-party
+fonts, JavaScript libraries, screenshots, or long quotations are embedded in
+the authored HTML or generated PDF. External documentation is referenced and
+paraphrased; source URLs and licensing decisions are recorded in
+research/sources.md and research/licenses.md.
 
 The pinned PDF build and independent acceptance renderer use the packages in
 `uv.lock`. They produce the PDF and ignored build-time PNG samples, but no

@@ -10,8 +10,9 @@ text = book.read_text(encoding="utf-8")
 headings = set(re.findall(r"<h4[^>]*><code>(jj [^<]+)</code>", text))
 top_level = {path.split()[1] for path in expected}
 count_claim = re.search(
-    r"reports (\d+) top-level commands and (\d+) public command paths",
+    r"(?:contains|reports)\s+(\d+)\s+top-level commands\s+and\s+(\d+)\s+public command paths",
     text,
+    re.I,
 )
 if not count_claim:
     raise SystemExit("reader-facing CLI totals are missing")

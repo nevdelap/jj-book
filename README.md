@@ -10,7 +10,7 @@ The local validation binary is installed at `.toolchain/bin/jj` by the `justfile
 
 ## Build and rendered output
 
-The deliverable is `jj-book.html` at the project root, symlinked to the first-class authored HTML source `src/book.html`. It is not Markdown converted to HTML. The PDF is rendered directly from that HTML by pinned `xhtml2pdf` and normalised with pinned `pypdf`; no browser or Markdown conversion step is involved. The current output is a 7.5 × 10 inch portrait PDF, 510 pages at the current manuscript size, suitable for Kindle Scribe import and printing. It includes a generated printed contents section, page-number footer, and PDF-reader outline. `build/jj-book.pdf.sha256` records the generated checksum.
+The deliverable is `jj-book.html` at the project root, symlinked to the first-class authored HTML source `src/book.html`. It is not Markdown converted to HTML. The PDF is rendered directly from that HTML by pinned `xhtml2pdf` and normalised with pinned `pypdf`; no browser or Markdown conversion step is involved. The current output is a 7.5 × 10 inch portrait PDF, 495 pages at the current manuscript size, suitable for Kindle Scribe import and printing. It includes a generated printed contents section, page-number footer, and PDF-reader outline. `build/jj-book.pdf.sha256` records the generated checksum.
 
 ```sh
 uv sync --locked     # install the pinned Python renderer/validator

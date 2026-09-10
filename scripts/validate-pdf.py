@@ -56,22 +56,33 @@ if body_start is None or body_start < 2:
 for heading in (
     "Part II — The jj mental model for Git experts",
     "Part XI — Operation log, undo, and recovery",
-    "Part XVII — Complete real workflows",
+    "Part XVII — Workflow map and complete real workflows",
     "Part XVIII — Practice, reference, and fieldbooks",
     "Appendix D — Complete fileset reference",
     "Appendix E — Complete template types and methods",
     "Appendix F — Complete configuration families",
     "Appendix H — GitHub recipes fieldbook",
 ):
+    heading_normalized = " ".join(heading.split())
     destination = next(
-        (index for index, page in enumerate(reader.pages[body_start:], body_start) if heading in (page.extract_text() or "")),
+        (
+            index
+            for index, page in enumerate(reader.pages[body_start:], body_start)
+            if heading_normalized in " ".join((page.extract_text() or "").split())
+        ),
         None,
     )
     if destination is None:
         raise SystemExit(f"required heading is absent from the body: {heading}")
     lines = (reader.pages[destination].extract_text() or "").splitlines()
-    heading_line = next(index for index, line in enumerate(lines) if heading in line)
-    following = [line.strip() for line in lines[heading_line + 1:] if line.strip()]
+    heading_line = next((index for index, line in enumerate(lines) if heading in line), None)
+    if heading_line is None:
+        # PDF text extraction may wrap a long heading at the page margin.
+        # The normalized page search above is the authoritative presence check;
+        # use the remainder of that page for the keep-with-next sanity check.
+        following = [line.strip() for line in lines if line.strip()]
+    else:
+        following = [line.strip() for line in lines[heading_line + 1:] if line.strip()]
     following = [line for line in following if not re.search(r"Jujutsu for Git Experts.*\d+ / \d+", line)]
     if len(following) < 2:
         raise SystemExit(f"heading has no following body material on its page: {heading} (page {destination + 1})")

@@ -10,7 +10,7 @@ The compact first pass was retained as the navigational skeleton. Expansion
 was planned around technical depth rather than repeated definitions: every
 major operation receives a graph transformation, every language chapter has a
 laboratory, and every reference has a human-readable contract in the HTML.
-The current result is approximately 103,525 substantive words and 510 PDF
+The current result is approximately 100,479 substantive words and 495 PDF
 pages at the 7.5 × 10 inch Kindle-Scribe print profile. The book uses
 first-class HTML as its source, a pinned `uv` PDF renderer, `just` recipes, and
 root symlinks for the deliverables.
@@ -35,8 +35,8 @@ root symlinks for the deliverables.
 | XIV | Template summary. | Evaluation model, types, methods, lists, optionals, labels, JSON, aliases, debugging, and daily log construction. | Template laboratory and stable-output checks. | CLI output and revsets. | Complete/reference-complete. |
 | XV | Command inventory. | Reader-facing contract for all 47 top-level/121 public paths, option interactions, cardinality, side effects, traps, and dossiers. | Local help inventory and option validator. | All preceding semantics. | Complete/reference-complete. |
 | XVI | Compressed advanced mechanics. | Dedicated treatments of `run`, fixers, bisect, signing, concurrency, maintenance, performance, completion, and machine output. | Automation, fixer, bisect, signing, and output labs. | CLI, templates, operations. | Complete within environment limits. |
-| XVII | Workflow checklist. | Eleven stateful end-to-end narratives with publication, review, upstream movement, conflict, recovery, and cleanup. | Reusable GitHub/Gerrit/workspace scenarios. | All explanatory chapters. | Complete. |
-| XVIII | Compact fieldbooks and appendices. | Practice curriculum, edge cases, synthesis, and standalone references. | Twenty graph-first labs. | Whole book. | Complete/reference-complete. |
+| XVII | Workflow checklist. | A role-labelled workflow map, state-ledger method, and eleven stateful narratives with publication, review, upstream movement, conflict, recovery, and cleanup. | Reusable GitHub/Gerrit/workspace scenarios and before/after state accounting. | All explanatory chapters. | Complete/explored. |
+| XVIII | Compact fieldbooks and appendices. | Role-labelled practice curriculum, edge cases, synthesis, topic map, and standalone references. | Twenty graph-first labs. | Whole book. | Complete/reference-complete; lookup/practice route, not a second teaching route. |
 
 ## Expansion acceptance criteria
 

@@ -14,10 +14,10 @@ Generated: 2026-09-10
 * Command paths with dedicated local help captured: 121
 * Reader-facing CLI articles in the authored HTML: 121
 * Reader-facing CLI articles covering the target command paths: 121
-* Substantive authored-book words (approximate, excludes pre/script/style): 98534
+* Substantive authored-book words (approximate, excludes pre/script/style): 100479
 * Expansion design target: 100,000–130,000 substantive words / approximately 450–600 Kindle-Scribe pages
-* Rendered PDF pages: 489 (7.5 × 10 inch portrait; see build/jj-book.pdf.sha256)
-* Rendered PDF SHA-256: 500e27d64f8c23cca821b5955161eb7d3a7c2215dba7d54af329665962b7bae3
+* Rendered PDF pages: 495 (7.5 × 10 inch portrait; see build/jj-book.pdf.sha256)
+* Rendered PDF SHA-256: 0c15e827303c1b903da66ee6c57e15465e4860a5e60dabd4c210765b27ba3898
 * Printed contents span: 3 page(s) before the substantive preface; PDF outline entries: 70
 * Revset operators: documented in research/revset-inventory.md and the raw help snapshot
 * Revset function names: 63 extracted help entries; grouped prose is in the HTML
@@ -28,6 +28,7 @@ Generated: 2026-09-10
 * Depth audit: recorded in research/depth-audit.md
 * Expansion plan and completion record: recorded in research/expansion-plan.md
 * Current licensing/distribution register: recorded in research/licenses.md
+* Raster asset provenance and inclusion status: recorded in research/assets.md
 * Frozen build-environment package licence inventory: recorded in research/license-package-inventory.md
 * Template features: objects, methods, operators, conditionals, lists, labels, colours, aliases
 

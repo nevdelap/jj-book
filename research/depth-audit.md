@@ -15,8 +15,8 @@ inventory is represented in a reader-facing reference, with raw help retained
 as verification evidence. The levels are deliberately not inferred from a
 heading’s existence.
 
-The current authored book measures approximately 103,525 substantive words by
-the project counting script and renders to 510 pages at 7.5 × 10 inches. The
+The current authored book measures approximately 100,479 substantive words by
+the project counting script and renders to 495 pages at 7.5 × 10 inches. The
 size is evidence of a substantial manuscript, but the classifications below
 are based on technical treatment, examples, and validation rather than page
 count.
@@ -41,8 +41,8 @@ count.
 | XIV — templates | Teaches the template evaluator, values/types, methods, lists/lambdas, optionals, labels/styles, commit/operation/workspace contexts, JSON, aliases, debugging, and a daily log. | explored/reference-complete | Progressive template laboratory and stable-output exercises. | Complete for the captured public template surface. |
 | XV — CLI | Presents the complete 47-command/121-path 0.45.1 inventory with reader-facing semantics, syntax, options, cardinality, mutation/ref/workspace effects, traps, and cross-links. | reference-complete | Critical command dossiers plus generated inventory and local help capture. | Complete; validator checks path coverage, order, and totals. |
 | XVI — mechanics | Expands immutability, evolution, concurrency, `fix`, `run`, bisect, tags, signing, completion, maintenance, performance, debugging, and machine output. | explored | Automation/fixer/bisect/signing labs and non-interactive validation. | Complete within live-environment limits; hardware/server/TUI limits are recorded. |
-| XVII — workflows | Integrates branchless work, GitHub, Gerrit, rewrites, upstream movement, two remotes, machine handoff, workspaces, recovery, native Git, and revset-driven work. | explored | Eleven end-to-end narratives with state accounting and case studies. | Complete; each narrative links back to the language and command chapters. |
-| XVIII — fieldbooks | Provides practice curriculum, hosting/configuration/command references, edge cases, mechanics synthesis, and compact lookup material. | explored/reference-complete | Twenty graph-first labs and standalone appendix cards. | Complete as a consolidation section, not a replacement for the explanatory parts. |
+| XVII — workflows | Opens with a clearly labelled map, then develops branchless work, GitHub, Gerrit, rewrites, upstream movement, two remotes, machine handoff, workspaces, recovery, native Git, and revset-driven work as linked narratives. | explored | State-ledger method plus eleven workflow routes, before/after graphs, publication/review transitions, conflict and cleanup points. | Complete; the map points to the authoritative narratives and the narratives link back to semantic chapters. |
+| XVIII — fieldbooks | Provides role-labelled practice curriculum, hosting/configuration/command references, edge cases, mechanics synthesis, and compact lookup material. | explored/reference-complete | Twenty graph-first labs, topic-to-location map, and standalone appendix cards. | Complete as practice and lookup consolidation, not a competing teaching route. |
 
 ## Appendix and reference audit
 
