@@ -11,10 +11,13 @@ output.parent.mkdir(parents=True, exist_ok=True)
 
 
 class HeadingParser(HTMLParser):
-    """Collect the h2/h3 headings used for the PDF outline.
+    """Collect the curated h2/h3 headings used for the PDF outline.
 
-    The HTML remains the authored source. This parser only supplies the PDF's
-    navigational layer after xhtml2pdf has laid out the pages.
+    The HTML remains the authored source. Chapter headings marked
+    ``toc-entry`` form the curated sequence; selected reference h4 headings
+    remain PDF-bookmark destinations without being promoted into the printed
+    contents. This parser only supplies the PDF's navigational layer after
+    xhtml2pdf has laid out the pages.
     """
 
     def __init__(self):
@@ -24,8 +27,12 @@ class HeadingParser(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
+        selected_heading = (
+            tag in {"h2", "h3"}
+            and "toc-entry" in attrs.get("class", "").split()
+        )
         selected_h4 = tag == "h4" and "pdf-outline" in attrs.get("class", "").split()
-        if tag in {"h2", "h3"} or selected_h4:
+        if selected_heading or selected_h4:
             self.current = [int(tag[1]), attrs.get("id", ""), []]
 
     def handle_endtag(self, tag):

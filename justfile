@@ -24,6 +24,7 @@ html:
     ln -sfn src/book.html jj-book.html
     uv run --frozen python scripts/validate-html.py
     uv run --frozen python scripts/validate-structure.py
+    uv run --frozen python scripts/validate-toc-order.py
 
 pdf: sync html
     uv run --frozen python scripts/render-pdf.py

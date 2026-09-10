@@ -8,12 +8,12 @@ from pypdf import PdfReader
 ROOT = Path(__file__).resolve().parents[1]
 PDF = ROOT / "build" / "jj-book.pdf"
 OUTPUT = ROOT / "build" / "visual-inspection"
-FIXED_SAMPLE_PAGES = (1, 2, 3, 4, 109, 147, 313, 479, 492, 501)
+FIXED_SAMPLE_PAGES = (1, 2, 3, 4, 109, 147, 313, 450, 475, 487)
 HEADING_SAMPLES = (
     "Part XII — Workspaces and multiple machines",
     "Workspace laboratory: one store, several materialisations",
     "Part XIII — Configuration",
-    "Configuration laboratory: build a safe Linux configuration",
+    "Configuration laboratory: construct policy without losing the layers",
     "Configuration reference: the keys that shape daily behaviour",
 )
 
@@ -44,6 +44,9 @@ for needle in HEADING_SAMPLES:
 for page_number in sorted(sample_pages):
     if page_number > len(document):
         raise SystemExit(f"sample page {page_number} exceeds PDF length {len(document)}")
-    bitmap = document[page_number - 1].render(scale=1.0)
+    try:
+        bitmap = document[page_number - 1].render(scale=1.0)
+    except Exception as error:
+        raise SystemExit(f"could not render sample page {page_number}: {error}") from error
     bitmap.to_pil().save(OUTPUT / f"page-{page_number:03d}.png")
 print(f"Rendered {len(sample_pages)} independent PDFium samples in {OUTPUT}")

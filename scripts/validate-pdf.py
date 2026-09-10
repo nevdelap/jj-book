@@ -104,9 +104,9 @@ def outline_titles(items):
 
 outline_title_set = set(outline_titles(outline))
 for required_title in (
-    "Appendix D — Fileset grammar and consumer matrix",
-    "Appendix E — Template type and method map",
-    "Appendix F — Configuration reference by task",
+    "D.1 — Fileset grammar and consumer matrix",
+    "E.1 — Template type and method map",
+    "F.1 — Configuration reference by task",
 ):
     if required_title not in outline_title_set:
         raise SystemExit(f"PDF outline is missing required reference destination: {required_title}")
