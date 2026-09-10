@@ -28,8 +28,8 @@ The following pages are consulted and paraphrased rather than copied:
 * CLI reference — https://docs.jj-vcs.dev/latest/cli-reference/
 * Release notes — https://github.com/jj-vcs/jj/releases
 * Source repository and tests — https://github.com/jj-vcs/jj
-* Jujutsu software licence — https://github.com/jj-vcs/jj/blob/main/LICENSE
-* Jujutsu image licence — https://github.com/jj-vcs/jj/blob/main/docs/images/LICENSE
+* Jujutsu software licence — https://github.com/jj-vcs/jj/blob/v0.45.1/LICENSE
+* Jujutsu image licence — https://github.com/jj-vcs/jj/blob/v0.45.1/docs/images/LICENSE
 * Licensing ledger for this book — `research/licenses.md`
 
 ## Local evidence
@@ -45,3 +45,21 @@ Topics extracted include the DAG/working-copy model, Git comparison and compatib
 ## Version note
 
 The documentation site is a moving target and may describe the current main branch. The version matrix therefore takes precedence for release-specific claims. In particular, the book never uses an unlabelled command or option merely because it appears in `latest` docs.
+
+## Licence evidence consulted for the current distribution
+
+The following authoritative licence pages and installed-wheel licence files
+were checked on 2026-09-10 UTC. The package-by-package result, including the
+locked version and local evidence filename, is generated in
+`research/license-package-inventory.md`.
+
+* Jujutsu v0.45.1 source licence — https://github.com/jj-vcs/jj/blob/v0.45.1/LICENSE
+* Jujutsu v0.45.1 image licence — https://github.com/jj-vcs/jj/blob/v0.45.1/docs/images/LICENSE
+* Git source licence — https://github.com/git/git/blob/master/COPYING
+* Gerrit licence page — https://gerrit-review.googlesource.com/Documentation/licenses.html
+* Creative Commons Attribution 4.0 legal code — https://creativecommons.org/licenses/by/4.0/legalcode
+* xhtml2pdf v0.2.18 licence — https://github.com/xhtml2pdf/xhtml2pdf/blob/v0.2.18/LICENSE.txt
+* pypdf v6.1.3 licence — https://github.com/py-pdf/pypdf/blob/6.1.3/LICENSE
+* pypdfium2 v5.13.0 licensing documentation — https://github.com/pypdfium2-team/pypdfium2#licensing
+* Python tzdata 2026.3 licence — https://github.com/python/tzdata/blob/2026.3/LICENSE
+* PyPI package metadata and release files — https://pypi.org/

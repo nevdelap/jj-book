@@ -83,6 +83,7 @@ Generated: $(date -u +%F)
 * Depth audit: recorded in research/depth-audit.md
 * Expansion plan and completion record: recorded in research/expansion-plan.md
 * Current licensing/distribution register: recorded in research/licenses.md
+* Frozen build-environment package licence inventory: recorded in research/license-package-inventory.md
 * Template features: objects, methods, operators, conditionals, lists, labels, colours, aliases
 
 ## Validated

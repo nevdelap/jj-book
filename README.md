@@ -17,6 +17,7 @@ uv sync --locked     # install the pinned Python renderer/validator
 just build           # provision jj 0.45.1, inventory, validate, render PDF
 just pdf             # render src/book.html and create jj-book.pdf symlink
 just visual          # render independent PDFium samples for visual acceptance
+just license-inventory # regenerate the locked dependency licence register
 just test            # run fixture, HTML, and PDF semantic checks
 just review          # full test/report pass and symlink checks
 just clean           # remove generated PDFs, validation repos, and symlinks
@@ -29,7 +30,7 @@ The commands assume Linux, Bash, Git, Rust/Cargo, `just`, and `uv`. Network acce
 * `src/book.html` — single maintained manuscript source, authored as semantic HTML; `jj-book.html` is its symlink.
 * `jj-book.html` — convenience symlink to the authored HTML.
 * `build/jj-book.pdf` — canonical PDF generated from `src/book.html`; `jj-book.pdf` is its relative symlink.
-* `research/` — version matrix, inventories, source trail, licensing notes, and completeness report.
+* `research/` — version matrix, inventories, source trail, licensing registers, and completeness report.
 * `scripts/` — inventory, fixture validation, and rendering tools.
 * `fixtures/` — fixture documentation and names for disposable repositories created by validation scripts (ignored outputs are kept under `build/`).
 

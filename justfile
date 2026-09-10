@@ -14,6 +14,9 @@ setup:
 inventory: setup
     JJ_BIN="{{jj}}" bash scripts/inventory-cli.sh research/command-inventory.md
 
+license-inventory: sync
+    uv run --frozen python scripts/inventory-licenses.py
+
 sync:
     uv sync --locked
 
@@ -56,6 +59,7 @@ clean:
 validate: setup
     JJ_BIN="{{jj}}" bash scripts/validate-examples.sh
     JJ_BIN="{{jj}}" bash scripts/validate-cli-examples.sh
+    uv run --frozen python scripts/validate-licenses.py
     JJ_BIN="{{jj}}" bash scripts/validate-templates.sh
     JJ_BIN="{{jj}}" bash scripts/validate-revsets.sh
     JJ_BIN="{{jj}}" bash scripts/validate-workspaces.sh
@@ -64,5 +68,5 @@ validate: setup
     JJ_BIN="{{jj}}" bash scripts/validate-conflicts.sh
     JJ_BIN="{{jj}}" bash scripts/validate-git-backend.sh
 
-report: inventory
+report: inventory license-inventory
     bash scripts/write-completeness-report.sh

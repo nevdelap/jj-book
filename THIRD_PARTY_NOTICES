@@ -6,8 +6,8 @@ https://creativecommons.org/licenses/by/4.0/.
 
 The files under research/cli-help-*.txt, command-inventory*.md, and the
 versioned config/help captures are generated from the Jujutsu CLI and related
-documentation. Jujutsu is distributed under the Apache License 2.0:
-https://github.com/jj-vcs/jj/blob/main/LICENSE. The Apache 2.0 text is in
+documentation. Jujutsu 0.45.1 is distributed under the Apache License 2.0:
+https://github.com/jj-vcs/jj/blob/v0.45.1/LICENSE. The Apache 2.0 text is in
 LICENSES/Apache-2.0.txt. These captures are included for reproducibility and
 are not part of the book's original prose.
 
@@ -16,8 +16,11 @@ are embedded in the authored HTML or generated PDF. External documentation is
 referenced and paraphrased; source URLs and licensing decisions are recorded
 in research/sources.md and research/licenses.md.
 
-The optional independent PDF acceptance renderer uses pypdfium2==5.13.0 and
-its bundled PDFium engine through the locked uv environment. It produces only
-ignored build-time PNG samples and is not embedded in the book or PDF. Consult
-the package's BSD/Apache and dependent licence notices when redistributing the
-build environment.
+The pinned PDF build and independent acceptance renderer use the packages in
+`uv.lock`. They produce the PDF and ignored build-time PNG samples, but no
+package source, runtime library, bundled font, or PDFium engine is embedded in
+the book or PDF. The complete per-package version, source, licence evidence,
+attribution/modification/redistribution obligations, and inclusion status are
+in `research/license-package-inventory.md`. If the build environment is
+redistributed, retain the licence files and notices shipped by those packages,
+including PDFium's dependency notices.
