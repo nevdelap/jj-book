@@ -1,6 +1,6 @@
 # Completeness report
 
-Generated: 2026-09-10
+Generated: 2026-09-11
 
 ## Targets
 
@@ -17,7 +17,8 @@ Generated: 2026-09-10
 * Substantive authored-book words (approximate, excludes pre/script/style): 100734
 * Expansion design target: 100,000–130,000 substantive words / approximately 450–600 Kindle-Scribe pages
 * Rendered PDF pages: 496 (7.5 × 10 inch portrait; see build/jj-book.pdf.sha256)
-* Rendered PDF SHA-256: 76f78e269446d74417d6e49dddbd1a86cd9145a08b929281ebd2e05bd68084e0
+* Rendered PDF SHA-256: eeb280bba40c04423c51efdec2c629fbbfe48f1e5fa1809e9069515ede547157
+* PDF build timestamp: 2026-09-11T00:49:43Z (embedded in PDF metadata and the printed cover)
 * Printed contents span: 3 page(s) before the substantive preface; PDF outline entries: 70
 * Revset operators: documented in research/revset-inventory.md and the raw help snapshot
 * Revset function names: 63 extracted help entries; grouped prose is in the HTML
@@ -45,6 +46,7 @@ Generated: 2026-09-10
 * canonical jj 0.45.1 command-path coverage, including converge
 * generated HTML exists and contains the Kindle Scribe print profile
 * generated PDF contains page-number footers, individually listed Appendix A–K contents entries, and reader outline bookmarks
+* PDF build timestamp matches research/build-timestamp.txt and is present in the printed cover and metadata
 * generated PDF contains no source box-drawing glyphs or extracted missing-glyph substitutions; contents and outline are checked independently
 * deterministic PDF rendering: the just pdf-repro recipe produced byte-identical repeated renders under the locked environment
 * generated PDF isolates the printed contents from the preface and keeps representative major headings with following body material

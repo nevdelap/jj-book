@@ -16,6 +16,12 @@ metadata = reader.metadata or {}
 for key in ("/Title", "/Author", "/Subject", "/Keywords"):
     if not str(metadata.get(key, "")).strip():
         raise SystemExit(f"PDF metadata field is missing: {key}")
+expected_build_timestamp = (ROOT / "research" / "build-timestamp.txt").read_text(encoding="utf-8").strip()
+if str(metadata.get("/BuildTimestamp", "")) != expected_build_timestamp:
+    raise SystemExit(
+        "PDF build timestamp does not match research/build-timestamp.txt: "
+        f"{metadata.get('/BuildTimestamp', '')!r} != {expected_build_timestamp!r}"
+    )
 pages = len(reader.pages)
 if pages < 10:
     raise SystemExit(f"unexpectedly short PDF: {pages} pages")

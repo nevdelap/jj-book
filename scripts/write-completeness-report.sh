@@ -7,6 +7,7 @@ top=$(awk 'BEGIN{done=0} /^===== jj help  =====/{p=1;next} p&&/^Commands:/{c=1;n
 paths=$(grep -c '^| jj ' "$ROOT/research/command-inventory.md")
 functions=$(grep -oE '\* `[a-z_]+\(' "$ROOT/research/help-revsets-$V.md" | sort -u | wc -l || true)
 fileset_functions=$(grep -oE '\* `[a-z-]+\(' "$ROOT/research/help-filesets-$V.md" | sort -u | wc -l || true)
+build_timestamp=$(tr -d '\r\n' < "$ROOT/research/build-timestamp.txt")
 command_entries=$(grep -c '<article class="command-entry"' "$ROOT/src/book.html" || true)
 canonical_entries=$paths
 pdf_pages=$(if test -f "$ROOT/build/jj-book.pdf"; then uv run --frozen python -c 'from pypdf import PdfReader; print(len(PdfReader("build/jj-book.pdf").pages))'; else echo not-built; fi)
@@ -73,6 +74,7 @@ Generated: $(date -u +%F)
 * Expansion design target: 100,000–130,000 substantive words / approximately 450–600 Kindle-Scribe pages
 * Rendered PDF pages: $pdf_pages (7.5 × 10 inch portrait; see build/jj-book.pdf.sha256)
 * Rendered PDF SHA-256: $pdf_sha256
+* PDF build timestamp: $build_timestamp (embedded in PDF metadata and the printed cover)
 * Printed contents span: $toc_pages page(s) before the substantive preface; PDF outline entries: $outline_entries
 * Revset operators: documented in research/revset-inventory.md and the raw help snapshot
 * Revset function names: $functions extracted help entries; grouped prose is in the HTML
@@ -100,6 +102,7 @@ Generated: $(date -u +%F)
 * canonical jj 0.45.1 command-path coverage, including converge
 * generated HTML exists and contains the Kindle Scribe print profile
 * generated PDF contains page-number footers, individually listed Appendix A–K contents entries, and reader outline bookmarks
+* PDF build timestamp matches research/build-timestamp.txt and is present in the printed cover and metadata
 * generated PDF contains no source box-drawing glyphs or extracted missing-glyph substitutions; contents and outline are checked independently
 * deterministic PDF rendering: the just pdf-repro recipe produced byte-identical repeated renders under the locked environment
 * generated PDF isolates the printed contents from the preface and keeps representative major headings with following body material

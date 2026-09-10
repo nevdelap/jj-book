@@ -1,6 +1,6 @@
 # Depth audit — jj 0.45.1 edition
 
-Audit date: 2026-09-10 UTC. Target: jj 0.45.1 only. This is a depth and
+Audit date: 2026-09-11 UTC. Target: jj 0.45.1 only. This is a depth and
 coverage record for the current book, not a historical 0.44.0 record.
 
 ## Method

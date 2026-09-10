@@ -15,6 +15,13 @@ ROOT = Path(__file__).resolve().parents[1]
 source = ROOT / "src" / "book.html"
 output = ROOT / "build" / "jj-book.pdf"
 output.parent.mkdir(parents=True, exist_ok=True)
+build_timestamp = (ROOT / "research" / "build-timestamp.txt").read_text(encoding="utf-8").strip()
+if not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", build_timestamp):
+    raise SystemExit(
+        "research/build-timestamp.txt must contain an ISO-8601 UTC timestamp "
+        "such as 2026-09-11T00:49:43Z"
+    )
+pdf_timestamp = "D:" + build_timestamp[:19].replace("-", "").replace(":", "").replace("T", "") + "Z"
 
 
 class HeadingParser(HTMLParser):
@@ -124,6 +131,9 @@ writer.add_metadata({
     "/Author": "Jujutsu for Git Experts project",
     "/Subject": "Advanced jj reference for Git experts",
     "/Keywords": "jj, jujutsu, Git, revsets, filesets, templates",
+    "/BuildTimestamp": build_timestamp,
+    "/CreationDate": pdf_timestamp,
+    "/ModDate": pdf_timestamp,
 })
 with output.open("wb") as stream:
     writer.write(stream)
