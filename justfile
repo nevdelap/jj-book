@@ -1,26 +1,18 @@
 set shell := ["env", "BASH_ENV=/dev/null", "bash", "-euc"]
 
 root := justfile_directory()
-jj044 := root / ".toolchain/bin/jj"
-jj045 := root / ".toolchain/jj-0.45/bin/jj"
+jj := root / ".toolchain/bin/jj"
 
 default: all
 
 all: build test review
 
 setup:
-    test -x "{{jj044}}" || cargo install --locked jj-cli --version 0.44.0 --root "{{root}}/.toolchain"
-    test "$("{{jj044}}" version)" = "jj 0.44.0"
-
-setup-045:
-    test -x "{{jj045}}" || cargo install --locked jj-cli --version 0.45.1 --root "{{root}}/.toolchain/jj-0.45"
-    test "$("{{jj045}}" version)" = "jj 0.45.1"
+    if ! test -x "{{jj}}" || ! test "$("{{jj}}" version)" = "jj 0.45.1"; then cargo install --locked jj-cli --version 0.45.1 --root "{{root}}/.toolchain"; fi
+    test "$("{{jj}}" version)" = "jj 0.45.1"
 
 inventory: setup
-    JJ_BIN="{{jj044}}" bash scripts/inventory-cli.sh research/command-inventory.md
-
-compare-045: setup-045
-    JJ_BIN="{{jj045}}" bash scripts/inventory-cli.sh research/command-inventory-0.45.md
+    JJ_BIN="{{jj}}" bash scripts/inventory-cli.sh research/command-inventory.md
 
 sync:
     uv sync --locked
@@ -44,7 +36,7 @@ pdf-check: sync
 visual: pdf
     uv run --frozen python scripts/render-visual-samples.py
 
-build: setup inventory compare-045 pdf
+build: setup inventory pdf
 
 html-check: html
 
@@ -62,14 +54,14 @@ clean:
     rm -f jj-book.pdf jj-book.html
 
 validate: setup
-    JJ_BIN="{{jj044}}" bash scripts/validate-examples.sh
-    JJ_BIN="{{jj044}}" bash scripts/validate-templates.sh
-    JJ_BIN="{{jj044}}" bash scripts/validate-revsets.sh
-    JJ_BIN="{{jj044}}" bash scripts/validate-workspaces.sh
-    JJ_BIN="{{jj044}}" bash scripts/validate-semantics.sh
-    JJ_BIN="{{jj044}}" bash scripts/validate-sparse.sh
-    JJ_BIN="{{jj044}}" bash scripts/validate-conflicts.sh
-    JJ_BIN="{{jj044}}" bash scripts/validate-git-backend.sh
+    JJ_BIN="{{jj}}" bash scripts/validate-examples.sh
+    JJ_BIN="{{jj}}" bash scripts/validate-templates.sh
+    JJ_BIN="{{jj}}" bash scripts/validate-revsets.sh
+    JJ_BIN="{{jj}}" bash scripts/validate-workspaces.sh
+    JJ_BIN="{{jj}}" bash scripts/validate-semantics.sh
+    JJ_BIN="{{jj}}" bash scripts/validate-sparse.sh
+    JJ_BIN="{{jj}}" bash scripts/validate-conflicts.sh
+    JJ_BIN="{{jj}}" bash scripts/validate-git-backend.sh
 
-report: inventory compare-045
+report: inventory
     bash scripts/write-completeness-report.sh

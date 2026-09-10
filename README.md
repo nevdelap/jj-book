@@ -4,7 +4,7 @@ This repository contains the source and rendered HTML for the book **Jujutsu for
 
 ## Version policy
 
-The primary validation target is **jj 0.44.0**, matching the NixOS package available to the author. The book also has a separately marked **jj 0.45.x** track. Examples and reference tables never silently combine those surfaces; each version-sensitive statement is labelled `0.44 baseline`, `0.45.x`, or `both`.
+The validation target is **jj 0.45.1**. This edition no longer maintains a 0.44.0 comparison track: examples, inventories, fixtures, and reference tables are generated and checked against the 0.45.1 binary.
 
 The local validation binary is installed at `.toolchain/bin/jj` by the `justfile`. The build date and Git version are recorded in `research/version-matrix.md`.
 
@@ -14,7 +14,7 @@ The deliverable is `jj-book.html` at the project root, symlinked to the first-cl
 
 ```sh
 uv sync --locked     # install the pinned Python renderer/validator
-just build           # provision both jj tracks, inventory, validate, render PDF
+just build           # provision jj 0.45.1, inventory, validate, render PDF
 just pdf             # render src/book.html and create jj-book.pdf symlink
 just visual          # render independent PDFium samples for visual acceptance
 just test            # run fixture, HTML, and PDF semantic checks
@@ -22,7 +22,7 @@ just review          # full test/report pass and symlink checks
 just clean           # remove generated PDFs, validation repos, and symlinks
 ```
 
-The commands assume Linux, Bash, Git, Rust/Cargo, `just`, and `uv`. Network access is needed only for the initial pinned jj installations and dependency resolution. The renderer environment is declared by `pyproject.toml` and locked by `uv.lock` (Python ≥3.12, `xhtml2pdf==0.2.18`, `pypdf==6.1.3`, `pypdfium2==5.13.0`, and `tzdata==2026.3`). The primary and comparison binaries are provisioned by `just setup` and `just setup-045`, then kept at `.toolchain/bin/jj` and `.toolchain/jj-0.45/bin/jj`; both recipes assert the expected version, so the normal interface does not use an ambient `jj` from `PATH`. Their versions and SHA-256 values are recorded by `just report` in `research/toolchain-checksums.md`. `JJ_BIN=/path/to/jj just validate` can be used for a separately installed primary binary.
+The commands assume Linux, Bash, Git, Rust/Cargo, `just`, and `uv`. Network access is needed only for the initial pinned jj installation and dependency resolution. The renderer environment is declared by `pyproject.toml` and locked by `uv.lock` (Python ≥3.12, `xhtml2pdf==0.2.18`, `pypdf==6.1.3`, `pypdfium2==5.13.0`, and `tzdata==2026.3`). `just setup` provisions and verifies jj 0.45.1 at `.toolchain/bin/jj`; the normal interface does not use an ambient `jj` from `PATH`. Its version and SHA-256 value are recorded by `just report` in `research/toolchain-checksums.md`. `JJ_BIN=/path/to/jj just validate` can be used for a separately installed binary.
 
 ## Layout
 

@@ -1,6 +1,6 @@
-# Command inventory — jj 0.44.0
+# Command inventory — jj 0.45.1
 
-Generated from /workspace/.toolchain/bin/jj on 2026-09-06. Raw help is in cli-help-0.44.0.txt.
+Generated from /workspace/.toolchain/bin/jj on 2026-09-06. Raw help is in cli-help-0.45.1.txt.
 
 | Command path | Dedicated help captured |
 |---|---|
@@ -11,6 +11,7 @@ Generated from /workspace/.toolchain/bin/jj on 2026-09-06. Raw help is in cli-he
 | jj bookmark | yes |
 | jj commit | yes |
 | jj config | yes |
+| jj converge | yes |
 | jj describe | yes |
 | jj diff | yes |
 | jj diffedit | yes |
@@ -127,4 +128,4 @@ Generated from /workspace/.toolchain/bin/jj on 2026-09-06. Raw help is in cli-he
 
 ## Captured command paths
 
-120 command paths (including nested paths).
+121 command paths (including nested paths).

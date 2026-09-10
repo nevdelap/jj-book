@@ -11,10 +11,9 @@ headings = set(re.findall(r"<h4[^>]*><code>(jj [^<]+)</code>", text))
 missing = sorted(expected - headings)
 if missing:
     raise SystemExit("canonical command entries missing: " + ", ".join(missing))
-converge = re.search(r"<h4[^>]*><code>jj converge</code>.*?0\.45\.x", text, re.S)
-if not converge:
-    raise SystemExit("0.45.x converge entry is not explicitly version-labelled")
-print(f"CLI reference valid: {len(expected)} canonical 0.44 paths; 0.45-only converge labelled")
+if "<code>jj converge</code>" not in text:
+    raise SystemExit("jj converge entry is missing")
+print(f"CLI reference valid: {len(expected)} canonical jj 0.45.1 paths")
 
 start = text.index('<h3 id="cli-command-reference-alphabetical">')
 end = text.index('<h3 id="cli-global-detail">', start)

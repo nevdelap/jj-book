@@ -1,16 +1,15 @@
 # Version matrix
 
-Build date: 2026-09-06 (UTC)
+Build date: 2026-09-10 (UTC)
 
 ## Targets
 
 | Track | Version | Role | Evidence |
 |---|---:|---|---|
-| NixOS/user baseline | 0.44.0 | normative installed-release surface | `cargo install --locked jj-cli --version 0.44.0`; `jj version` after installation |
-| newer stable | 0.45.1 | comparison track requested by user; released two days before this work | crates.io package metadata and separately installed CLI/help snapshot |
+| installed/book target | 0.45.1 | sole normative release surface | `jj version`, recursive local help, fixture validation |
 | official main/prerelease | current at research time | notes only; never normative | official docs/release pages, where identifiable |
 
-The host did not initially have a `jj` executable on `PATH`. For reproducibility, the project installs 0.44.0 under `.toolchain/bin/jj`; this is the binary used for the primary inventories and fixtures. A 0.45.1 binary is kept separately under `.toolchain/jj-0.45/bin/jj`.
+The project provisions jj 0.45.1 under `.toolchain/bin/jj`. Historical captures from earlier review rounds may remain in the research directory as provenance, but they are not an active compatibility track.
 
 ## Backend/tooling
 
@@ -21,7 +20,7 @@ The host did not initially have a `jj` executable on `PATH`. For reproducibility
 
 ## Version discipline
 
-0.44.0 is the default in examples unless a callout says otherwise. A feature is labelled `0.45.x` only after it is present in the separately captured 0.45.x help/source/docs. If official current documentation describes a feature absent in both targets, it is placed in a clearly marked forward-looking note or omitted.
+The prose and examples describe jj 0.45.1. Current-main documentation can move ahead of the target release; it is useful for finding future direction, but it is not evidence that a 0.45.1 command accepts a newer option. Future features are mentioned only when clearly marked as forward-looking notes.
 
 ## Detecting drift
 
@@ -30,7 +29,8 @@ Run:
 ```sh
 jj version
 jj help
+just setup
 just inventory
 ```
 
-Then compare `research/command-inventory.md`, `research/command-inventory-0.45.md`, and `research/discrepancies.md`. The validation scripts intentionally fail closed when a required command or option disappears.
+Then review the regenerated `research/command-inventory.md`, versioned help captures, schema, and `research/completeness-report.md`. The validation scripts intentionally fail closed when a required target command or option disappears.

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # This is deliberately a small black-box experiment rather than a prose-only
-# assertion. It documents the 0.44 Git-backend boundary that is easy to miss:
+# assertion. It documents the jj 0.45.1 Git-backend boundary that is easy to miss:
 # a jj snapshot is already a Git object, but need not be reachable from Git's
 # ordinary HEAD/branch refs.
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
@@ -88,4 +88,4 @@ test -d "$EXTERNAL_DEST/.jj"
 test "$("$J" -R "$EXTERNAL_DEST" git root)" = "$EXTERNAL_BACKING/.git"
 git --git-dir="$EXTERNAL_BACKING/.git" show-ref >/dev/null
 
-echo "Git backend validation valid: jj 0.44 snapshot object=$JJ_COMMIT; HEAD=$HEAD_COMMIT; change-id header present; colocated export and non-colocated layout verified"
+echo "Git backend validation valid: jj 0.45.1 snapshot object=$JJ_COMMIT; HEAD=$HEAD_COMMIT; change-id header present; colocated export and non-colocated layout verified"
