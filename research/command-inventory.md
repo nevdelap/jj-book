@@ -1,6 +1,6 @@
 # Command inventory — jj 0.45.1
 
-Generated from /workspace/.toolchain/bin/jj on 2026-09-06. Raw help is in cli-help-0.45.1.txt.
+Generated from /workspace/.toolchain/bin/jj on 2026-09-10 UTC. Raw help is in cli-help-0.45.1.txt.
 
 | Command path | Dedicated help captured |
 |---|---|

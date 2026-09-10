@@ -80,6 +80,9 @@ Generated: $(date -u +%F)
 * Config commands: edit, gc, get, list, path, set, unset
 * Config schema: captured as research/config-schema-0.45.1.json with jj util config-schema
 * Pinned binary checksums: recorded in research/toolchain-checksums.md
+* Depth audit: recorded in research/depth-audit.md
+* Expansion plan and completion record: recorded in research/expansion-plan.md
+* Current licensing/distribution register: recorded in research/licenses.md
 * Template features: objects, methods, operators, conditionals, lists, labels, colours, aliases
 
 ## Validated
@@ -112,6 +115,7 @@ Generated: $(date -u +%F)
 ## Known ambiguities and exclusions
 
 * Current-main documentation can move ahead of the target release; local jj 0.45.1 help takes precedence.
+* This edition intentionally targets jj 0.45.1 as its sole normative release, following the project owner's current requirement. Obsolete pre-0.45.1 records are not mixed into the release.
 * Future-release features are not silently treated as jj 0.45.1 behaviour; rerun the inventory after upgrades.
 * Third-party logos, screenshots, copied documentation passages, fonts, and JavaScript libraries are deliberately excluded. Licensing decisions are in research/licenses.md and research/book-license.md; Apache-2.0.txt is bundled for generated Jujutsu-derived help material.
 * PDF generation is performed by the pinned xhtml2pdf/pypdf pipeline from src/book.html; the HTML has a 7.5 × 10 inch portrait @page profile matching Kindle Scribe's 3:4 display ratio. The PDF is text-checked and its page box/metadata are validated; independent PDFium samples are rendered by the visual recipe and inspected as recorded in research/print-acceptance.md.

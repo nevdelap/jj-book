@@ -55,6 +55,7 @@ clean:
 
 validate: setup
     JJ_BIN="{{jj}}" bash scripts/validate-examples.sh
+    JJ_BIN="{{jj}}" bash scripts/validate-cli-examples.sh
     JJ_BIN="{{jj}}" bash scripts/validate-templates.sh
     JJ_BIN="{{jj}}" bash scripts/validate-revsets.sh
     JJ_BIN="{{jj}}" bash scripts/validate-workspaces.sh

@@ -1774,7 +1774,7 @@ paths='root-glob:src/**/*.rs ~ root-glob:src/**/generated/**'
 jj file list "$paths"
 jj diff -r @ "$paths"
 # Only after review:
-jj fix -r 'mutable() &amp; ::@' "$paths"</pre>
+jj fix -s 'mutable() &amp; ::@' -- "$paths"</pre>
 <p>If a command does not consume a fileset in the installed release, do not emulate it by passing paths after a revset. Some commands treat extra arguments as commits, options, or errors. The reference entry should be consulted for the command’s grammar, while this chapter supplies the language model needed to reason about selections.</p>
 
 <section id="fileset-semantics-lab">
@@ -4138,7 +4138,7 @@ refs = 'separate(" ", bookmarks, remote_bookmarks, tags)'
 </section>
 <section id="part14">
 <h2 class="toc-entry" id="part-xiv-exhaustive-cli-reference-for-jj-0-45-1">Part XV — Exhaustive CLI reference for jj 0.45.1</h2>
-<p>The local binary reports 46 top-level commands and 120 public command paths including subcommands. This section is the reader-facing reference: it presents the important syntax, options, cardinality, state effects, and traps. The complete raw help capture in <code>research/cli-help-0.45.1.txt</code> and generated inventory in <code>research/command-inventory.md</code> remain reproducibility evidence, not a substitute for these entries.</p>
+<p>The local jj 0.45.1 binary reports 47 top-level commands and 121 public command paths including subcommands. This section is the reader-facing reference: it presents the important syntax, options, cardinality, state effects, and traps. The complete raw help capture in <code>research/cli-help-0.45.1.txt</code> and generated inventory in <code>research/command-inventory.md</code> remain reproducibility evidence, not a substitute for these entries.</p>
 <h3 id="top-level-commands">Top-level commands</h3>
 <table><thead><tr><th>Family</th><th>Commands</th><th>Mutation/notes</th></tr></thead><tbody>
 <tr><td>History</td><td><code>abandon absorb arrange bisect commit describe diffedit duplicate edit interdiff metaedit new parallelize prev next rebase restore revert run show simplify-parents split squash</code></td><td>Most snapshot first; rewrite effects propagate to descendants.</td></tr>
@@ -5370,10 +5370,10 @@ GIT_DIR=$(jj git root) git show-ref</pre>
 <h2 class="toc-entry" id="part-xv-advanced-mechanics">Part XVI — Advanced mechanics</h2>
 <h3 id="immutability-and-safety-boundaries">Immutability and safety boundaries</h3><p>Configure immutable heads to protect imported/public history. The check applies to rewrites; the revset/template notions of immutable state remain observable even with <code>--ignore-immutable</code>. Hidden commits and divergent change IDs are useful forensic states, not garbage to delete reflexively.</p>
 <h3 id="evolution-concurrency-and-operation-merging">Evolution, concurrency, and operation merging</h3><p>Run concurrent read commands with a clear snapshot policy. <code>--no-integrate-operation</code> lets automation create an operation without changing the integrated operation head; it does not suppress side effects such as a network push. Inspect and integrate deliberately.</p>
-<h3 id="jj-fix-and-jj-run"><code>jj fix</code> and <code>jj run</code></h3><p>Fix tools are configured programs that transform files. <code>jj fix</code> can operate over a commit set and may rewrite a stack. In 0.43, <code>jj run</code> gained private working copies for each selected change, allowing checks or formatters to update changes and propagate conflicts. Treat command exit status and operation boundaries as part of your automation contract.</p>
+<h3 id="jj-fix-and-jj-run"><code>jj fix</code> and <code>jj run</code></h3><p>Fix tools are configured programs that transform files. <code>jj fix</code> can operate over a commit set and may rewrite a stack. In jj 0.45.1, <code>jj run</code> uses private working copies for selected commits, allowing checks or formatters to update changes and propagate conflicts. Treat command exit status and operation boundaries as part of your automation contract.</p>
 <pre>jj run -r 'stack(@)' -- cargo test
 jj run -r 'mutable() &amp; description(substring:"API")' -- cargo fix
-jj fix -r 'mutable()'</pre>
+jj fix -s 'mutable()'</pre>
 <h3 id="bisect-tags-signing-completion-and-maintenance">Bisect, tags, signing, completion, and maintenance</h3><p><code>jj bisect run</code> automates commit bisection; tags provide stable release names; <code>jj sign</code>/<code>unsign</code> manage supported cryptographic metadata; <code>jj util completion</code> generates shell completion. Use <code>jj util gc</code> and backend maintenance only after understanding operation/recovery retention. In large repositories, narrow revsets, use immutable remote boundaries, avoid rendering enormous diffs, and use <code>--ignore-working-copy</code> for stable monitoring reads.</p>
 <h3 id="machine-readable-output">Machine-readable output</h3><p>Templates plus <code>--color never</code>, explicit separators, and a controlled revset are the most portable interface. Do not parse the human graph glyphs. Pin aliases and templates in a versioned config, and run the inventory/fixture checks after upgrading.</p>
 </section>
@@ -5464,10 +5464,10 @@ A′--B′--C′--@′    if each fixer result is clean
        or
 A′--B′[conflict]--C′[conflict]--@′</pre>
 <p>Fixers should be idempotent: running them twice should produce no new content after the first successful run. They should preserve files outside their patterns, return a meaningful exit status, and not depend on the user’s editor or network. A tool that rewrites generated files or line endings must be explicitly scoped. Run it on one commit in a fixture before applying it to <code>mutable()</code>.</p>
-<pre>jj fix -r @
+<pre>jj fix -s @
 jj diff -r @
 jj op show
-jj fix -r 'mutable() &amp; ::@' -- 'root-glob:src/**/*.rs'
+jj fix -s 'mutable() &amp; ::@' -- 'root-glob:src/**/*.rs'
 jj log -r '::@ &amp; conflicts()'</pre>
 <p>The exact fixer table belongs in configuration and the command’s accepted fileset form is version-sensitive. The invariant is independent: select commits first, select paths second, run a deterministic tool, then inspect the full evolved stack.</p>
 
@@ -5592,8 +5592,8 @@ jj tag delete v2.4.0
 <pre>jj file list -r @ 'root-glob:src/**'
 jj file show -r @ 'root-file:src/parser.rs'
 jj file annotate -r @ 'root-file:src/parser.rs'
-jj file search -r '::@' 'root-glob:src/**' 'TODO'
-jj file chmod +x 'root-file:scripts/check.sh'
+jj file search -r @ --pattern 'TODO' -- 'root-glob:src/**'
+jj file chmod x -- 'root-file:scripts/check.sh'
 jj file track 'root-glob:generated/**'
 jj file untrack 'root-glob:tmp/**'
 </pre>
@@ -5655,16 +5655,15 @@ jj run --passthrough -r @ -- ./interactive-check.sh</pre>
 <p>Parallel execution requires test isolation. A test that writes to a shared cache, local database, or fixed temporary filename can make a graph query appear nondeterministic. Pin environment variables, use per-commit temporary directories, and record the selected commit in output. If the command is intended to rewrite commits, run one small fixture first and inspect its operation/evolution results.</p>
 <h4 id="advanced-fixers-as-rewriters">Fixers are graph rewriters</h4>
 <p><code>jj fix</code> applies configured fixer tools to selected commits and paths. A formatter is not automatically a safe no-op: line-ending changes, generated output, executable bits, and tool version changes alter commit trees and therefore commit IDs. A fixer that runs over an ancestor can trigger automatic descendant rebasing. Treat fixer configuration as both a tool policy and a graph-selection policy.</p>
-<pre>jj fix -r 'mutable() &amp; ::@ &amp; ~conflicts()' -- 'root-glob:src/**/*.rs'
+<pre>jj fix -s 'mutable() &amp; ::@ &amp; ~conflicts()' -- 'root-glob:src/**/*.rs'
 jj log -r '::@' -T 'change_id.short() ++ " " ++ commit_id.short() ++ "\n"'
 jj op show -p</pre>
 <p>Test a fixer in four states: unchanged input should produce no successor or a clearly explained no-op; changed input should have the expected paths; a conflict should be skipped or handled according to policy; and a sparse workspace should not silently imply that absent paths were checked. Keep generated files out of a source formatter unless the generator is part of the intended operation.</p>
 <h4 id="advanced-bisect-as-graph-search">Bisect as graph search</h4>
 <p>Bisect narrows a commit set using a predicate supplied by the user or a script. The script's exit status is the test contract, so distinguish “known good”, “known bad”, and “infrastructure failure” in the script. A flaky or environment-dependent test can produce a plausible but wrong boundary. Keep the bisection range explicit and save the discovered commit before leaving the temporary checkout.</p>
-<pre>jj bisect --range 'main@origin..@'
-jj bisect run --range 'main@origin..@' -- ./test-regression.sh
+<pre>jj bisect run --range 'main@origin..@' -- ./test-regression.sh
 jj show REVISION</pre>
-<p>A bisect result is not a patch to publish. It is evidence about graph history. If it identifies an ancestor that has since been rewritten, use change/evolution information to locate the current successor and verify the test at that object.</p>
+<p>There is no separate <code>jj bisect log</code> or <code>jj bisect reset</code> command in jj 0.45.1. Inspect the candidate with ordinary <code>jj log -r 'bisect(@)'</code> or <code>jj show -r 'bisect(@)'</code>, and use <code>jj op log</code>/<code>jj undo</code> when you need to inspect or recover the operation sequence. A bisect result is not a patch to publish: it is evidence about graph history. If it identifies an ancestor that has since been rewritten, use change/evolution information to locate the current successor and verify the test at that object.</p>
 <h4 id="advanced-signing-and-verification">Signing and verification</h4>
 <p>Signing rewrites commit metadata and can therefore create successor commit IDs. It does not make a change immutable, publish it, or establish a Gerrit review identity. Verification status is a property of a cryptographic signature and key environment; a template can display it, but a successful local signing command does not prove that a remote host will trust the key.</p>
 <pre>jj sign -r 'bookmarks() &amp; mutable()'
@@ -6597,13 +6596,13 @@ jj config get 'revset-aliases."immutable_heads()"'</pre>
 jj log -r "$domain" -T 'commit_id.short() ++ " " ++ description.first_line() ++ "\n"'
 jj run -r "$domain" -- cargo test
 jj op show</pre>
-<p>Run a read-only or dry-run mode when available, but do not treat it as proof that a later mutable invocation will select the same set. The graph can change between commands. A fixer that formats a line in an ancestor causes descendant successors; a shell test that merely checks out a commit and exits does not necessarily create a jj rewrite. Inspect both the operation log and the filesystem after the command.</p>
+<p>Use a read-only or dry-run mode only when the particular command provides one; <code>jj fix</code> in jj 0.45.1 does not provide <code>--dry-run</code>. For a fixer, use a narrow source/fileset selection, inspect the resulting operation with <code>jj op show -p</code>, and use <code>jj undo</code> if the result is not wanted. Do not treat a preview as proof that a later mutable invocation will select the same set. The graph can change between commands. A fixer that formats a line in an ancestor causes descendant successors; a shell test that merely checks out a commit and exits does not necessarily create a jj rewrite. Inspect both the operation log and the filesystem after the command.</p>
 
 <h3 id="dossier-bisect">Dossier: <code>jj bisect</code></h3>
 <p>Bisect is a graph search over a set of commits using a user-supplied predicate. It assumes that the predicate changes monotonically along the chosen history in the sense required by the command. A merge graph can violate that assumption: a bad side branch merged into a good mainline does not create a single total order. Choose a first-parent or explicitly linear domain when that is what the test represents.</p>
-<pre>jj bisect run --revision 'main@origin..@' -- cargo test -- package::regression
-jj bisect log
-jj bisect reset</pre>
+<pre>jj bisect run --range 'main@origin..@' -- cargo test -- package::regression
+jj log -r 'bisect(@)'
+jj show -r 'bisect(@)'</pre>
 <p>Record the test command, environment, generated files, and return-code convention. A flaky test makes the result a statement about noise, not about a commit. After bisect, inspect the selected commit and compare its parents; a graph boundary discovered by the command is not automatically a bookmark or a new change. Reset or abandon bisect state according to the target command's documented lifecycle.</p>
 
 <h3 id="dossier-tags-signing">Dossier: tags and signing</h3>
@@ -8094,7 +8093,7 @@ jj diff -r @ -- "$paths"</pre>
 <tr><td>Git transport</td><td><code>git.fetch</code>, <code>git.push</code>, <code>git.private-commits</code>, remotes</td><td><code>jj git remote list</code></td><td>Credentials remain Git/host configuration.</td></tr>
 <tr><td>Gerrit</td><td><code>gerrit.default-remote</code>, <code>gerrit.default-remote-branch</code>, <code>gerrit.review-url</code></td><td><code>jj config get gerrit.default-remote</code></td><td>Dedicated defaults are documented in jj 0.45.1; pass flags explicitly in mixed-remote repositories.</td></tr>
 <tr><td>Filesystem snapshots</td><td><code>snapshot.auto-track</code>, <code>snapshot.auto-update-stale</code>, <code>snapshot.max-new-file-size</code>, working-copy EOL/exec-bit keys</td><td><code>jj status</code></td><td>Changing snapshot policy can alter what a future operation records.</td></tr>
-<tr><td>Fixers</td><td><code>fix.tools.*</code>, <code>fix</code> defaults</td><td><code>jj fix -r @ --dry-run</code> where supported</td><td>Tool argument support and dry-run availability are version/tool dependent.</td></tr>
+<tr><td>Fixers</td><td><code>fix.tools.*</code>, <code>fix</code> defaults</td><td>Use a narrow <code>jj fix -s REVSET -- FILESET</code> trial, then inspect <code>jj op show -p</code> and use <code>jj undo</code> if needed.</td><td>jj 0.45.1 has no <code>--dry-run</code> option for <code>fix</code>; tool support and scope remain policy-dependent.</td></tr>
 <tr><td>Signing</td><td><code>signing.backend</code>, <code>signing.key</code>, <code>signing.behavior</code>, <code>git.sign-on-push</code></td><td><code>jj config list</code> with secrets redacted</td><td>Key agents and server trust are external.</td></tr>
 <tr><td>Conditionals</td><td><code>--when.repositories</code>, hostnames, workspaces, commands, platforms, environments</td><td><code>jj config path</code></td><td>Use the installed schema for the exact table shape.</td></tr>
 </tbody></table>

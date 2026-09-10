@@ -33,7 +33,7 @@ while ((${#queue[@]})); do
 done
 {
   printf '# Command inventory — jj %s\n\n' "$VERSION"
-  printf 'Generated from %s on 2026-09-06. Raw help is in %s.\n\n' "$J" "$(basename "$SNAP")"
+  printf 'Generated from %s on %s UTC. Raw help is in %s.\n\n' "$J" "$(date -u +%F)" "$(basename "$SNAP")"
   printf '| Command path | Dedicated help captured |\n|---|---|\n'
   while IFS= read -r line; do
     [[ $line == '===== jj help '* ]] || continue

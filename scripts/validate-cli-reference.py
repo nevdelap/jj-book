@@ -8,6 +8,19 @@ book = root / "src" / "book.html"
 expected = set(re.findall(r"^\| (jj .+?) \|", inventory.read_text(encoding="utf-8"), re.M))
 text = book.read_text(encoding="utf-8")
 headings = set(re.findall(r"<h4[^>]*><code>(jj [^<]+)</code>", text))
+top_level = {path.split()[1] for path in expected}
+count_claim = re.search(
+    r"reports (\d+) top-level commands and (\d+) public command paths",
+    text,
+)
+if not count_claim:
+    raise SystemExit("reader-facing CLI totals are missing")
+claimed = tuple(map(int, count_claim.groups()))
+actual = (len(top_level), len(expected))
+if claimed != actual:
+    raise SystemExit(
+        f"reader-facing CLI totals are stale: prose claims {claimed}, inventory has {actual}"
+    )
 missing = sorted(expected - headings)
 if missing:
     raise SystemExit("canonical command entries missing: " + ", ".join(missing))

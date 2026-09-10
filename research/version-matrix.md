@@ -11,6 +11,14 @@ Build date: 2026-09-10 (UTC)
 
 The project provisions jj 0.45.1 under `.toolchain/bin/jj`.
 
+## Current project decision
+
+On 2026-09-10 the project owner confirmed that all working machines had been
+upgraded to jj 0.45.1 and instructed this edition to stop maintaining the
+older release track. Consequently 0.45.1 is both the installed and normative
+target for this book; no older-release comparison material is silently mixed
+into the prose or fixtures.
+
 ## Backend/tooling
 
 * Git: `git version 2.53.0`.

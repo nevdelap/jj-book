@@ -14,10 +14,10 @@ Generated: 2026-09-10
 * Command paths with dedicated local help captured: 121
 * Reader-facing CLI articles in the authored HTML: 121
 * Reader-facing CLI articles covering the target command paths: 121
-* Substantive authored-book words (approximate, excludes pre/script/style): 103525
+* Substantive authored-book words (approximate, excludes pre/script/style): 103639
 * Expansion design target: 100,000–130,000 substantive words / approximately 450–600 Kindle-Scribe pages
 * Rendered PDF pages: 510 (7.5 × 10 inch portrait; see build/jj-book.pdf.sha256)
-* Rendered PDF SHA-256: a56537cd1d31c342d6da82cf03377e9b834ae82922d6e17ce37b46a9d5380e72
+* Rendered PDF SHA-256: 52ec46f94a681110bde55f7286caa2a3caa2b81097f85e7bd9ed590ae7e5b05e
 * Printed contents span: 2 page(s) before the substantive preface; PDF outline entries: 319
 * Revset operators: documented in research/revset-inventory.md and the raw help snapshot
 * Revset function names: 63 extracted help entries; grouped prose is in the HTML
@@ -25,6 +25,9 @@ Generated: 2026-09-10
 * Config commands: edit, gc, get, list, path, set, unset
 * Config schema: captured as research/config-schema-0.45.1.json with jj util config-schema
 * Pinned binary checksums: recorded in research/toolchain-checksums.md
+* Depth audit: recorded in research/depth-audit.md
+* Expansion plan and completion record: recorded in research/expansion-plan.md
+* Current licensing/distribution register: recorded in research/licenses.md
 * Template features: objects, methods, operators, conditionals, lists, labels, colours, aliases
 
 ## Validated
@@ -57,6 +60,7 @@ Generated: 2026-09-10
 ## Known ambiguities and exclusions
 
 * Current-main documentation can move ahead of the target release; local jj 0.45.1 help takes precedence.
+* This edition intentionally targets jj 0.45.1 as its sole normative release, following the project owner's current requirement. Obsolete pre-0.45.1 records are not mixed into the release.
 * Future-release features are not silently treated as jj 0.45.1 behaviour; rerun the inventory after upgrades.
 * Third-party logos, screenshots, copied documentation passages, fonts, and JavaScript libraries are deliberately excluded. Licensing decisions are in research/licenses.md and research/book-license.md; Apache-2.0.txt is bundled for generated Jujutsu-derived help material.
 * PDF generation is performed by the pinned xhtml2pdf/pypdf pipeline from src/book.html; the HTML has a 7.5 × 10 inch portrait @page profile matching Kindle Scribe's 3:4 display ratio. The PDF is text-checked and its page box/metadata are validated; independent PDFium samples are rendered by the visual recipe and inspected as recorded in research/print-acceptance.md.
