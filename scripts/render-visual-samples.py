@@ -8,7 +8,7 @@ from pypdf import PdfReader
 ROOT = Path(__file__).resolve().parents[1]
 PDF = ROOT / "build" / "jj-book.pdf"
 OUTPUT = ROOT / "build" / "visual-inspection"
-FIXED_SAMPLE_PAGES = (1, 2, 3, 4, 109, 147, 313, 450, 475, 487)
+FIXED_SAMPLE_PAGES = (1, 2, 3, 4, 109, 147, 313, 450, 475, 495)
 HEADING_SAMPLES = (
     "Part XII — Workspaces and multiple machines",
     "Workspace laboratory: one store, several materialisations",

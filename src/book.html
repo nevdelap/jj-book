@@ -2619,7 +2619,7 @@ D (metrics)              4d5... + Change-Id: Imet     metrics, patch set 1
 
 jj change IDs remain stable through ordinary rewrites;
 commit IDs change; Gerrit associates the new object by footer.</pre>
-<p>The footer must remain in the commit description for the association to work. jj does not manufacture a Gerrit review identity from its own change ID. If a description editor removes the footer, the next upload may be interpreted by Gerrit as a new review or be rejected by server policy. This is a protocol boundary, not a jj invariant. Preserve it deliberately, inspect it with Git or a template, and treat server acceptance as documentation- and policy-dependent.</p>
+<p>An existing <code>Change-Id</code> footer remains the server-facing review identity: upload uses it to update the corresponding Gerrit change with a new patch set. If the selected commit has no footer, jj 0.45.1 generates one from the jj change ID for the commit object it uploads. That generated trailer is added to the uploaded object only; it is not added to the local commit in the working repository. The uploaded commit ID can therefore differ from the local commit ID, and fetching the result can expose divergence. If you want the footer and resulting commit ID to exist locally before upload, configure <code>templates.commit_trailers</code> with <code>format_gerrit_change_id_trailer(self)</code>. This still does not make a jj change ID equal to a Gerrit review identity: it derives a footer for transport. Server association, permissions, and patch-set policy remain Gerrit-dependent.</p>
 <h4 id="gerrit-create-and-prepare-stack">Create and prepare the stack</h4>
 <pre>jj git fetch --remote gerrit
 jj new main@gerrit -m 'API: introduce quota'
@@ -2630,7 +2630,14 @@ jj new -m 'Metrics: expose quota counters'
 # edit metrics
 jj log -G -r 'roots(main@gerrit..@)::'
 jj diff -r 'roots(main@gerrit..@)::'</pre>
-<p>The current working-copy commit is an ordinary mutable stack tip. There need not be a local bookmark. Before upload, place a Gerrit footer in each review description according to the server's configured hook/plugin policy. A server may insert it automatically, but relying on a hook that is absent in a jj-created commit is a source of avoidable uncertainty. The following is illustrative message content; the exact footer value belongs to Gerrit:</p>
+<p>The current working-copy commit is an ordinary mutable stack tip. There need not be a local bookmark. An existing Gerrit footer is preserved and associates the uploaded object with the existing review. When a footer is absent, <code>jj gerrit upload</code> in 0.45.1 derives one from the jj change ID and adds it to the uploaded commit only. This is convenient, but it means the uploaded commit ID may not match the local commit ID. If local and uploaded IDs should match, configure <code>templates.commit_trailers</code> so the footer is generated during local snapshotting; otherwise record the upload-time object and expect a possible divergence after fetch. The following is illustrative message content when choosing to keep the footer locally:</p>
+<pre>[templates]
+commit_trailers = '''
+if(
+  !trailers.contains_key("Change-Id"),
+  format_gerrit_change_id_trailer(self)
+)
+'''</pre>
 <pre>API: introduce quota
 
 Change-Id: I0000000000000000000000000000000000000001</pre>
@@ -4288,7 +4295,7 @@ jj bookmark forget --include-remotes 'old/*'</pre>
 <p>Use this after a merged or closed review when the remote state should remain untouched. If the server ref must be deleted, use <code>bookmark delete</code> and push the deletion. Forgetting a remote observation also removes local comparison evidence until the next fetch; it is not a privacy or server-cleanup operation.</p></article>
 
 <article class="command-entry" id="cmd-bookmark-list"><h4 id="jj-bookmark-list"><code>jj bookmark list</code></h4>
-<p>Displays local and selected remote bookmark state. Names are optional patterns. <code>-a/--all-remotes</code> includes synchronized remote bookmarks; <code>--remote REMOTE</code> limits a remote; <code>--tracked</code>, <code>--conflicted</code>, <code>--revisions REVSET</code>, <code>-T/--template</code>, and output filters provide the important inspection dimensions in 0.45.1.</p>
+<p>Displays local and selected remote bookmark state. Names are optional patterns. <code>-a/--all-remotes</code> includes synchronized remote bookmarks; <code>--remote REMOTE</code> limits a remote; <code>--tracked</code>, <code>--conflicted</code>, <code>-r/--revision REVSETS</code>, <code>-T/--template</code>, and output filters provide the important inspection dimensions in 0.45.1.</p>
 <pre>jj bookmark list
 jj bookmark list --all-remotes
 jj bookmark list --remote origin --tracked
@@ -4533,11 +4540,11 @@ git push gerrit 'HEAD:refs/for/main%topic=quota'</pre>
 
 <article class="command-entry" id="cmd-gerrit-upload"><h4 id="jj-gerrit-upload"><code>jj gerrit upload</code></h4>
 <p>Uploads the selected commit stack to a Gerrit remote and branch. The principal selectors are <code>-r/--revision REVSET</code>, <code>-b/--remote-branch BRANCH</code>, <code>--remote REMOTE</code>, and <code>-n/--dry-run</code>. Reviewer, CC, label, topic, hashtag, WIP/ready/private, notification, validation, attention-set, deadline, custom, and repeated <code>--option</code> flags alter server-facing review metadata.</p>
-<p><strong>Cardinality and publication contract.</strong> The revision revset may describe a stack, but the upload must be bounded to the commits intended for one Gerrit target. Before uploading, render the exact set and its parents, check <code>conflicts()</code>, and preserve each Gerrit <code>Change-Id</code> footer. <code>--dry-run</code> validates local selection and command construction; it cannot prove server permissions, review association, or submit policy.</p>
-<p><strong>Rewrite and ref effects.</strong> Upload does not create or move a local bookmark unless the selected workflow does so separately. A rewritten ancestor gives descendants new commit IDs; re-uploading the same footers requests new patch sets, while a changed or missing footer may request a different review. A rejected push leaves the local jj graph intact, so inspect the remote state before choosing a force or replacement action.</p>
+<p><strong>Cardinality and publication contract.</strong> The revision revset may describe a stack, but the upload must be bounded to the commits intended for one Gerrit target. Before uploading, render the exact set and its parents, check <code>conflicts()</code>, and inspect each commit's trailers. An existing <code>Change-Id</code> requests an update to that Gerrit review; a missing one is generated from the jj change ID for the uploaded object in 0.45.1. <code>--dry-run</code> validates local selection and command construction; it cannot prove server permissions, review association, or submit policy.</p>
+<p><strong>Rewrite and ref effects.</strong> Upload does not create or move a local bookmark unless the selected workflow does so separately. A rewritten ancestor gives descendants new commit IDs. Re-uploading an existing footer requests a new patch set; a missing footer causes jj to add a derived footer only to the uploaded commit, so the uploaded commit ID can differ from the local one and later fetch can expose divergence. Configure <code>templates.commit_trailers</code> when the footer should be present locally before upload. A rejected push leaves the local jj graph intact, so inspect the remote state before choosing a force or replacement action.</p>
 <pre>jj gerrit upload --dry-run --remote gerrit --remote-branch main --revision 'roots(main@gerrit..@)::'
 jj gerrit upload --remote gerrit --remote-branch main --revision 'roots(main@gerrit..@)::'</pre>
-<p>Local jj change IDs do not replace Gerrit Change-Id footers. Server acceptance, patch-set association, and permissions remain Gerrit-dependent.</p></article>
+<p>Local jj change IDs do not equal Gerrit Change-Id footers, although jj 0.45.1 can derive a missing upload footer from the local jj change ID. Server acceptance, patch-set association, and permissions remain Gerrit-dependent.</p></article>
 
 <article class="command-entry" id="cmd-git"><h4 id="jj-git"><code>jj git</code></h4>
 <p><strong>Purpose and model.</strong> Operates the Git backend, remotes, Git-compatible refs, and colocation. The parent is a namespace for <code>clone</code>, <code>colocation</code>, <code>export</code>, <code>fetch</code>, <code>import</code>, <code>init</code>, <code>push</code>, <code>remote</code>, and <code>root</code>.</p>
@@ -5748,7 +5755,7 @@ Change-Id: Iabc...'
 jj log -r 'B_1::D_1'
 jj gerrit upload --remote gerrit --remote-branch main -r 'B_1::D_1'
 </pre>
-<p>C_1 and D_1 are rebased descendants with new commit IDs. Their jj change IDs continue to identify their logical changes when the rewrite is an evolution; their Gerrit footers continue to identify their server reviews if descriptions were preserved. If the server reports that a Change-Id is missing or duplicated, inspect the actual commit descriptions rather than assuming jj metadata supplies it. jj change IDs do not generate Gerrit footers.</p>
+<p>C_1 and D_1 are rebased descendants with new commit IDs. Their jj change IDs continue to identify their logical changes when the rewrite is an evolution; their Gerrit footers continue to identify their server reviews if descriptions were preserved. If a footer was absent at upload, jj 0.45.1 generated it on the uploaded object, not in the local description, so fetching can reveal a divergent uploaded successor. In that case either abandon the local duplicate and continue from the fetched review object, or rebase the local change onto the appropriate trunk with <code>jj rebase --skip-emptied ...</code>, as the target help describes. If a footer is missing or duplicated in the actual uploaded description, inspect the commit trailers and server response rather than assuming jj metadata supplies the server identity.</p>
 
 <h3 id="case-study-landed-lower-change-remaining-upper-stack">Case study: landed lower change, remaining upper stack</h3>
 <pre class="diagram">before server integration:
@@ -6556,7 +6563,7 @@ private-commits = "mutable() ~ ::remote_bookmarks()"
 # --remote and --remote-branch to gerrit upload.
 default-remote = "gerrit"
 default-remote-branch = "main"</pre>
-<p>The Gerrit defaults shown are part of the jj 0.45.1 surface. Pass the remote and branch explicitly in scripts. Configuration can select a default, but it does not convert jj change IDs into Gerrit Change-Ids. Preserve the server footer in commit descriptions and inspect both identities before upload.</p>
+<p>The Gerrit defaults shown are part of the jj 0.45.1 surface. Pass the remote and branch explicitly in scripts. Configuration can select a default, and <code>templates.commit_trailers</code> can generate the footer in local commits; without that template, <code>gerrit upload</code> derives a missing footer only for the uploaded object. Preserve or deliberately generate the server footer and inspect both identities before upload.</p>
 <p>For conditional configuration, match repository identity or path only when the condition is visible and testable. A safe pattern is to keep the user layer neutral, place GitHub/Gerrit aliases in repository-level policy, and make each alias print a dry-run or require the remote in its invocation. Never make a broad command alias called <code>push</code> choose a server based solely on the current directory without showing the choice.</p>
 
 <h3 id="template-reference-types">Template reference: types and composition</h3>
@@ -7715,7 +7722,7 @@ jj diff -r @ -- "$paths"</pre>
 <tr><td><code>CommitRef</code></td><td><code>name</code>, <code>remote</code>, tracking/conflict/sync methods, targets</td><td>Bookmark/tag/ref labels.</td><td>Conflicted refs and removed/added targets.</td></tr>
 <tr><td><code>RepoPath</code>/<code>FsPath</code></td><td><code>absolute</code>, <code>relative</code>, <code>display</code>, <code>parent</code></td><td>Portable path output.</td><td>Running from a subdirectory and sparse paths.</td></tr>
 <tr><td><code>TreeDiff</code></td><td><code>summary</code>, <code>git</code>, <code>color_words</code>, <code>stat</code>, <code>files</code></td><td>Diff/stat output.</td><td>Large diffs, binary files, conflict values.</td></tr>
-<tr><td><code>TreeEntry</code></td><td>path/status/source/target/mode-like fields</td><td>File-level reports.</td><td>Renames, deletes, copies, and executable bits.</td></tr>
+<tr><td><code>TreeEntry</code></td><td><code>path</code>, <code>status</code>, <code>source</code>, <code>target</code>, and mode-related fields</td><td>File-level reports.</td><td>Renames, deletes, copies, and executable bits.</td></tr>
 <tr><td><code>Operation</code></td><td><code>id</code>, <code>description</code>, <code>parents</code>, <code>time</code>, <code>user</code>, snapshot/workspace fields</td><td>Operation/recovery log.</td><td>Unintegrated/concurrent operations.</td></tr>
 <tr><td><code>WorkspaceRef</code></td><td><code>name</code>, <code>target</code>, <code>root</code></td><td>Workspace dashboards.</td><td>Stale or moved workspace paths.</td></tr>
 <tr><td><code>List</code>/<code>Option</code></td><td><code>map</code>, <code>filter</code>, <code>join</code>, <code>first</code>, <code>last</code>, <code>try</code>, <code>coalesce</code></td><td>Conditional collections.</td><td>Empty lists/options and wrong element type.</td></tr>

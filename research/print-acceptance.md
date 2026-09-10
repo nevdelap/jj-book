@@ -1,9 +1,9 @@
 # Kindle Scribe print acceptance
 
-Edition checked: 2026-09-10 UTC. PDF SHA-256:
-`0c15e827303c1b903da66ee6c57e15465e4860a5e60dabd4c210765b27ba3898`.
+Edition checked: 2026-09-11 UTC. PDF SHA-256:
+`3c1ecae3d5bec834ef3bbef43dca4b88509dde202a01060630dac3d04eb0a116`.
 Target page box: 7.5 × 10 inches (540 × 720 points), portrait. The final
-edition is 495 pages: the cover is page 1, printed contents begin on page 2
+edition is 496 pages: the cover is page 1, printed contents begin on page 2
 and continue on page 3, and the preface begins on page 4. Renderer: pinned xhtml2pdf
 0.2.18, followed by pinned pypdf 6.1.3.
 
@@ -26,7 +26,7 @@ directory and renders the following
 representative pages at 72 DPI, corresponding to the PDF's 540 × 720 point
 page box:
 
-* fixed pages 1–4, 109, 147, 313, 450, 475, and 494;
+* fixed pages 1–4, 109, 147, 313, 450, 475, and 495;
 * current body pages located by heading for Part XII, its workspace
   laboratory, Part XIII, the configuration laboratory, and the configuration
   reference.
