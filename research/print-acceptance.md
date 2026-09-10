@@ -1,7 +1,7 @@
 # Kindle Scribe print acceptance
 
 Edition checked: 2026-09-10 UTC. PDF SHA-256:
-`863cc9ea5e006d590361e7ef1e9ca57047dbae92d6840276f843ff87cfc61fc3`.
+`d3d7d5f84d5355409dd5f7aa968c1723efb47e9d64e03eb0453869ba7548031c`.
 Target page box: 7.5 × 10 inches (540 × 720 points), portrait. The final
 edition is 511 pages: the cover is page 1, printed contents begin on page 2
 and continue on page 3, and the preface begins on page 4. Renderer: pinned xhtml2pdf
