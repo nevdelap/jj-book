@@ -10,7 +10,7 @@ The compact first pass was retained as the navigational skeleton. Expansion
 was planned around technical depth rather than repeated definitions: every
 major operation receives a graph transformation, every language chapter has a
 laboratory, and every reference has a human-readable contract in the HTML.
-The current result is approximately 100,479 substantive words and 495 PDF
+The current result is approximately 100,734 substantive words and 496 PDF
 pages at the 7.5 × 10 inch Kindle-Scribe print profile. The book uses
 first-class HTML as its source, a pinned `uv` PDF renderer, `just` recipes, and
 root symlinks for the deliverables.

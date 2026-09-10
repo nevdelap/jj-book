@@ -1,6 +1,6 @@
 # Depth audit — jj 0.45.1 edition
 
-Audit date: 2026-09-10 UTC. Target: jj 0.45.1 only. This is a depth and
+Audit date: 2026-09-11 UTC. Target: jj 0.45.1 only. This is a depth and
 coverage record for the current book, not a historical 0.44.0 record.
 
 ## Method
@@ -15,8 +15,8 @@ inventory is represented in a reader-facing reference, with raw help retained
 as verification evidence. The levels are deliberately not inferred from a
 heading’s existence.
 
-The current authored book measures approximately 100,479 substantive words by
-the project counting script and renders to 495 pages at 7.5 × 10 inches. The
+The current authored book measures approximately 100,734 substantive words by
+the project counting script and renders to 496 pages at 7.5 × 10 inches. The
 size is evidence of a substantial manuscript, but the classifications below
 are based on technical treatment, examples, and validation rather than page
 count.

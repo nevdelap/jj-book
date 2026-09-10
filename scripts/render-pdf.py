@@ -1,8 +1,15 @@
+import os
 import re
 from html.parser import HTMLParser
 from pathlib import Path
 from xhtml2pdf import pisa
 from pypdf import PdfReader, PdfWriter
+
+if os.environ.get("PYTHONHASHSEED") != "0":
+    raise SystemExit(
+        "render-pdf.py requires PYTHONHASHSEED=0 for reproducible PDF resource names; "
+        "run it through `just pdf` or set PYTHONHASHSEED=0 explicitly"
+    )
 
 ROOT = Path(__file__).resolve().parents[1]
 source = ROOT / "src" / "book.html"

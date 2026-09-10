@@ -10,7 +10,7 @@ The local validation binary is installed at `.toolchain/bin/jj` by the `justfile
 
 ## Build and rendered output
 
-The deliverable is `jj-book.html` at the project root, symlinked to the first-class authored HTML source `src/book.html`. It is not Markdown converted to HTML. The PDF is rendered directly from that HTML by pinned `xhtml2pdf` and normalised with pinned `pypdf`; no browser or Markdown conversion step is involved. The current output is a 7.5 × 10 inch portrait PDF, 496 pages at the current manuscript size, suitable for Kindle Scribe import and printing. It includes a generated printed contents section, page-number footer, and PDF-reader outline. `build/jj-book.pdf.sha256` records the generated checksum.
+The deliverable is `jj-book.html` at the project root, symlinked to the first-class authored HTML source `src/book.html`. It is not Markdown converted to HTML. The PDF is rendered directly from that HTML by pinned `xhtml2pdf` and normalised with pinned `pypdf`; no browser or Markdown conversion step is involved. The current output is a 7.5 × 10 inch portrait PDF, 496 pages at the current manuscript size, suitable for Kindle Scribe import and printing. It includes a generated printed contents section, page-number footer, and PDF-reader outline. `build/jj-book.pdf.sha256` records the generated checksum. The `just pdf` recipe pins `PYTHONHASHSEED=0` because xhtml2pdf 0.2.18 uses Python's salted hash for in-memory image resource names; `just pdf-repro` renders twice and compares the bytes.
 
 ```sh
 uv sync --locked     # install the pinned Python renderer/validator
@@ -23,7 +23,7 @@ just review          # full test/report pass and symlink checks
 just clean           # remove generated PDFs, validation repos, and symlinks
 ```
 
-The commands assume Linux, Bash, Git, Rust/Cargo, `just`, and `uv`. Network access is needed only for the initial pinned jj installation and dependency resolution. The renderer environment is declared by `pyproject.toml` and locked by `uv.lock` (Python ≥3.12, `xhtml2pdf==0.2.18`, `pypdf==6.1.3`, `pypdfium2==5.13.0`, and `tzdata==2026.3`). `just setup` provisions and verifies jj 0.45.1 at `.toolchain/bin/jj`; the normal interface does not use an ambient `jj` from `PATH`. Its version and SHA-256 value are recorded by `just report` in `research/toolchain-checksums.md`. `JJ_BIN=/path/to/jj just validate` can be used for a separately installed binary.
+The commands assume Linux, Bash, Git, Rust/Cargo, `just`, and `uv`. Network access is needed only for the initial pinned jj installation and dependency resolution. The renderer environment is declared by `pyproject.toml` and locked by `uv.lock` (Python ≥3.12, `xhtml2pdf==0.2.18`, `pypdf==6.1.3`, `pypdfium2==5.13.0`, and `tzdata==2026.3`). The PDF recipe sets `PYTHONHASHSEED=0` because xhtml2pdf names in-memory image resources using Python’s salted byte hash; this makes identical source and locked dependencies produce byte-identical PDF output. `just setup` provisions and verifies jj 0.45.1 at `.toolchain/bin/jj`; the normal interface does not use an ambient `jj` from `PATH`. Its version and SHA-256 value are recorded by `just report` in `research/toolchain-checksums.md`. `JJ_BIN=/path/to/jj just validate` can be used for a separately installed binary.
 
 ## Layout
 

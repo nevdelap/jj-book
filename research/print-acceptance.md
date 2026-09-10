@@ -1,7 +1,7 @@
 # Kindle Scribe print acceptance
 
 Edition checked: 2026-09-11 UTC. PDF SHA-256:
-`3c1ecae3d5bec834ef3bbef43dca4b88509dde202a01060630dac3d04eb0a116`.
+`76f78e269446d74417d6e49dddbd1a86cd9145a08b929281ebd2e05bd68084e0`.
 Target page box: 7.5 × 10 inches (540 × 720 points), portrait. The final
 edition is 496 pages: the cover is page 1, printed contents begin on page 2
 and continue on page 3, and the preface begins on page 4. Renderer: pinned xhtml2pdf
@@ -17,6 +17,13 @@ used to put the preface after the printed contents, and
 `-pdf-keep-with-next` is used on headings. These controls are supported by the
 pinned renderer and are deliberately preferred over browser-only pagination
 properties.
+
+The `just pdf` recipe sets `PYTHONHASHSEED=0`. This is required because the
+pinned xhtml2pdf 0.2.18 renderer names in-memory image resources using
+Python's salted byte hash. The dedicated `just pdf-repro` recipe renders the
+unchanged source twice under that setting and compares the complete PDF
+bytes. The final acceptance run passed this comparison; both renders had the
+SHA-256 recorded above.
 
 ## Independent visual inspection
 
@@ -39,7 +46,7 @@ recovery material, command/reference pages, and Appendix D/E/F/H/I/J/K landing
 destinations. The heading-based pages cover the sections most likely to move
 when configuration or workspace prose changes.
 
-Inspection performed on 2026-09-10 UTC with PDFium 5.13.0: the monochrome DAG
+Inspection performed on 2026-09-11 UTC with PDFium 5.13.0: the monochrome DAG
 cover image and title have consistent margins; both contents pages have
 consistent margins; the contents ends before the preface;
 the Part XII workspace start, workspace laboratory, Part XII–XIII transition,

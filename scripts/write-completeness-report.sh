@@ -101,6 +101,7 @@ Generated: $(date -u +%F)
 * generated HTML exists and contains the Kindle Scribe print profile
 * generated PDF contains page-number footers, individually listed Appendix A–K contents entries, and reader outline bookmarks
 * generated PDF contains no source box-drawing glyphs or extracted missing-glyph substitutions; contents and outline are checked independently
+* deterministic PDF rendering: the just pdf-repro recipe produced byte-identical repeated renders under the locked environment
 * generated PDF isolates the printed contents from the preface and keeps representative major headings with following body material
 * Part XII workspace headings precede the contiguous Part XIII configuration progression
 * independent PDFium rendering of representative contents, chapter-start, graph, code, table, Git, and appendix pages; observations are recorded in research/print-acceptance.md
@@ -120,7 +121,7 @@ Generated: $(date -u +%F)
 * This edition intentionally targets jj 0.45.1 as its sole normative release, following the project owner's current requirement. Obsolete pre-0.45.1 records are not mixed into the release.
 * Future-release features are not silently treated as jj 0.45.1 behaviour; rerun the inventory after upgrades.
 * Third-party logos, screenshots, copied documentation passages, fonts, and JavaScript libraries are deliberately excluded. Licensing decisions are in research/licenses.md and research/book-license.md; Apache-2.0.txt is bundled for generated Jujutsu-derived help material.
-* PDF generation is performed by the pinned xhtml2pdf/pypdf pipeline from src/book.html; the HTML has a 7.5 × 10 inch portrait @page profile matching Kindle Scribe's 3:4 display ratio. The PDF is text-checked and its page box/metadata are validated; independent PDFium samples are rendered by the visual recipe and inspected as recorded in research/print-acceptance.md.
+* PDF generation is performed by the pinned xhtml2pdf/pypdf pipeline from src/book.html; the HTML has a 7.5 × 10 inch portrait @page profile matching Kindle Scribe's 3:4 display ratio. The just pdf recipe pins PYTHONHASHSEED=0 because xhtml2pdf uses salted hashes for in-memory image resource names; the just pdf-repro recipe checks complete byte identity across two renders. The PDF is text-checked and its page box/metadata are validated; independent PDFium samples are rendered by the visual recipe and inspected as recorded in research/print-acceptance.md.
 
 ## Depth status
 

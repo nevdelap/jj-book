@@ -27,7 +27,10 @@ html:
     uv run --frozen python scripts/validate-toc-order.py
 
 pdf: sync html
-    uv run --frozen python scripts/render-pdf.py
+    # xhtml2pdf 0.2.18 names in-memory image resources with Python's salted
+    # hash(bytes); pin the process seed so identical HTML produces identical
+    # FormXob names and therefore identical PDF bytes.
+    PYTHONHASHSEED=0 uv run --frozen python scripts/render-pdf.py
     uv run --frozen python scripts/validate-pdf.py
     sha256sum build/jj-book.pdf > build/jj-book.pdf.sha256
     ln -sfn build/jj-book.pdf jj-book.pdf
@@ -36,6 +39,9 @@ pdf-check: sync
     test -f build/jj-book.pdf
     uv run --frozen python scripts/validate-pdf.py
     test -s build/jj-book.pdf.sha256
+
+pdf-repro: sync html
+    bash scripts/validate-pdf-reproducibility.sh
 
 visual: pdf
     uv run --frozen python scripts/render-visual-samples.py
