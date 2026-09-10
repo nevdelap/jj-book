@@ -1,6 +1,6 @@
 # Research sources
 
-This is the source trail for the manuscript. Official jj documentation is the normative external source; the installed jj 0.45.1 CLI and its help output are the normative syntax source. Historical captures from earlier review rounds are retained only as provenance.
+This is the source trail for the manuscript. Official jj documentation is the normative external source; the installed jj 0.45.1 CLI and its help output are the normative syntax source.
 
 ## Official Jujutsu documentation
 
@@ -42,6 +42,6 @@ The `docs.jj-vcs.dev/latest/` site was consulted on 2026-09-06. Its home page ex
 
 Topics extracted include the DAG/working-copy model, Git comparison and compatibility, bookmarks/remotes, revset operators/functions/patterns/aliases, fileset paths/operators/aliases, template objects/operators/methods/aliases/colours, configuration layers/schema, GitHub and Gerrit transport, conflicts, operation DAG/recovery, workspaces, sparse patterns, signing, completion, architecture, concurrency, and release practice.
 
-## Discrepancy notes
+## Version note
 
 The documentation site is a moving target and may describe the current main branch. The version matrix therefore takes precedence for release-specific claims. In particular, the book never uses an unlabelled command or option merely because it appears in `latest` docs.

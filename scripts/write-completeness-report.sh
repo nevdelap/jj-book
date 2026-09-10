@@ -50,8 +50,7 @@ Generated: $(date -u +%F) UTC by \`scripts/write-completeness-report.sh\`.
 | \`.toolchain/bin/jj\` | 0.45.1 | $primary_binary_sha | \`just setup\`; version assertion and \`cargo install --locked jj-cli --version 0.45.1\` |
 
 This hash identifies the local executable used to generate the help captures
-and inventories; it is not a substitute for verifying upstream package
-provenance.
+and inventories; it is not a substitute for verifying the upstream package.
 EOF
 cat > "$ROOT/research/completeness-report.md" <<EOF
 # Completeness report

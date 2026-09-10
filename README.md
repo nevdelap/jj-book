@@ -4,7 +4,7 @@ This repository contains the source and rendered HTML for the book **Jujutsu for
 
 ## Version policy
 
-The validation target is **jj 0.45.1**. This edition no longer maintains a 0.44.0 comparison track: examples, inventories, fixtures, and reference tables are generated and checked against the 0.45.1 binary.
+The validation target is **jj 0.45.1**. Examples, inventories, fixtures, and reference tables are generated and checked against that binary.
 
 The local validation binary is installed at `.toolchain/bin/jj` by the `justfile`. The build date and Git version are recorded in `research/version-matrix.md`.
 
@@ -29,10 +29,10 @@ The commands assume Linux, Bash, Git, Rust/Cargo, `just`, and `uv`. Network acce
 * `src/book.html` — single maintained manuscript source, authored as semantic HTML; `jj-book.html` is its symlink.
 * `jj-book.html` — convenience symlink to the authored HTML.
 * `build/jj-book.pdf` — canonical PDF generated from `src/book.html`; `jj-book.pdf` is its relative symlink.
-* `research/` — version matrix, inventories, source trail, discrepancies, and completeness report.
+* `research/` — version matrix, inventories, source trail, licensing notes, and completeness report.
 * `scripts/` — inventory, fixture validation, and rendering tools.
 * `fixtures/` — fixture documentation and names for disposable repositories created by validation scripts (ignored outputs are kept under `build/`).
 
 The PDF renderer intentionally uses a pure-Python path so the build is usable on a minimal Linux/NixOS installation. It embeds selectable text and preserves the authored page geometry. The print stylesheet uses only controls verified against pinned xhtml2pdf 0.2.18: the renderer-specific `<pdf:nextpage />` tag separates contents from the body and `-pdf-keep-with-next` protects heading transitions; modern browser-only `break-*` properties are not relied upon. Renderer limitations are documented by validation output rather than hidden behind a browser-specific print dialog.
 
-The research notes are part of the book's source trail. Official documentation is cited in the manuscript and linked from `research/sources.md`; licensing and attribution decisions are in `research/licenses.md`; locally observed command syntax is explicitly marked as such. The current depth audit, expansion plan, and follow-up review response are in `research/depth-audit.md`, `research/expansion-plan.md`, and `research/followup-review-response.md`; they distinguish the existing first-pass skeleton from the expanded technical chapters and record remaining scale work honestly.
+The research notes are part of the book's source trail. Official documentation is cited in the manuscript and linked from `research/sources.md`; licensing and attribution decisions are in `research/licenses.md`; locally observed command syntax is explicitly marked as such. Current review material, when present, lives under `review/` and is kept separate from the book source.

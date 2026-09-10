@@ -9,7 +9,7 @@ Build date: 2026-09-10 (UTC)
 | installed/book target | 0.45.1 | sole normative release surface | `jj version`, recursive local help, fixture validation |
 | official main/prerelease | current at research time | notes only; never normative | official docs/release pages, where identifiable |
 
-The project provisions jj 0.45.1 under `.toolchain/bin/jj`. Historical captures from earlier review rounds may remain in the research directory as provenance, but they are not an active compatibility track.
+The project provisions jj 0.45.1 under `.toolchain/bin/jj`.
 
 ## Backend/tooling
 

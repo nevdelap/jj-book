@@ -13,8 +13,8 @@ are not part of the book's original prose.
 
 No third-party images, fonts, logos, JavaScript libraries, or long quotations
 are embedded in the authored HTML or generated PDF. External documentation is
-referenced and paraphrased; row-level provenance is recorded in
-research/provenance.md.
+referenced and paraphrased; source URLs and licensing decisions are recorded
+in research/sources.md and research/licenses.md.
 
 The optional independent PDF acceptance renderer uses pypdfium2==5.13.0 and
 its bundled PDFium engine through the locked uv environment. It produces only

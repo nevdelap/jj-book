@@ -1,6 +1,6 @@
 # Licensing and attribution ledger
 
-This book is an original technical work. It paraphrases behaviour, uses short command examples, and links to primary documentation. It does not reproduce long passages, screenshots, logos, or source files from the materials below. The diagrams and prose in `src/book.html` were written for this project. The row-level provenance inventory is `research/provenance.md`; it records owner, exact source/version, material/use, licence source, obligations, final inclusion, and status for each source/material class.
+This book is an original technical work. It paraphrases behaviour, uses short command examples, and links to primary documentation. It does not reproduce long passages, screenshots, logos, or source files from the materials below. The diagrams and prose in `src/book.html` were written for this project.
 
 ## Source materials
 

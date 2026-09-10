@@ -14,10 +14,10 @@ Generated: 2026-09-10
 * Command paths with dedicated local help captured: 121
 * Reader-facing CLI articles in the authored HTML: 121
 * Reader-facing CLI articles covering the target command paths: 121
-* Substantive authored-book words (approximate, excludes pre/script/style): 103367
+* Substantive authored-book words (approximate, excludes pre/script/style): 103436
 * Expansion design target: 100,000–130,000 substantive words / approximately 450–600 Kindle-Scribe pages
 * Rendered PDF pages: 510 (7.5 × 10 inch portrait; see build/jj-book.pdf.sha256)
-* Rendered PDF SHA-256: 154334f9460096503ad0358c957a56750bb6eefcbf9038b9e0b9f476fcd489e3
+* Rendered PDF SHA-256: e1e348afe9f932011b551053ae9073e4478454ae4f14a48ac32840904cde1391
 * Printed contents span: 2 page(s) before the substantive preface; PDF outline entries: 319
 * Revset operators: documented in research/revset-inventory.md and the raw help snapshot
 * Revset function names: 63 extracted help entries; grouped prose is in the HTML
