@@ -1,10 +1,10 @@
 # Kindle Scribe print acceptance
 
 Edition checked: 2026-09-10 UTC. PDF SHA-256:
-`52ec46f94a681110bde55f7286caa2a3caa2b81097f85e7bd9ed590ae7e5b05e`.
+`c0e8e1a5fbe2544e7450ad6917d8a51eb5870cefe0293115b6abe05ab8e8343e`.
 Target page box: 7.5 × 10 inches (540 × 720 points), portrait. The final
-edition is 510 pages: printed contents on
-pages 1–2 and the preface beginning on page 3. Renderer: pinned xhtml2pdf
+edition is 511 pages: the cover is page 1, printed contents begin on page 2
+and continue on page 3, and the preface begins on page 4. Renderer: pinned xhtml2pdf
 0.2.18, followed by pinned pypdf 6.1.3.
 
 ## Automated acceptance
@@ -38,8 +38,9 @@ recovery material, command/reference pages, and Appendix D/E/F/H/I/J/K landing
 destinations. The heading-based pages cover the sections most likely to move
 when configuration or workspace prose changes.
 
-Inspection performed on 2026-09-10 UTC with PDFium 5.13.0: the title and both
-contents pages have consistent margins; the contents ends before the preface;
+Inspection performed on 2026-09-10 UTC with PDFium 5.13.0: the monochrome DAG
+cover image and title have consistent margins; both contents pages have
+consistent margins; the contents ends before the preface;
 the Part XII workspace start, workspace laboratory, Part XII–XIII transition,
 configuration laboratory, and configuration reference all show headings with
 readable following material. The locator searches for these headings after the
