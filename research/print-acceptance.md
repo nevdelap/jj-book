@@ -1,7 +1,7 @@
 # Kindle Scribe print acceptance
 
 Edition checked: 2026-09-11 UTC. PDF SHA-256:
-`fd37ca8468a6a3c9ef6b38d4bf62fe115acbf5a76f3410d76c24972b59f0706f`.
+`0e74fe55677504f5f9d2dfbe131fc53fa2ad5403cedaee2b661ed91402df1d27`.
 Build timestamp embedded in the PDF and printed cover:
 `2026-09-11T00:49:43Z`.
 Target page box: 7.5 × 10 inches (540 × 720 points), portrait. The final

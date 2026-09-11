@@ -746,7 +746,7 @@ predecessor relation:
 <p>Commit IDs are suitable for immutable evidence: a build record, a fetched object, a server-side patch set, or a signed object. Change IDs are suitable for local evolution and for identifying a logical change while its commit ID changes. Neither should be used as a replacement for a publication bookmark: a bookmark names a movable graph position, while an ID names a commit or logical evolution.</p>
 
 <h3 id="mutable-and-immutable-are-graph-predicates">Mutable and immutable are graph predicates</h3>
-<p>A useful mistake to avoid is treating mutable as a synonym for private. Mutability is a property of whether jj’s rewrite policy permits changing a commit; publication is a property of whether a ref has been sent to another repository. A mutable commit can be pushed, and a user may intentionally amend it with a force update. Conversely, a private commit can be made immutable by configuration. Use revsets to ask the precise question you need:</p>
+<p>A useful mistake to avoid is treating mutable as a synonym for private. Mutability is a property of whether jj’s rewrite policy permits changing a commit; publication is a property of whether a ref has been sent to another repository. A mutable commit can be pushed, and a user may intentionally amend it before a host-side or native-Git force update. Conversely, a private commit can be made immutable by configuration. Use revsets to ask the precise question you need:</p>
 <pre>jj log -r 'mutable() &amp; ::@'
 jj log -r 'immutable_heads()'
 jj log -r 'hidden()'
@@ -1279,7 +1279,7 @@ jj edit 'my_query'</pre>
 <p>This is more robust than adding <code>latest()</code> merely to silence an error. <code>latest()</code> is a selection policy: it chooses by committer timestamp from a set and can choose a different commit after a clock correction or import. Use it only when “latest” is actually the desired semantics.</p>
 
 <h3 id="topology-functions-in-detail">Topology functions in detail</h3>
-<p><code>parents(X)</code> and <code>children(X)</code> expose immediate graph relationships in their basic form, with documented optional traversal depth forms where supported. Postfix <code>X-</code> and <code>X+</code> are convenient immediate-neighbour operations. <code>ancestors(X)</code> and <code>descendants(X)</code> perform transitive traversal; the prefix/suffix forms are compact equivalents for common cases. <code>roots(X)</code> and <code>heads(X)</code> reduce a set to nodes with no selected parent or no selected child respectively. These functions operate on the supplied set where their signatures say so, which is why <code>heads(::@)</code> differs from <code>heads(all())</code>.</p>
+<p><code>parents(X)</code> and <code>children(X)</code> expose immediate graph relationships; in jj 0.45.1 they also accept an optional depth, so <code>parents(X, 3)</code> is equivalent to <code>X---</code> and <code>children(X, 3)</code> to <code>X+++</code>. Postfix <code>X-</code> and <code>X+</code> are convenient immediate-neighbour operations. <code>ancestors(X)</code> and <code>descendants(X)</code> perform transitive traversal; the prefix/suffix forms are compact equivalents for common cases. <code>roots(X)</code> and <code>heads(X)</code> reduce a set to nodes with no selected parent or no selected child respectively. These functions operate on the supplied set where their signatures say so, which is why <code>heads(::@)</code> differs from <code>heads(all())</code>.</p>
 <pre>jj log -r 'parents(@)'
 jj log -r 'children(main@origin)'
 jj log -r 'heads(mutable() &amp; ::@)'
@@ -1869,7 +1869,7 @@ jj file list -- 'root-file:"Cargo.toml" | root-file:"Cargo.lock"'</pre>
 <tr><td><code>file list/show/search</code></td><td>Selected tree/commit.</td><td>Lists or reads matching entries.</td><td>Inspection does not mean filesystem materialisation.</td></tr>
 <tr><td><code>file track/untrack</code></td><td>Working-copy snapshot policy.</td><td>Changes what future snapshots consider.</td><td>It is not deletion or publication.</td></tr>
 </tbody></table>
-<p>For a diff operation, first inspect the source diff and destination tree. Then run a dry or read-only equivalent if available, save the operation ID, and only then apply the fileset. The path selector answers “which paths”; it does not answer “which side wins”, “which change owns the result”, or “whether a descendant should be restored”. Those are command semantics.</p>
+<p>For a diff operation, first inspect the source diff and destination tree. Then use the command's documented read-only form—<code>jj diff</code> for content inspection or <code>--dry-run</code> on a command that provides it—save the operation ID, and only then apply the fileset. The path selector answers “which paths”; it does not answer “which side wins”, “which change owns the result”, or “whether a descendant should be restored”. Those are command semantics.</p>
 
 <h4 id="fileset-aliases-and-versioning">Fileset aliases</h4>
 <p>Fileset aliases provide names for path policy. They live under <code>[fileset-aliases]</code> and may be a symbol, a parameterised function, or a table with definition and completion documentation:</p>
@@ -2109,7 +2109,7 @@ jj git root</pre>
 <p>jj notices Git-side ref changes during import/snapshot boundaries; after running native Git, use <code>jj git import</code> or a normal jj command that imports refs. Native Git does not understand change IDs, operation history, conflicts as jj values, or workspace pointers. It can inspect and transport Git objects, but its rewrites may make jj bookmarks/remote state stale until imported.</p>
 <p>For colocated scripts, <code>GIT_DIR=$(jj git root)/.git</code> is sometimes useful, but prefer <code>git -C "$(jj root)" ...</code> and let jj report its root. Never use Git to reset the worktree while a jj process is snapshotting it. Git credentials, SSH agents, and signing configuration are generally consumed through the Git transport or configured jj signing/authentication facilities; test the exact credential helper in the target environment.</p>
 <h3 id="push-safety">Push safety</h3>
-<p>Push bookmarks, not arbitrary working-copy commits, unless the release explicitly supports a change-based push mode and you understand its refspec. A tracked bookmark gives jj a lease-like expectation about the remote value. A force push is safe only when the changed remote tip is the one you intended to replace; review <code>jj bookmark list</code>, <code>jj log -r 'review|review@origin'</code>, and the push preview first.</p>
+<p>Push bookmarks, not arbitrary working-copy commits, unless you deliberately use jj 0.45.1's change-based push mode and understand the bookmark it creates. A tracked bookmark gives jj a lease-like expectation about the remote value. An exceptional host-side force update is safe only when the changed remote tip is the one you intended to replace; review <code>jj bookmark list</code>, <code>jj log -r 'review|review@origin'</code>, and jj's <code>--dry-run</code> preview first.</p>
 </section>
 
 <section id="git-interoperability-lab">
@@ -2204,17 +2204,17 @@ jj log -r 'remote_bookmarks()'
 <p>A remote bookmark is not a local bookmark with a decorative suffix. It is a name imported from a remote namespace. A local bookmark can track it, which gives jj a relationship for ahead/behind and push safety. Tracking does not make the local bookmark follow a working-copy commit; the local target still moves only through an explicit bookmark operation or a graph rewrite that preserves its target relationship.</p>
 
 <h4 id="push-safety-and-ref-publication">Push safety and ref publication</h4>
-<p>Push sends selected local bookmarks or tags to a remote. The safest scripted form names the remote and bookmark, and performs a dry run or inspection first where supported:</p>
+<p>Push sends selected local bookmarks or tags to a remote. In jj 0.45.1, the safest scripted form names the remote and bookmark and performs the available <code>--dry-run</code> preview before the real push:</p>
 <pre>jj log -r 'bookmark("pr/parser")' -T 'commit_id ++ "\n"'
 jj git push --remote origin --bookmark pr/parser --dry-run
 jj git push --remote origin --bookmark pr/parser
 </pre>
-<p>A non-fast-forward update is not automatically evidence that force is required. Compare the local bookmark target with the remote bookmark target and determine whether the local target descends from the remote target, whether another actor moved the remote, and whether server policy permits replacement. The tracking relationship supplies safety context; it is not a lease substitute for all server-side races. If the command offers a force/allow-rewrite option, use it only with an explicit intended old remote state and an audit note.</p>
+<p>A non-fast-forward update is not automatically evidence that force is required. Compare the local bookmark target with the remote bookmark target and determine whether the local target descends from the remote target, whether another actor moved the remote, and whether server policy permits replacement. The tracking relationship supplies safety context; it is not a lease substitute for all server-side races. In jj 0.45.1, <code>jj git push</code> has no <code>--force</code>, <code>--force-with-lease</code>, or generic allow-rewrite option: its own safety check accepts a backwards update only when the remote still matches the state jj last fetched. Treat an exceptional host-side replacement as a separate, explicitly audited native-Git or hosting operation.</p>
 <p><code>--tracked</code>, <code>--all</code>, <code>--deleted</code>, and tag options widen the publication set. They are convenient interactively and dangerous in generic scripts. A script that publishes every tracked bookmark can unexpectedly update a second review or a stale local publication name. Prefer one explicit bookmark per publication action.</p>
 
 <h4 id="credentials-ssh-and-signing-2">Credentials, SSH, and signing</h4>
 <p>jj Git transport normally uses Git’s configured remote URLs and credential mechanisms. SSH keys, agents, known-host verification, credential helpers, and HTTPS tokens remain deployment concerns; do not put secrets in jj config committed to a repository. Test authentication with a read-only fetch before a push. A remote URL can be inspected with <code>jj git remote list</code> or native Git configuration, but redact credentials from logs.</p>
-<p>Signing is a property of commits or transport policy, not a synonym for a jj change ID. If the target version supports <code>jj sign</code> and <code>jj unsign</code>, configure the signing key and inspect the resulting signature fields through templates or Git verification. A rewrite after signing produces a new commit and generally requires signing the successor again. Gerrit and GitHub may apply additional server-side verification; local signing does not guarantee acceptance.</p>
+<p>Signing is a property of commits or transport policy, not a synonym for a jj change ID. jj 0.45.1 provides <code>jj sign</code> and <code>jj unsign</code>; configure the signing key and inspect the resulting signature fields through templates or Git verification. A rewrite after signing produces a new commit and generally requires signing the successor again. Gerrit and GitHub may apply additional server-side verification; local signing does not guarantee acceptance.</p>
 
 <h4 id="native-git-tooling-a-safe-contract">Native Git tooling: a safe contract</h4>
 <p>Use Git for tools that have no jj equivalent—<code>gh</code>, hooks, server-specific commands, object inspection, and specialised diff tools—but establish a boundary:</p>
@@ -2254,7 +2254,7 @@ jj git push --bookmark cache-pr --remote origin</pre>
 jj bookmark create pr-feature -r B
 jj git push --bookmark pr-base --bookmark pr-feature --remote origin
 jj rebase -b @ -o main@origin</pre>
-<p>Rewriting A automatically rebases B and its descendants. Move the publication bookmarks after the rewrite and push with the server's expected force-with-lease semantics. GitHub's UI merge operation is a server-side ref/graph action; jj learns its result on fetch.</p>
+<p>Rewriting A automatically rebases B and its descendants. Move the publication bookmarks after the rewrite and push through jj's fetched-state safety check; jj 0.45.1 has no force flag on <code>jj git push</code>. An exceptional host-side replacement is a separate, explicitly reviewed operation. GitHub's UI merge operation is a server-side ref/graph action; jj learns its result on fetch.</p>
 <p><code>gh pr create --head cache-pr</code>, <code>gh pr view</code>, and <code>gh pr checkout</code> can coexist with jj. Treat <code>gh pr checkout</code> as a Git-oriented worktree/ref operation and inspect the result with <code>jj status</code> and <code>jj git import</code>. Fork remotes need explicit names: <code>origin</code> may be your fork while <code>upstream</code> is the source; qualify remote bookmarks in revsets.</p>
 </section>
 
@@ -2287,7 +2287,7 @@ gh pr create --head pr/cache --title 'Bound cache memory'</pre>
 <pre>jj describe -m 'Cache: bound memory use and expose metrics'
 jj bookmark set pr/cache -r @
 jj git push --remote origin --bookmark pr/cache</pre>
-<p>Whether the push is a fast-forward depends on the server's previous ref and the rewrite. jj's push safety checks and remote tracking expose the expected old target; do not solve a rejection with an unreviewed force option. Inspect:</p>
+<p>Whether the push is a fast-forward depends on the server's previous ref and the rewrite. jj's push safety checks and remote tracking expose the expected old target; do not solve a rejection with an unreviewed native-Git replacement. In jj 0.45.1, <code>jj git push</code> has no force flag. Inspect:</p>
 <pre>jj bookmark list --remote origin --tracked
 jj log -r 'pr/cache | pr/cache@origin'
 jj diff --from 'pr/cache@origin' --to pr/cache</pre>
@@ -2348,7 +2348,7 @@ jj bookmark list --all-remotes</pre>
 <li>Determine whether the server changed independently or the local bookmark was rewritten.</li>
 <li>Compare the intended tree and ancestry with <code>jj diff</code> and <code>jj log</code>.</li>
 <li>If the ref should advance normally, rebase or move it to the expected descendant.</li>
-<li>If replacement is intentional, use the explicit force/safety option required by local policy and record why.</li>
+<li>If replacement is intentional, use the hosting system's documented replacement mechanism and record why; <code>jj git push</code> itself has no force flag in jj 0.45.1.</li>
 <li>If the wrong ref was pushed, repair the server ref separately; <code>jj undo</code> only repairs local operation state.</li>
 </ol>
 </section>
@@ -2384,7 +2384,7 @@ jj describe -m 'Cache: bound memory use and expose metrics'
 jj bookmark set pr/cache -r @
 jj diff --from pr/cache@origin --to pr/cache
 jj git push --remote origin --bookmark pr/cache</pre>
-<p>A non-fast-forward refusal is a safety signal. It can mean that the remote advanced, the tracking observation is stale, the local target is not a descendant, or server policy/authentication failed. Fetch and compare before considering any force update. A force option, where supported, is a publication policy decision, not a repair for an unclear graph.</p>
+<p>A non-fast-forward refusal is a safety signal. It can mean that the remote advanced, the tracking observation is stale, the local target is not a descendant, or server policy/authentication failed. Fetch and compare before considering any replacement. In jj 0.45.1 there is no force option on <code>jj git push</code>; if a host permits an exceptional replacement through another interface, treat that as a separate publication-policy decision, not a repair for an unclear graph.</p>
 <h4 id="github-stack-review-matrix">Stacked PRs and review boundaries</h4>
 <pre class="diagram">main@origin--A--B--C--D(@)
                ▲     ▲
@@ -2416,7 +2416,7 @@ jj log -r 'conflicts() &amp; ::pr/metrics'
 jj bookmark set pr/api -r 'change_id(API_CHANGE)'
 jj bookmark set pr/metrics -r 'change_id(METRICS_CHANGE)'
 jj git push --remote origin --bookmark pr/api --bookmark pr/metrics</pre>
-<p>If another machine published a successor of the same logical change, fetching may expose divergence rather than a simple rejection. Compare the evolutions before choosing a successor, creating a new bookmark, or using the 0.45.1 <code>converge</code> command. A force push that merely suppresses the warning discards evidence and possibly another contributor's review.</p>
+<p>If another machine published a successor of the same logical change, fetching may expose divergence rather than a simple rejection. Compare the evolutions before choosing a successor, creating a new bookmark, or using the 0.45.1 <code>converge</code> command. A host-side or native-Git force update that merely suppresses the warning discards evidence and possibly another contributor's review.</p>
 <h4 id="github-forks-and-gh-boundary">Forks, <code>gh</code>, and the Git boundary</h4>
 <pre>jj git remote add github git@github.com:me/project.git
 jj git remote add upstream git@github.com:org/project.git
@@ -2443,7 +2443,7 @@ jj new -m 'API: wire quota'
 jj log -r '::@ &amp; mutable()'
 jj gerrit upload --remote origin --remote-branch main
 </pre>
-<p>Use the Gerrit command's exact options in your release; the example expresses the workflow, not a universal server invocation. If using Git push directly, the equivalent transport is typically:</p>
+<p>In jj 0.45.1, the Gerrit command accepts the options shown in this chapter; server-side acceptance remains a Gerrit policy question. The example expresses the workflow, not a universal server configuration. If using Git push directly, the equivalent transport is typically:</p>
 <pre>git push origin HEAD:refs/for/main</pre>
 <p>When review requests changes to the first change, <code>jj edit A</code>, edit or <code>jj squash</code>, then allow automatic descendant rebasing to update B. Re-upload the series. Gerrit associates each patch set by its Change-Id footer, while jj retains change IDs through rewrites. When a review lands, fetch and rebase the remaining mutable stack onto <code>main@origin</code>; abandon obsolete local changes only after inspecting the operation log.</p>
 <h3 id="github-and-gerrit-in-one-repository">GitHub and Gerrit in one repository</h3>
@@ -2699,7 +2699,7 @@ jj gerrit upload --remote gerrit --remote-branch main \
 <tr><td>jj change ID</td><td>Evolution identity used to find a mutable change.</td><td>No direct server interpretation.</td></tr>
 <tr><td>Commit message footer</td><td>Text in the commit description.</td><td>Review association when server policy recognises <code>Change-Id</code>.</td></tr>
 <tr><td>Bookmark</td><td>Optional local publication name.</td><td>Git ref/name used to transfer a commit set.</td></tr>
-<tr><td><code>--topic</code> or equivalent</td><td>Upload option.</td><td>Server-side topic grouping, if permitted.</td></tr>
+<tr><td><code>--topic</code></td><td>Upload option.</td><td>Requests server-side topic grouping; Gerrit permissions and server policy determine whether the request is accepted.</td></tr>
 <tr><td><code>--reviewer</code>/<code>--cc</code></td><td>Upload option.</td><td>Server review metadata, permissions permitting.</td></tr>
 <tr><td><code>--label</code>/<code>--hashtag</code></td><td>Upload option.</td><td>Server label/hashtag request, subject to validation.</td></tr>
 </tbody></table>
@@ -2831,7 +2831,7 @@ jj show -r 'conflicts() &amp; ::@' --summary</pre>
 <pre>jj log -r @ -T 'conflict ++ \" sides=\" ++ conflicted_files.map(|f| f.conflict_side_count()).join(\",\") ++ \"\\n\"'
 jj resolve --list
 jj resolve --tool :builtin</pre>
-<p>The exact resolution command and tool options are release-sensitive; use the installed help for the complete interactive surface. The stable invariant is that a resolver reads the stored conflict and writes a chosen tree. If the resolver leaves a conflict, the resulting commit remains conflicted. Check with <code>jj log -r @ -T 'conflict'</code> and inspect the files rather than assuming the tool's exit status means all conflict objects disappeared.</p>
+<p>In jj 0.45.1, <code>jj resolve --list</code> lists the conflicts, <code>jj resolve --tool NAME</code> selects a resolver, and the builtin tools include <code>:ours</code> and <code>:theirs</code>. The stable invariant is that a resolver reads the stored conflict and writes a chosen tree. If the resolver leaves a conflict, the resulting commit remains conflicted. Check with <code>jj log -r @ -T 'conflict'</code> and inspect the files rather than assuming the tool's exit status means all conflict objects disappeared.</p>
 <h4 id="manual-resolution-as-snapshot">Manual resolution is a snapshot boundary</h4>
 <p>A safe manual repair has four checkpoints:</p>
 <ol><li>Save the current operation ID and the conflicted change's change ID.</li><li>Inspect the conflict sides and the intended semantic result.</li><li>Edit files, run focused tests, and snapshot deliberately.</li><li>Verify that the change is no longer in <code>conflicts()</code> and review every descendant.</li></ol>
@@ -3022,7 +3022,7 @@ jj op show OP
 jj op diff OP
 jj --at-operation OP log -r 'all()'
 jj --at-operation OP status</pre>
-<p><code>jj undo</code> normally reverses the most recent integrated operation. It is convenient when the mistake is recent and unambiguous. <code>jj op restore</code> moves the repository view to a selected historical operation and is more surgical, but it can discard later integrated state from the current view. <code>jj op revert</code>, where available, creates an operation that reverses a selected historical operation while retaining a new place in operation history. <code>jj op abandon</code> removes operation records according to its own semantics; use it only after checking that the records are no longer required for recovery.</p>
+<p><code>jj undo</code> normally reverses the most recent integrated operation. It is convenient when the mistake is recent and unambiguous. <code>jj op restore</code> moves the repository view to a selected historical operation and is more surgical, but it can discard later integrated state from the current view. <code>jj op revert</code> in jj 0.45.1 creates an operation that applies the inverse of a selected historical operation while retaining a new place in operation history; its experimental <code>--what</code> option can limit the reverted local state to the repository or remote-tracking portions. <code>jj op abandon</code> removes operation records according to its own semantics; use it only after checking that the records are no longer required for recovery.</p>
 
 <h4 id="exercise-1-the-wrong-ancestor-rewrite">Exercise 1: the wrong ancestor rewrite</h4>
 <pre class="diagram">main@origin--A--B--C--D(@)
@@ -3304,7 +3304,7 @@ jj config gc</pre>
     |-- 40-git.toml
     |-- 50-gerrit.toml
     \-- 60-aliases.toml</pre>
-<p>Organise by intent, not alphabetically. Important namespaces include <code>user.*</code>; <code>ui.*</code> (editor, pager, colour, timestamps, diff and merge presentation); <code>git.*</code> (backend, remotes, push/fetch, private commits); <code>gerrit.*</code> (including <code>default-remote</code> and <code>default-remote-branch</code> where supported); <code>revsets.*</code>; <code>templates.*</code>; <code>merge-tools.*</code>; <code>fix.tools.*</code>; <code>signing.*</code>; immutable-head settings; aliases; and snapshot/workspace behaviour.</p>
+<p>Organise by intent, not alphabetically. Important namespaces include <code>user.*</code>; <code>ui.*</code> (editor, pager, colour, timestamps, diff and merge presentation); <code>git.*</code> (backend, remotes, push/fetch, private commits); <code>gerrit.*</code> (including the 0.45.1 keys <code>default-remote</code> and <code>default-remote-branch</code>); <code>revsets.*</code>; <code>templates.*</code>; <code>merge-tools.*</code>; <code>fix.tools.*</code>; <code>signing.*</code>; immutable-head settings; aliases; and snapshot/workspace behaviour.</p>
 <pre>[ui]
 default-command = ["log", "-r", "stack(@)"]
 paginate = "auto"
@@ -3323,7 +3323,7 @@ log = 'builtin_log_compact'
 default-remote = "gerrit"
 default-remote-branch = "main"</pre>
 <p>Use <code>jj util config-schema</code> and the generated config inventory for the exhaustive target-release key surface. Some configuration is security-sensitive: repo/workspace config can be untrusted input in a checked-out repository, so 0.38+ layouts moved it outside the repository. Review effective config before using aliases or external tools.</p>
-<p>Conditional configuration is best achieved by separate included files or repository-local policy selected by path, if the target release supports conditional includes. A robust fallback is explicit command aliases: <code>jj git push --remote github --bookmark gh/topic</code> and <code>jj gerrit upload --remote gerrit</code>. Never let a convenient default choose a publication remote silently.</p>
+<p>jj 0.45.1 supports conditional configuration with <code>--when</code> variables and scoped configuration, as well as ordered files in <code>~/.config/jj/conf.d/</code>. Use those mechanisms for host-specific policy when they make the distinction auditable. A robust alternative is explicit command aliases: <code>jj git push --remote github --bookmark gh/topic</code> and <code>jj gerrit upload --remote gerrit</code>. Never let a convenient default choose a publication remote silently.</p>
 </section>
 
 <section id="config-deep">
@@ -3451,7 +3451,7 @@ log = "builtin_log_compact"
 <p>Check the actual accepted value shapes with <code>jj util config-schema</code> for the target release; configuration keys and types are version-sensitive. The example illustrates design intent, not a universal drop-in file. Keep the base file free of credentials and repository-specific bookmarks.</p>
 
 <h4 id="layered-files-and-precedence">Layered files and precedence</h4>
-<p>On Linux, user configuration normally lives under the XDG configuration directory, with jj’s own directory and optional fragments where supported. Repository and workspace configuration can narrow policy. Command-line <code>--config</code> values are useful for one invocation and for tests; <code>--config-file</code> loads a file without pretending it is the user’s permanent configuration. In jj 0.45.1, configuration commands also expose a direct <code>--file</code> target for editing a particular file.</p>
+<p>On Linux, user configuration normally lives under the XDG configuration directory, with jj’s own directory and the ordered <code>conf.d/*.toml</code> fragments supported by jj 0.45.1. Repository and workspace configuration can narrow policy. Command-line <code>--config</code> values are useful for one invocation and for tests; <code>--config-file</code> loads a file without pretending it is the user’s permanent configuration. In jj 0.45.1, configuration commands also expose a direct <code>--file</code> target for editing a particular file.</p>
 <table><thead><tr><th>Layer</th><th>Good use</th><th>Risk</th></tr></thead><tbody>
 <tr><td>Built-in defaults</td><td>Portable baseline.</td><td>Defaults can change between releases.</td></tr>
 <tr><td>User config</td><td>Identity, editor, pager, personal aliases.</td><td>Hidden policy affects every repository.</td></tr>
@@ -3600,7 +3600,7 @@ jj config list --include-overridden</pre>
 ~/.config/jj/conf.d/40-templates.toml
 ~/.config/jj/conf.d/50-remotes.toml
 ~/.config/jj/conf.d/60-tools.toml</pre>
-<p>Use <code>jj config path</code> to confirm what the build actually reads. XDG paths are a useful Linux convention, not a substitute for checking the installed binary and distribution patches. If the target release supports a configuration directory, keep fragments ordered and independently parseable. If it does not, concatenate or include them through the supported config mechanism rather than inventing a loader.</p>
+<p>Use <code>jj config path</code> to confirm what the build actually reads. XDG paths are a useful Linux convention, not a substitute for checking the installed binary and distribution patches. jj 0.45.1 supports a configuration directory, so keep its fragments ordered and independently parseable. Do not invent a second loader around that mechanism.</p>
 <pre>[user]
 name = "A. Engineer"
 email = "a@example.org"
@@ -3652,7 +3652,7 @@ review-url = "https://gerrit.example.invalid/c/project/+/"
 push-gh = ["git", "push", "--remote", "github", "--bookmark"]
 upload-gerrit = ["gerrit", "upload", "--remote", "gerrit", "--remote-branch", "main"]</pre>
 <p>Use separate aliases for separate publication protocols. A default remote is a convenience, not a permission boundary. In jj 0.45.1, a portable Gerrit script should pass <code>--remote</code> and <code>--remote-branch</code> explicitly. The named defaults can reduce repetition, but explicit arguments remain clearer in a repository with multiple publication protocols.</p>
-<p>Conditional configuration is useful when a single clone talks to both hosts, but only if the installed release supports the mechanism being proposed. A conservative design keeps the host choice in the command alias and requires a bookmark argument. Do not infer “Gerrit repository” solely from the presence of a remote named <code>origin</code>, and do not let a GitHub default send a Gerrit review ref.</p>
+<p>Conditional configuration is useful when a single clone talks to both hosts. jj 0.45.1 provides the conditional-configuration mechanism described above; use it only when the repository predicate and resulting policy are easy to audit. A conservative design keeps the host choice in the command alias and requires a bookmark argument. Do not infer “Gerrit repository” solely from the presence of a remote named <code>origin</code>, and do not let a GitHub default send a Gerrit review ref.</p>
 <h4 id="config-tools-and-trust">Editors, merge tools, fixers, and trust</h4>
 <p><code>ui.editor</code>, <code>ui.diff-editor</code>, and <code>ui.merge-editor</code> are separate contracts. A diff editor selects changes between two trees; a merge editor resolves conflict sides; a normal editor writes a description or metadata. Configure a builtin tool first, then add an external executable only after testing it in an untrusted/reproducible environment.</p>
 <pre>[ui]
@@ -3683,7 +3683,7 @@ jj config list --include-defaults --include-overridden
 jj util config-schema &gt; schema-0.45.1.json</pre>
 <p>Migrate one family at a time. Preserve the old config, run the binary's config parser, inspect effective values, and run a fixture. In particular compare immutable heads, pager flags, remote/tag predicates, Gerrit defaults, aliases, and command defaults between the installed release and future releases. A successful parse is not proof that a key still has the intended meaning; an unknown key can be accepted as data and simply never be read.</p>
 <h4 id="config-review-checklist">Configuration review checklist</h4>
-<ol><li>Identify the layer and trust level.</li><li>Read the effective value and overridden values.</li><li>Check whether the key is a default, a language alias, or a command setting.</li><li>Check whether the target release supports its spelling and type.</li><li>Keep remote, bookmark, and force decisions explicit at publication boundaries.</li><li>Test editors/tools in a disposable repository.</li><li>Run a semantic fixture after changing immutable, snapshot, revset, or template policy.</li></ol>
+<ol><li>Identify the layer and trust level.</li><li>Read the effective value and overridden values.</li><li>Check whether the key is a default, a language alias, or a command setting.</li><li>Check the jj 0.45.1 schema for the key's spelling and type; when preparing a later-release configuration, repeat that check against the later schema.</li><li>Keep remote, bookmark, and force decisions explicit at publication boundaries.</li><li>Test editors/tools in a disposable repository.</li><li>Run a semantic fixture after changing immutable, snapshot, revset, or template policy.</li></ol>
 </section>
 <section id="part13">
 <h2 class="toc-entry" id="part-xiii-template-language">Part XIV — Template language</h2>
@@ -4320,7 +4320,7 @@ jj bookmark rename --overwrite-existing old current</pre>
 <p>Creates or updates bookmarks to a target. <code>-r/--revision REVSET</code> (alias <code>--to</code>) defaults to <code>@</code>; <code>-B/--allow-backwards</code> permits backwards or sideways movement that is otherwise protected.</p>
 <pre>jj bookmark set review -r @
 jj bookmark set --allow-backwards review -r 'main@origin'</pre>
-<p>Set is convenient for a publication boundary but can hide whether a name was new or already existed. For an auditable existing-name move use <code>bookmark move</code>. Neither operation changes the commit DAG. <code>--allow-backwards</code> is a ref-safety override: it does not make the resulting commit immutable or force a remote update.</p></article>
+<p>Set is convenient for a publication boundary but can hide whether a name was new or already existed. For an auditable existing-name move use <code>bookmark move</code>. Neither operation changes the commit DAG. In jj 0.45.1, <code>--allow-backwards</code> is a ref-safety override for the bookmark operation: it does not make the resulting commit immutable or force a remote update.</p></article>
 
 <article class="command-entry" id="cmd-bookmark-track"><h4 id="jj-bookmark-track"><code>jj bookmark track</code></h4>
 <p>Creates a relationship between a local bookmark and a remote bookmark. Arguments can be bookmark patterns with <code>--remote REMOTE</code> or exact <code>BOOKMARK@REMOTE</code> symbols. Tracking does not move either target and does not make the local bookmark follow <code>@</code>.</p>
@@ -4490,7 +4490,7 @@ jj file chmod n --revision A -- 'glob:bin/**'</pre>
 <p>This rewrites the target's tree metadata and can rebase descendants. It is not a filesystem <code>chmod</code> of every checkout; inspect the resulting tree and working copy. Use template <code>TreeEntry.executable()</code> to verify.</p></article>
 
 <article class="command-entry" id="cmd-file-list"><h4 id="jj-file-list"><code>jj file list</code></h4>
-<p>Lists paths in the selected tree. Positional filesets filter output, <code>-r/--revision REVSET</code> selects the tree (default <code>@</code>), and <code>-T/--template</code> can render tree-entry metadata where supported.</p>
+<p>Lists paths in the selected tree. Positional filesets filter output, <code>-r/--revision REVSET</code> selects the tree (default <code>@</code>), and <code>-T/--template</code> renders tree-entry metadata in jj 0.45.1.</p>
 <pre>jj file list --revision @
 jj file list -r main@origin -- 'glob:src/**'
 jj file list -- 'root-glob:docs/**/*.md'</pre>
@@ -4622,7 +4622,7 @@ git --git-dir="$PWD/backing/.git" show-ref</pre>
 <article class="command-entry" id="cmd-git-push"><h4 id="jj-git-push"><code>jj git push</code></h4>
 <p><strong>Purpose and model.</strong> Publishes Git refs selected from local bookmarks/tags. It is the boundary where unnamed local work must acquire a publication name unless a release-specific change push mode is used.</p>
 <p><strong>Syntax/options.</strong> <code>--remote REMOTE</code> selects a named remote; <code>-b/--bookmark PATTERN</code> repeats bookmark patterns, <code>-t/--tag PATTERN</code> repeats tags, <code>--all</code> pushes all bookmarks/tags including new ones, <code>--tracked</code> pushes tracked refs, and <code>--deleted</code> pushes deletions. <code>-r/--revision REVSETS</code> selects bookmarks/tags pointing to revisions, <code>--named NAME=REVISION</code> creates or updates a named bookmark for publication, and <code>-c/--change REVSETS</code> creates a bookmark whose default name is based on the change ID. <code>--allow-empty-description</code>, <code>--allow-private</code>, and <code>--allow-conflicts</code> relax eligibility checks; <code>--dry-run</code> previews the operation. These are the jj 0.45.1 options; new-bookmark publication uses <code>--named</code> or <code>--change</code>, not an additional permission flag.</p>
-<p><strong>Safety.</strong> An untracked selected bookmark can become tracked automatically. A new bookmark is requested with <code>--named</code> or <code>--change</code>, not with a force or “allow new” switch. A backwards update is subject to jj's lease-like safety check: the remote must still match the state jj last fetched before the update is accepted. Review local and remote targets, specify the remote, and use a dry run where available.</p>
+<p><strong>Safety.</strong> An untracked selected bookmark can become tracked automatically. A new bookmark is requested with <code>--named</code> or <code>--change</code>, not with a force or “allow new” switch. A backwards update is subject to jj's lease-like safety check: the remote must still match the state jj last fetched before the update is accepted. Review local and remote targets, specify the remote, and use jj 0.45.1's <code>--dry-run</code> before publishing.</p>
 <pre>jj git push --remote origin --bookmark review
 jj git push --remote github --bookmark 'gh/*' --dry-run
 jj git push --remote gerrit --named review=@
@@ -5239,7 +5239,7 @@ jj diffedit -r 'change_id(API_CHANGE)' -- 'root-prefix-glob:"src"'</pre>
 <p><code>jj absorb</code> routes working-copy changes into suitable mutable ancestors. It is powerful precisely because it is a policy-driven multi-target rewrite. Before using it, inspect which ancestors are mutable, which files each owns, and whether the current change contains unrelated work. Use a narrow revset/fileset and an operation checkpoint. If an individual diff hunk matches several ancestors or no ancestor, the command's behaviour follows its configured applicability rules; do not promise ownership without inspecting the result.</p>
 <p><code>jj duplicate</code> creates a new logical change with copied content. It intentionally breaks evolution continuity. <code>jj abandon</code> removes a commit from ordinary visible work and reconnects or updates dependants according to graph rules. <code>jj restore</code> restores selected file contents or reverses a selected change. <code>jj revert</code> creates a new inverse change. The last two are both content operations but differ in whether the inverse is applied to an existing destination or represented as a new commit.</p>
 <h4 id="cli-rebase-contract">Rebase as a two-dimensional contract</h4>
-<p><code>jj rebase</code> has a source dimension and a destination dimension. Source <code>-r/--revisions X</code> selects explicit commits; <code>-s/--source X</code> selects X and descendants; <code>-b/--branch X</code> selects the branch of X relative to the destination. Destination <code>-o/--onto Y</code> places the selected source on Y; repeated destinations create multiple parents where supported; <code>-A/--insert-after Y</code> inserts selected changes after Y; <code>-B/--insert-before Y</code> inserts them before Y. The names are not cosmetic: changing <code>-r</code> to <code>-s</code> can turn a one-commit repair into a whole-stack rewrite.</p>
+<p><code>jj rebase</code> has a source dimension and a destination dimension. Source <code>-r/--revisions X</code> selects explicit commits; <code>-s/--source X</code> selects X and descendants; <code>-b/--branch X</code> selects the branch of X relative to the destination. Destination <code>-o/--onto Y</code> places the selected source on Y; repeating <code>-o</code> in jj 0.45.1 creates multiple parents; <code>-A/--insert-after Y</code> inserts selected changes after Y; <code>-B/--insert-before Y</code> inserts them before Y. The names are not cosmetic: changing <code>-r</code> to <code>-s</code> can turn a one-commit repair into a whole-stack rewrite.</p>
 <pre class="diagram">before: base--A--B--C
                   \
                    X--Y
@@ -5469,7 +5469,7 @@ jj run --passthrough -r @ -- ./interactive-check.sh</pre>
 <table><thead><tr><th>Option/policy</th><th>Effect</th><th>Use when</th></tr></thead><tbody>
 <tr><td><code>--ignore-changes</code></td><td>Do not record files written by the command as commit changes.</td><td>Read-only tests or tools whose outputs are disposable.</td></tr>
 <tr><td><code>--clean</code></td><td>Do not reuse existing private workspaces.</td><td>Reproducible runs that must not inherit files.</td></tr>
-<tr><td><code>-j N</code></td><td>Run selected commits concurrently where supported.</td><td>Independent deterministic tests; not a shared mutable worktree.</td></tr>
+<tr><td><code>-j N</code></td><td>Run selected commits concurrently in jj 0.45.1.</td><td>Independent deterministic tests; not a shared mutable worktree.</td></tr>
 <tr><td><code>--passthrough</code></td><td>Connect command output and constrain execution mode.</td><td>Interactive diagnostics, not machine aggregation.</td></tr>
 <tr><td><code>--root</code></td><td>Choose the command's working root.</td><td>Scripts that must not depend on the caller's cwd.</td></tr>
 </tbody></table>
@@ -6347,7 +6347,7 @@ notes/old api.txt</pre>
 <tr><td><code>root-file:src/lib.rs</code></td><td>one exact path</td><td>Scripts that must not include neighbours.</td></tr>
 <tr><td><code>root-glob:src/*.rs</code></td><td>Rust files directly below <code>src</code></td><td>Non-recursive glob selection.</td></tr>
 <tr><td><code>root-prefix-glob:src/*.rs</code></td><td>matching files and matching prefixes</td><td>Recursive path-oriented glob policy.</td></tr>
-<tr><td><code>root-glob-i:docs/*.MD</code></td><td>case-insensitive glob matches</td><td>Repositories with inconsistent case, if supported by the target pattern.</td></tr>
+<tr><td><code>root-glob-i:docs/*.MD</code></td><td>case-insensitive glob matches</td><td>Repositories with inconsistent case; the <code>-i</code> suffix is supported by jj 0.45.1.</td></tr>
 </tbody></table>
 <p>Operators have the same useful shape as revsets: function/pattern, complement, intersection or difference, then union. Thus <code>'src ~ root-glob:src/**/generated/**'</code> selects the source subtree except generated files. Parenthesise a union before complementing it; <code>'~a | b'</code> is not the same as <code>'~(a | b)'</code>.</p>
 <pre>jj file list 'root:src ~ root-prefix-glob:src/**/generated/**'
@@ -6529,7 +6529,7 @@ default-command = ["log", "-r", "stack(@)"]
 [template-aliases]
 "brief_commit(commit)" = "commit.change_id().short() ++ \" \" ++ commit.description().first_line()"</pre>
 <p>Start with identity and output. Add revset aliases only after testing them against a non-linear fixture. Add fileset aliases when the same path policy appears in several commands. Add template aliases last, because a typo in a type-sensitive method can make all log output fail. A repository-specific config may redefine the log revset, but a publication alias should name its remote explicitly or accept the remote as a visible argument.</p>
-<p>Splitting files under a <code>conf.d</code> directory is convenient only when the installed release supports the layout and load order. Verify it with <code>config list</code> and a harmless sentinel value in a disposable configuration. The maintainable principle is independent of the directory name: keep UI, aliases, templates, Git transport, and Gerrit policy reviewable as separate units and document their precedence.</p>
+<p>jj 0.45.1 supports splitting user configuration under <code>conf.d</code>, loaded in lexical order. Verify the effective result with <code>config list</code> and a harmless sentinel value in a disposable configuration. The maintainable principle is independent of the directory name: keep UI, aliases, templates, Git transport, and Gerrit policy reviewable as separate units and document their precedence.</p>
 
 <h3 id="important-config-ui">UI, snapshot, and editor policy</h3>
 <table><thead><tr><th>Family</th><th>Key examples</th><th>Design choice</th><th>Interaction</th></tr></thead><tbody>
@@ -6659,7 +6659,7 @@ json(description.first_line()) ++ "\n"
 <tr><td><code>git.colocate</code></td><td>Boolean/policy</td><td>Colocation default/behaviour</td><td>Changes the native Git interoperability boundary.</td></tr>
 <tr><td><code>git.object-hash</code></td><td>Enum</td><td>Git object hash format</td><td>Interoperability with external tools and remotes is format-dependent.</td></tr>
 <tr><td><code>remotes</code></td><td>Table</td><td>Named Git remotes and URLs</td><td>Names are local configuration; remote bookmarks are fetched observations.</td></tr>
-<tr><td><code>gerrit.default-remote</code></td><td>String</td><td>Default Gerrit upload remote where supported</td><td>the target documentation surface; explicit upload flags are portable.</td></tr>
+<tr><td><code>gerrit.default-remote</code></td><td>String</td><td>Default Gerrit upload remote in jj 0.45.1</td><td>the target documentation surface; explicit upload flags are portable.</td></tr>
 <tr><td><code>gerrit.default-remote-branch</code></td><td>String</td><td>Default Gerrit target branch</td><td>Do not infer trunk from a local bookmark of the same name.</td></tr>
 <tr><td><code>gerrit.review-url</code></td><td>URL/string</td><td>Review URL construction/display</td><td>Instance-specific; it does not create or verify a review.</td></tr>
 <tr><td><code>merge.hunk-level</code></td><td>Boolean/enum</td><td>Merge granularity</td><td>Can change conflict shape; validate with real two-sided fixtures.</td></tr>
@@ -6855,7 +6855,7 @@ jj git remote add gerrit ssh://review.example.org/project
 jj git remote list
 jj git fetch --remote github
 jj git fetch --remote gerrit</pre>
-<p>After a native Git fetch in a colocated repository, use the supported jj import operation before querying remote bookmarks. After a jj bookmark update, export when a Git-native tool must inspect the new ref. Concurrently changing the worktree with Git and jj is unsafe even if the two commands target different refs; snapshot ownership is a filesystem concern.</p>
+<p>After a native Git fetch in a colocated repository, run <code>jj git import</code> before querying remote bookmarks. After a jj bookmark update, jj exports the Git ref; a Git-native tool can then inspect the new ref. Concurrently changing the worktree with Git and jj is unsafe even if the two commands target different refs; snapshot ownership is a filesystem concern.</p>
 
 <h3 id="tag-contracts">Tag commands</h3>
 <p><code>jj tag set</code> creates or moves a local tag at a selected commit; <code>tag list</code> inspects tags; <code>tag delete</code> changes local tag state; <code>tag track</code> and <code>tag untrack</code> manage relationships to remote tags. Tag names are publication labels, not mutable stack organisation. A release tag should be placed only after the exact commit and parents have been tested, and the release policy should make the tag part of the immutable-head boundary.</p>
@@ -6863,7 +6863,7 @@ jj git fetch --remote gerrit</pre>
 jj tag list
 jj tag track v2.4.0 --remote origin
 jj git push --remote origin --bookmark release-candidate</pre>
-<p>The transport command for tags and its supported options should be checked in the target help; a local tag operation alone does not publish it. jj 0.45.1 provides tracked/untracked remote tag revset predicates. Use those predicates in a target-release shared alias only when their policy meaning is intentional.</p>
+<p>In jj 0.45.1, <code>jj git push --tag NAME</code> publishes a selected tag; a local tag operation alone does not publish it. jj 0.45.1 also provides tracked/untracked remote tag revset predicates. Use those predicates in a target-release shared alias only when their policy meaning is intentional.</p>
 
 <h3 id="maintenance-utility-contracts">Utilities and maintenance</h3>
 <table><thead><tr><th>Command</th><th>Use</th><th>Why it deserves a contract</th></tr></thead><tbody>
@@ -7031,7 +7031,7 @@ local ref:                         review -> C
 tracking pair:                     review &lt;-&gt; review@origin -> B
                                    |
 server request:                    update review@origin from B to C</pre>
-<p>In this state, the local bookmark is ahead of its imported remote target. The safe publication procedure is to fetch first if the observation may be old, verify the remote name and URL, compare B with the currently fetched target, and then push the explicit bookmark. The command is a request to update a Git ref; it is not a request to publish “the current change” in the abstract. If another contributor has moved the server ref, the expected old target no longer matches and the operator must decide whether to rebase, merge, or deliberately force-update under the hosting policy.</p>
+<p>In this state, the local bookmark is ahead of its imported remote target. The safe publication procedure is to fetch first when the observation may be old, verify the remote name and URL, compare B with the currently fetched target, and then push the explicit bookmark. The command is a request to update a Git ref; it is not a request to publish “the current change” in the abstract. If another contributor has moved the server ref, the expected old target no longer matches and the operator must decide whether to rebase, merge, or deliberately replace the ref through the hosting policy; jj 0.45.1's <code>jj git push</code> has no force flag.</p>
 <pre>jj git remote list
 jj git fetch --remote origin
 jj bookmark list review --all-remotes
@@ -7343,7 +7343,7 @@ jj log -r 'review | review@origin' -T '
 commit_id.normal_hex() ++ " " ++ change_id.normal_hex() ++ " " ++
 description.first_line() ++ "\n"
 </pre>
-<p>If the remote target contains work that must be preserved, rebase or merge onto it according to the review policy. If the remote target is an obsolete version of the same review and the server permits an intentional force update, document the old target and use the command's explicit backwards-update option. Tracking helps compare the states; it does not make the decision for you.</p>
+<p>If the remote target contains work that must be preserved, rebase or merge onto it according to the review policy. If the remote target is an obsolete version of the same review and the server permits an intentional replacement, document the old target and perform that replacement through the hosting system or a deliberately verified native-Git operation; jj 0.45.1's <code>jj git push</code> has no backwards-update flag. Tracking helps compare the states; it does not make the decision for you.</p>
 
 <h4 id="github-fork-upstream">Fieldbook: fork/upstream topology</h4>
 <p>Keep the fork remote and upstream remote distinct. Fetch upstream trunk under its own remote name, publish PR refs to the fork, and avoid aliases that treat <code>origin/main</code> as universally authoritative. The graph can contain both:</p>
@@ -7371,7 +7371,7 @@ description.first_line() ++ "\n"
                        Iq   Ir   Is
                        ↑         ↑
                     review Q   review S</pre>
-<ol><li>Fetch the target branch and create the stack in local jj without publication bookmarks.</li><li>Verify each description has the intended Gerrit footer and that the changes are in dependency order.</li><li>Render the stack with full commit IDs and jj change IDs; record this as upload iteration zero.</li><li>Run <code>jj gerrit upload --dry-run</code> with explicit remote, branch, and commit selection where supported.</li><li>Upload the stack and record the server URLs/identities returned by the Gerrit instance.</li></ol>
+<ol><li>Fetch the target branch and create the stack in local jj without publication bookmarks.</li><li>Verify each description has the intended Gerrit footer and that the changes are in dependency order.</li><li>Render the stack with full commit IDs and jj change IDs; record this as upload iteration zero.</li><li>Run the available jj 0.45.1 <code>jj gerrit upload --dry-run</code> with explicit remote, branch, and commit selection.</li><li>Upload the stack and record the server URLs/identities returned by the Gerrit instance.</li></ol>
 <p>The upload command's review options can set reviewers, CCs, labels, topics, hashtags, WIP/ready state, privacy, notifications, and other server push options. Their spelling and server acceptance are version/instance-sensitive. In a shared script, pass the remote and branch explicitly and keep server options in a reviewed configuration file. Test the local selection and footer before relying on the server response.</p>
 
 <h4 id="gerrit-early-review-rewrite">Early review feedback</h4>
@@ -7433,7 +7433,7 @@ version  workspace [add forget list rename root update-stale]</pre>
 <p><strong>Role: quick lookup.</strong> This is generated from jj 0.45.1 help. The command paths are expanded in the reader-facing entries in <a href="#part-xiv-exhaustive-cli-reference-for-jj-0-45-1">Part XV</a>. Use the tree to find a family, then use the command entry for arguments, options, cardinality, mutation, and examples.</p>
 <h3 class="toc-entry" id="appendix-b-option-index">Appendix B — Option index</h3>
 <table><thead><tr><th>Flag</th><th>Where/meaning</th></tr></thead><tbody>
-<tr><td><code>-R</code>, <code>--repository</code></td><td>Operate on a repository path.</td></tr><tr><td><code>--ignore-working-copy</code></td><td>Do not snapshot/update filesystem.</td></tr><tr><td><code>--no-integrate-operation</code></td><td>Create but do not integrate operation.</td></tr><tr><td><code>--ignore-immutable</code></td><td>Bypass rewrite protection.</td></tr><tr><td><code>--at-operation</code></td><td>Load historical repository view.</td></tr><tr><td><code>-r</code></td><td>Commits/revset; meaning is command-specific.</td></tr><tr><td><code>-s</code>, <code>-b</code></td><td>Rebase source/branch selection.</td></tr><tr><td><code>-o/-d</code>, <code>-A</code>, <code>-B</code></td><td>Rebase onto/destination, insert-after, insert-before.</td></tr><tr><td><code>--from</code>, <code>--to</code></td><td>Tree/diff/content endpoints where supported.</td></tr><tr><td><code>--bookmark</code>, <code>--remote</code></td><td>Publication/ref selection.</td></tr><tr><td><code>--all</code>, <code>--tracked</code></td><td>Command-specific set selection.</td></tr><tr><td><code>--color</code>, <code>--no-pager</code>, <code>--quiet</code></td><td>Output controls.</td></tr>
+<tr><td><code>-R</code>, <code>--repository</code></td><td>Operate on a repository path.</td></tr><tr><td><code>--ignore-working-copy</code></td><td>Do not snapshot/update filesystem.</td></tr><tr><td><code>--no-integrate-operation</code></td><td>Create but do not integrate operation.</td></tr><tr><td><code>--ignore-immutable</code></td><td>Bypass rewrite protection.</td></tr><tr><td><code>--at-operation</code></td><td>Load historical repository view.</td></tr><tr><td><code>-r</code></td><td>Commits/revset; meaning is command-specific.</td></tr><tr><td><code>-s</code>, <code>-b</code></td><td>Rebase source/branch selection.</td></tr><tr><td><code>-o/-d</code>, <code>-A</code>, <code>-B</code></td><td>Rebase onto/destination, insert-after, insert-before.</td></tr><tr><td><code>--from</code>, <code>--to</code></td><td>Tree/diff/content endpoints on commands whose entries list them.</td></tr><tr><td><code>--bookmark</code>, <code>--remote</code></td><td>Publication/ref selection.</td></tr><tr><td><code>--all</code>, <code>--tracked</code></td><td>Command-specific set selection.</td></tr><tr><td><code>--color</code>, <code>--no-pager</code>, <code>--quiet</code></td><td>Output controls.</td></tr>
 </tbody></table>
 <p>Do not transfer a short flag between commands by analogy. The expanded index below records ownership and interactions for the options most likely to affect graph scope or publication. The command contracts in Part XV explain the complete command-specific effects; use installed help for any release-specific spelling or default not shown here.</p>
 <h4 id="appendix-b-option-index-by-contract">B.1 Options by contract</h4>
@@ -7455,7 +7455,7 @@ version  workspace [add forget list rename root update-stale]</pre>
 <tr><td><code>-B</code>, <code>--insert-before</code></td><td><code>rebase</code></td><td>REVSET</td><td>Inserts source commits before a destination. It has different graph semantics from <code>--insert-after</code>; do not infer one from the other.</td></tr>
 <tr><td><code>--skip-emptied</code></td><td><code>rebase</code></td><td>none</td><td>Controls handling of commits whose diffs become empty during the rewrite. Inspect successors and bookmark targets afterwards.</td></tr>
 <tr><td><code>--into</code></td><td><code>squash</code></td><td>REVSET</td><td>Chooses the destination change. It is distinct from the source commit selected by <code>-r</code> and from a fileset restricting moved paths.</td></tr>
-<tr><td><code>--from</code>, <code>--to</code></td><td><code>squash</code>, <code>diff</code>, file commands</td><td>REVSET</td><td>Names tree/diff endpoints where supported. Read the command entry: the same words do not imply the same direction in every consumer.</td></tr>
+<tr><td><code>--from</code>, <code>--to</code></td><td><code>squash</code>, <code>diff</code>, file commands</td><td>REVSET</td><td>Names tree/diff endpoints on the listed commands. Read the command entry: the same words do not imply the same direction in every consumer.</td></tr>
 <tr><td><code>--keep-emptied</code></td><td><code>squash</code></td><td>none</td><td>Preserves a source commit after its selected diff is moved. It changes graph shape, not merely display.</td></tr>
 <tr><td><code>--insert-before</code>, <code>--insert-after</code></td><td><code>split</code></td><td>REVSET</td><td>Places the split result relative to a chosen commit when the command supports explicit placement. Check the resulting parent edges.</td></tr>
 <tr><td><code>--message</code>, <code>-m</code></td><td><code>describe</code>, <code>split</code>, <code>commit</code>, <code>new</code></td><td>TEXT</td><td>Sets a description. A description rewrite changes the commit ID and can rebase descendants; it does not inherently change the jj change ID.</td></tr>
@@ -7464,10 +7464,10 @@ version  workspace [add forget list rename root update-stale]</pre>
 <tr><td><code>--tracked</code></td><td><code>git push</code>, bookmark commands</td><td>none</td><td>Selects tracking state. It does not mean “all local bookmarks” and does not move a bookmark to <code>@</code>.</td></tr>
 <tr><td><code>--all</code></td><td>Git transport commands</td><td>none</td><td>Broadens publication or ref selection according to the command. Treat it as a review-required option.</td></tr>
 <tr><td><code>--deleted</code></td><td><code>git push</code></td><td>none</td><td>Publishes deletion of eligible remote refs. Verify the local/remote bookmark relationship before using it.</td></tr>
-<tr><td><code>--allow-private</code></td><td><code>git push</code></td><td>none</td><td>Allows private commits into the push selection where supported. Privacy policy and server access remain separate concerns.</td></tr>
-<tr><td><code>--allow-conflicts</code></td><td><code>git push</code></td><td>none</td><td>Allows conflicted commits to be pushed where supported. It does not resolve the conflict or guarantee host acceptance.</td></tr>
+<tr><td><code>--allow-private</code></td><td><code>git push</code></td><td>none</td><td>Allows private commits into the push selection in jj 0.45.1. Privacy policy and server access remain separate concerns.</td></tr>
+<tr><td><code>--allow-conflicts</code></td><td><code>git push</code></td><td>none</td><td>Allows conflicted commits to be pushed in jj 0.45.1. It does not resolve the conflict or guarantee host acceptance.</td></tr>
 <tr><td><code>--named NAME=REVISION</code></td><td><code>git push</code></td><td>assignment</td><td>Creates an explicit publication mapping for a push. Use it when a temporary publication name is safer than moving a durable local bookmark.</td></tr>
-<tr><td><code>-c</code>, <code>--change</code></td><td><code>git push</code></td><td>CHANGE</td><td>Publishes by change identity where supported. Verify the selected evolution and resulting remote ref instead of assuming commit-ID selection.</td></tr>
+<tr><td><code>-c</code>, <code>--change</code></td><td><code>git push</code></td><td>CHANGE</td><td>Publishes by change identity in jj 0.45.1. Verify the selected evolution and resulting remote ref instead of assuming commit-ID selection.</td></tr>
 <tr><td><code>--dry-run</code></td><td>Git/Gerrit push commands</td><td>none</td><td>Shows a prospective publication. It is a precondition check, not a lock against another process or contributor changing the remote.</td></tr>
 <tr><td><code>--revision</code></td><td><code>gerrit upload</code></td><td>REVSET</td><td>Restricts Gerrit upload selection. Make the base and range visible before upload; server patch-set association is a separate identity layer.</td></tr>
 <tr><td><code>--remote-branch</code></td><td><code>gerrit upload</code></td><td>NAME</td><td>Names the Gerrit destination branch. Pass it explicitly on 0.45.1 in repositories with multiple publication protocols.</td></tr>
@@ -7476,7 +7476,7 @@ version  workspace [add forget list rename root update-stale]</pre>
 <tr><td><code>--wip</code>, <code>--ready</code>, <code>--private</code></td><td><code>gerrit upload</code></td><td>none</td><td>Controls review state in the upload request. Keep these options explicit in publication aliases.</td></tr>
 <tr><td><code>--operation</code></td><td><code>op</code> commands</td><td>OPERATION</td><td>Selects a repository operation for inspection or recovery. It is not a commit and cannot be substituted with a commit ID.</td></tr>
 <tr><td><code>--tool</code></td><td><code>resolve</code>, diff/merge commands</td><td>NAME</td><td>Selects an external or builtin tool. Validate executable paths and tool exit status before automation.</td></tr>
-<tr><td><code>--workspace</code></td><td>workspace commands where supported</td><td>NAME</td><td>Names a workspace in commands that accept it. The active <code>@</code> still belongs to one workspace at a time.</td></tr>
+<tr><td><code>--workspace</code></td><td>commands whose syntax lists it</td><td>NAME</td><td>Names a workspace in commands that accept it. The active <code>@</code> still belongs to one workspace at a time.</td></tr>
 <tr><td><code>--clear</code>, <code>--add</code></td><td><code>sparse set</code></td><td>PATTERN</td><td>Replaces or extends sparse patterns. <code>sparse edit</code> opens the configuration editor and does not consume a fileset argument in 0.45.1.</td></tr>
 </tbody></table>
 <p>Three rules prevent most option errors. First, classify the option as global view control, commit selection, fileset selection, graph transformation, publication, or output. Secondly, inspect whether its argument is a single commit, a set, a fileset, a name, or an external program. Finally, make the postcondition explicit: selected IDs, successor relation, bookmark target, remote ref, filesystem paths, or operation ID. A syntactically valid option with the wrong domain is still a semantic failure.</p>
@@ -7487,7 +7487,7 @@ version  workspace [add forget list rename root update-stale]</pre>
 <h3 id="appendix-h-github-recipes">Directory entry — GitHub recipes</h3><p><strong>Directory only — continue to the complete fieldbook.</strong> Fetch <code>main@origin</code>; build an unnamed mutable stack; create one bookmark per PR boundary; push explicit bookmarks; rebase the stack onto updated main; and clean publication names. The complete lifecycle fieldbook is <a href="#github-recipes-fieldbook">Appendix H fieldbook</a>.</p>
 <h3 id="appendix-i-gerrit-recipes">Directory entry — Gerrit recipes</h3><p><strong>Directory only — continue to the complete fieldbook.</strong> Preserve Gerrit Change-Id footers; use jj change IDs for local evolution; upload to the configured Gerrit remote/branch; revise any stack member; re-upload; fetch landed changes; and rebase the remaining stack. The complete lifecycle fieldbook is <a href="#gerrit-recipes-fieldbook">Appendix I fieldbook</a>.</p>
 <h3 id="appendix-j-recovery-recipes">Directory entry — Recovery recipes</h3><p><strong>Directory only — continue to the complete fieldbook.</strong> Record <code>jj op log</code>; inspect <code>jj --at-op OP log</code>; use <code>undo</code> for the last operation, <code>op restore</code> for a known state, <code>evolog</code> for a rewritten change, and a temporary bookmark for cross-machine recovery. The complete incident fieldbook is <a href="#recovery-recipes-fieldbook">Appendix J fieldbook</a>.</p>
-<h3 id="appendix-k-linux-shell-integration">Directory entry — Linux shell integration</h3><p><strong>Directory only — continue to the complete fieldbook.</strong> Bash and Zsh use the output of <code>jj util completion bash</code> or <code>zsh</code>; Fish can use its generated completion where supported. The complete prompt, completion, pager, editor, and automation procedures are in <a href="#linux-shell-integration-fieldbook">Appendix K fieldbook</a>.</p>
+<h3 id="appendix-k-linux-shell-integration">Directory entry — Linux shell integration</h3><p><strong>Directory only — continue to the complete fieldbook.</strong> Bash and Zsh use the output of <code>jj util completion bash</code> or <code>zsh</code>; Fish can use the generated completion supplied by jj 0.45.1. The complete prompt, completion, pager, editor, and automation procedures are in <a href="#linux-shell-integration-fieldbook">Appendix K fieldbook</a>.</p>
 </section>
 
 <section id="appendix-reference-deep">
@@ -7586,7 +7586,7 @@ x | y</pre>
 <tr><td>Files</td><td><code>diff_lines(TEXT, [FILESET])</code></td><td>Match changes whose diff lines contain the text, optionally limited by a fileset. Beware generated/binary content.</td></tr>
 <tr><td>Files</td><td><code>diff_lines_added(TEXT, [FILESET])</code>, <code>diff_lines_removed(TEXT, [FILESET])</code></td><td>Match added/removed diff lines. Use bounded ranges and inspect false positives.</td></tr>
 <tr><td>Review</td><td><code>mine()</code></td><td>Author matches configured user identity. A convenient predicate, not proof of ownership.</td></tr>
-<tr><td>Review</td><td><code>signed()</code></td><td>Select signed commits where supported. Cryptographic validity and server trust remain separate checks.</td></tr>
+<tr><td>Review</td><td><code>signed()</code></td><td>Select signed commits in jj 0.45.1. Cryptographic validity and server trust remain separate checks.</td></tr>
 <tr><td>Query control</td><td><code>coalesce(X,Y,...)</code></td><td>Return the first present/non-empty set/value. Useful in aliases with optional refs.</td></tr>
 <tr><td>Query control</td><td><code>exactly(X,N)</code></td><td>Evaluate X and error unless it has exactly N members; useful before singleton commands.</td></tr>
 <tr><td>Refs</td><td><code>trunk()</code></td><td>Resolve the configured default trunk bookmark. Prefer an explicit remote bookmark when a script must be unambiguous.</td></tr>
@@ -7707,7 +7707,7 @@ jj diff -r @ -- "$paths"</pre>
 <tr><td><code>jj restore</code></td><td>From source to into destination</td><td>Copies selected paths.</td><td>Diff the destination and inspect residual files.</td></tr>
 <tr><td><code>jj squash</code></td><td>From source change into destination</td><td>Moves selected diff paths.</td><td>Diff both source and destination.</td></tr>
 <tr><td><code>jj split</code></td><td>Selected commit</td><td>Assigns selected paths/diff hunks to one side.</td><td>Inspect both resulting commits.</td></tr>
-<tr><td><code>jj fix</code></td><td>Selected source commits</td><td>Restricts fixer input where supported.</td><td>Query successors and run tests at the stack tip.</td></tr>
+<tr><td><code>jj fix</code></td><td>Selected source commits</td><td>Restricts fixer input with the 0.45.1 <code>-s/--source</code> option.</td><td>Query successors and run tests at the stack tip.</td></tr>
 <tr><td><code>jj file chmod</code></td><td>Working-copy tree</td><td>Limits executable-bit changes.</td><td>Show file modes through Git/object inspection if relevant.</td></tr>
 <tr><td><code>jj file track/untrack</code></td><td>Filesystem tracking state</td><td>Changes what snapshot considers.</td><td>Run status and inspect the next snapshot.</td></tr>
 </tbody></table>
@@ -7797,7 +7797,7 @@ jj diff -r @ -- "$paths"</pre>
 <tr><td><code>git worktree</code></td><td><code>jj workspace add</code>, <code>jj workspace list</code>, and <code>jj workspace forget</code></td><td>Workspaces share the jj store and have workspace-local <code>@</code>; inspect stale working-copy state before rewriting shared history.</td></tr>
 <tr><td><code>git reflog</code></td><td><code>jj op log</code>, <code>jj evolog</code>, <code>jj undo</code>, and explicit commit lookup</td><td>The operation log records repository-state transitions, while evolution records a change's rewritten commit successors; neither is merely a branch-tip log.</td></tr>
 <tr><td><code>git merge</code></td><td><code>jj new --insert-before/--insert-after</code> or an explicit multi-parent rebase/merge operation where appropriate</td><td>Conflicts can be stored as commit values, and a merge is a graph object rather than only a paused working-tree state.</td></tr>
-<tr><td><code>git bisect</code></td><td><code>jj bisect</code> and, where supported, <code>jj bisect run</code></td><td>The tested domain and command exit status must be explicit; inspect the resulting commit selection before acting on it.</td></tr>
+<tr><td><code>git bisect</code></td><td><code>jj bisect</code> and <code>jj bisect run</code> in jj 0.45.1</td><td>The tested domain and command exit status must be explicit; inspect the resulting commit selection before acting on it.</td></tr>
 <tr><td><code>git push --force-with-lease</code></td><td>Move the local publication bookmark and run <code>jj git push</code> with an explicit remote/bookmark</td><td>jj's local rewrite safety and Git's remote lease are separate protections; inspect the fetched remote bookmark and push result.</td></tr>
 </tbody></table>
 <p>When no row fits exactly, describe the desired postcondition in jj terms: which commits should exist, which parent edges should change, which content should move, which name should point where, and whether the operation should be recoverable through the operation log. That formulation is more reliable than inventing a one-to-one translation.</p>
@@ -7862,7 +7862,7 @@ jj git push --remote origin --bookmark pr/api --dry-run</pre>
 jj bookmark list --remote origin
 jj bookmark delete pr/api
 jj log -r 'immutable_heads() | trunk()'</pre>
-<p>Deleting a local bookmark is not the same operation as deleting its remote counterpart. Remote deletion requires the Git push mode supported by the installed version and the project policy; use the explicit deleted-bookmark mechanism only after confirming its target. The commit remains reachable through other descendants, the operation log, or the remote object store until normal garbage collection makes it unreachable.</p>
+<p>Deleting a local bookmark is not the same operation as deleting its remote counterpart. In jj 0.45.1, remote deletion is requested with <code>jj git push --deleted</code>, subject to project policy; use it only after confirming the target. The commit remains reachable through other descendants, the operation log, or the remote object store until normal garbage collection makes it unreachable.</p>
 
 <h4 id="github-recipe-fork-upstream">H.6 Use an upstream repository and a fork</h4>
 <p>Give the two remotes different roles. Fetch both, but publish only to the fork unless project policy explicitly permits publishing upstream. A local bookmark can be tracked against one remote bookmark at a time; the names can be identical while the remote relationship is different.</p>
