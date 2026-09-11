@@ -14,10 +14,10 @@ Generated: 2026-09-11
 * Command paths with dedicated local help captured: 121
 * Reader-facing CLI articles in the authored HTML: 121
 * Reader-facing CLI articles covering the target command paths: 121
-* Substantive authored-book words (approximate, excludes pre/script/style): 101280
+* Substantive authored-book words (approximate, excludes pre/script/style): 101281
 * Expansion design target: 100,000–130,000 substantive words / approximately 450–600 Kindle-Scribe pages
 * Rendered PDF pages: 496 (7.5 × 10 inch portrait; see build/jj-book.pdf.sha256)
-* Rendered PDF SHA-256: 458b5c5a331c901bd88a722607d8254a10994054085385a9091f287f08c88d5f
+* Rendered PDF SHA-256: 19db906339fd980280921bf15e136fcebb94a5ad6f04ffad7e082af805144106
 * PDF build timestamp: 2026-09-11T00:49:43Z (embedded in PDF metadata and the printed cover)
 * Printed contents span: 3 page(s) before the substantive preface; PDF outline entries: 70
 * Revset operators: documented in research/revset-inventory.md and the raw help snapshot
@@ -40,9 +40,11 @@ Generated: 2026-09-11
 * local bare Git remote add, push, fetch, and tracking
 * Git-backend object/HEAD/ref reachability, raw change-id header, colocated export, and non-colocated layout fixture
 * authored template examples against the validation repository
-* representative revset topology, state, pattern, and visibility expressions
+* representative revset topology, state, pattern, and visibility expressions parse and execute
+* directional revset result assertions on an interior mutable stack: <code>A:: &amp; mutable()</code> = A/B/C/D, <code>::A &amp; mutable()</code> = A, with roots/heads assertions
+* source-level audit rejects standalone <code>stack(@)</code>, the invalid <code>::X &amp; mutable()</code> spelling, and descendant-closure prose using the ancestor operator
 * workspace add/list/root/rename/update-stale/forget behaviour, including external edits remaining unrecorded rather than stale metadata
-* semantic graph, identity, bookmark, template, revset, sparse, and conflict assertions
+* semantic graph, identity, bookmark, template, revset, sparse, and conflict assertions; revset validation distinguishes parse checks from exact result-set checks
 * canonical jj 0.45.1 command-path coverage, including converge
 * generated HTML exists and contains the Kindle Scribe print profile
 * generated PDF contains page-number footers, individually listed Appendix A–K contents entries, and reader outline bookmarks

@@ -43,4 +43,50 @@ for expr in \
   'author_date(after:"2026-08-01T00:00:00+00:00") & author_date(before:"2026-09-01T00:00:00+00:00")'; do
     "$J" log -r "$expr" --no-graph >/dev/null
 done
+
+# Directional reachability is easy to get wrong while replacing a local
+# alias. Keep @ on an interior node of a mutable linear stack and assert the
+# result sets, not merely that both expressions parse. The book's explicit
+# spelling for the configured stack(x) policy is x:: & mutable().
+"$J" edit 'description(substring:"A")' >/dev/null
+descendants=$(
+  "$J" log --no-graph --reversed \
+    -r 'description(substring:"A"):: & mutable()' \
+    -T 'description.first_line() ++ "\n"'
+)
+ancestors=$(
+  "$J" log --no-graph --reversed \
+    -r '::description(substring:"A") & mutable() & description(regex:"A")' \
+    -T 'description.first_line() ++ "\n"'
+)
+heads=$(
+  "$J" log --no-graph -r 'heads(description(substring:"A"):: & mutable())' \
+    -T 'description.first_line() ++ "\n"'
+)
+roots=$(
+  "$J" log --no-graph -r 'roots(description(substring:"A"):: & mutable())' \
+    -T 'description.first_line() ++ "\n"'
+)
+test "$descendants" = $'A\nB\nC\nD'
+test "$ancestors" = A
+test "$heads" = D
+test "$roots" = A
+printf '%s\n' \
+  'directional revset assertions:' \
+  '  A:: & mutable()        => A B C D (cardinality 4; descendant stack)' \
+  '  ::A & mutable()        => A     (cardinality 1; ancestor closure)' \
+  '  heads(A:: & mutable()) => D' \
+  '  roots(A:: & mutable()) => A'
+
+# Source-level guardrails catch the two failure modes that a parse-only test
+# cannot see: treating stack(@) as a builtin, and describing the ancestor
+# operator as a descendant closure. Intentional ancestor queries remain
+# legal; this audit only rejects the unambiguous stack-policy mistakes.
+if bad_stack_source=$(rg -n \
+  'stack\(@\)|::X &amp; mutable\(\)|descendant closure[^<]{0,160}::@|complete stack[^<]{0,160}::@' \
+  "$ROOT/src/book.html"); then
+  printf '%s\n' 'invalid standalone stack selection in src/book.html:' >&2
+  printf '%s\n' "$bad_stack_source" >&2
+  exit 1
+fi
 echo "revset validation passed for $($J version)"

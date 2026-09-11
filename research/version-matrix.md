@@ -24,7 +24,7 @@ into the prose or fixtures.
 * Git: `git version 2.53.0`.
 * OS: Linux; shell: Bash.
 * Book source/rendering: first-class semantic HTML with embedded CSS; PDF is rendered by xhtml2pdf 0.2.18 and normalised/checked by pypdf 6.1.3 under the locked uv project. Independent acceptance samples use pypdfium2 5.13.0.
-* Current rendered artefact: `build/jj-book.pdf`, 496 pages, 540 × 720 pt; checksum is recorded in `build/jj-book.pdf.sha256` (`458b5c5a331c901bd88a722607d8254a10994054085385a9091f287f08c88d5f`).
+* Current rendered artefact: `build/jj-book.pdf`, 496 pages, 540 × 720 pt; checksum is recorded in `build/jj-book.pdf.sha256` (`19db906339fd980280921bf15e136fcebb94a5ad6f04ffad7e082af805144106`).
 * Reproducible build timestamp: `2026-09-11T00:49:43Z`, sourced from `research/build-timestamp.txt` and embedded in the PDF metadata and cover.
 
 ## Version discipline

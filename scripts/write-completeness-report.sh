@@ -96,9 +96,11 @@ Generated: $(date -u +%F)
 * local bare Git remote add, push, fetch, and tracking
 * Git-backend object/HEAD/ref reachability, raw change-id header, colocated export, and non-colocated layout fixture
 * authored template examples against the validation repository
-* representative revset topology, state, pattern, and visibility expressions
+* representative revset topology, state, pattern, and visibility expressions parse and execute
+* directional revset result assertions on an interior mutable stack: <code>A:: &amp; mutable()</code> = A/B/C/D, <code>::A &amp; mutable()</code> = A, with roots/heads assertions
+* source-level audit rejects standalone <code>stack(@)</code>, the invalid <code>::X &amp; mutable()</code> spelling, and descendant-closure prose using the ancestor operator
 * workspace add/list/root/rename/update-stale/forget behaviour, including external edits remaining unrecorded rather than stale metadata
-* semantic graph, identity, bookmark, template, revset, sparse, and conflict assertions
+* semantic graph, identity, bookmark, template, revset, sparse, and conflict assertions; revset validation distinguishes parse checks from exact result-set checks
 * canonical jj 0.45.1 command-path coverage, including converge
 * generated HTML exists and contains the Kindle Scribe print profile
 * generated PDF contains page-number footers, individually listed Appendix A–K contents entries, and reader outline bookmarks
