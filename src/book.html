@@ -1042,7 +1042,7 @@ abandon:   main--A----C       B removed/hidden, C reconnected as policy permits<
 <section id="revset-language"><h3 class="toc-entry" id="5-revsets-as-values">12. Revsets as values</h3>
 <p>A revset is a value denoting a set of commits. Commands impose cardinality constraints: <code>jj edit</code>, <code>jj describe</code>, and many destination arguments require exactly one; <code>jj log -r</code>, <code>jj abandon</code>, <code>jj rebase -r</code>, and <code>jj diff</code> can accept sets. A syntactically valid expression can therefore still be operationally invalid.</p>
 <h4 id="symbols-and-resolution">Symbols and resolution</h4>
-<p><code>@</code> is the current workspace commit; <code>workspace@</code> selects another workspace. Full or unique-prefix commit IDs resolve to one commit. Full or unique-prefix change IDs resolve to a visible commit, except ambiguous/divergent IDs require an offset such as <code>xyz/0</code>. Tags, bookmarks, and remote bookmarks are symbols. In 0.45.1 the documented precedence is tag name, bookmark name, then commit/change ID; use <code>commit_id(X)</code>, <code>change_id(X)</code>, <code>bookmark(X)</code>, or <code>tag(X)</code> when scripts must disambiguate.</p>
+<p><code>@</code> is the current workspace commit; <code>workspace@</code> selects another workspace. Full or unique-prefix commit IDs resolve to one commit. Full or unique-prefix change IDs resolve to a visible commit, except ambiguous/divergent IDs require an offset such as <code>xyz/0</code>. Tags, bookmarks, and remote bookmarks are symbols. In 0.45.1 the documented precedence is tag name, bookmark name, then commit/change ID; use <code>commit_id(X)</code>, <code>change_id(X)</code>, <code>bookmarks(exact:"X")</code>, or <code>tags(exact:"X")</code> when scripts must disambiguate.</p>
 <p>Shell quoting is part of the language boundary. Quote expressions containing <code>|</code>, <code>~</code>, parentheses, or spaces. A literal symbol that looks like an operator can require nested quoting, for example <code>jj log -r '"x-"'</code>.</p>
 <h4 id="operators-and-precedence">Revset operators and precedence</h4>
 <p>The table gives operator precedence, not an evaluation order over commits. First the parser groups the expression according to this table; then jj resolves each operand to a set and applies the operator to those sets. The distinction matters because <code>x..y</code> and <code>x::y</code> are graph operations, while <code>~</code>, <code>&amp;</code>, and <code>|</code> are set operations.</p>
@@ -1193,9 +1193,9 @@ reviewable(x) = 'x:: &amp; ~immutable_heads() &amp; ~empty()'</pre>
 <tr><td>Graph selection</td><td><code>latest(x,[count])</code>, <code>fork_point(x)</code>, <code>merge_point(x)</code>, <code>bisect(x)</code>, <code>exactly(x,count)</code>, <code>coalesce(revsets...)</code></td><td>Useful for reducing a set to recent, boundary, balanced, or exact-cardinality results.</td></tr>
 <tr><td>Identity</td><td><code>commit_id(prefix)</code>, <code>change_id(prefix)</code>, <code>description(pattern)</code>, <code>subject(pattern)</code>, <code>author(pattern)</code>, <code>author_name(pattern)</code>, <code>author_email(pattern)</code>, <code>committer(pattern)</code>, <code>committer_name(pattern)</code>, <code>committer_email(pattern)</code>, <code>mine()</code></td><td>Pattern arguments are typed string patterns; mine uses the configured current user email.</td></tr>
 <tr><td>Time/signing</td><td><code>author_date(pattern)</code>, <code>committer_date(pattern)</code>, <code>signed()</code></td><td>Use date patterns rather than relying on locale-formatted output.</td></tr>
-<tr><td>Ref state</td><td><code>bookmarks([pattern])</code>, <code>remote_bookmarks([name_pattern],[remote_pattern])</code>, <code>tracked_remote_bookmarks(...)</code>, <code>untracked_remote_bookmarks(...)</code>, <code>tags([pattern])</code>, <code>remote_tags(...)</code>, <code>git_refs()</code></td><td>jj 0.45.1 provides tracked/untracked remote-tag predicates; use explicit ref predicates when symbols may be ambiguous.</td></tr>
+<tr><td>Ref state</td><td><code>bookmarks([pattern])</code>, <code>remote_bookmarks([name_pattern],[remote_pattern])</code>, <code>tracked_remote_bookmarks(...)</code>, <code>untracked_remote_bookmarks(...)</code>, <code>tags([pattern])</code>, <code>remote_tags(...)</code></td><td>jj 0.45.1 provides tracked/untracked remote-tag predicates; use explicit ref predicates when symbols may be ambiguous. Native Git refs are inspected through Git/backend commands, not a revset function.</td></tr>
 <tr><td>Remote state</td><td><code>remote_bookmarks(pattern, remote)</code>, <code>tracked_remote_bookmarks()</code>, <code>present(x)</code></td><td>Remote bookmarks are imported refs; tracking is a relationship.</td></tr>
-<tr><td>Workspaces</td><td><code>workspaces()</code>, <code>working_copies()</code></td><td>Workspace symbols let scripts reason about all local working-copy commits.</td></tr>
+<tr><td>Workspaces</td><td><code>working_copies()</code></td><td>Selects the commits currently serving as working copies across all workspaces; workspace names themselves are managed by <code>jj workspace</code>.</td></tr>
 <tr><td>Files/content</td><td><code>files(expression)</code>, <code>diff_lines(text,[files])</code>, <code>diff_lines_added(text,[files])</code>, <code>diff_lines_removed(text,[files])</code></td><td>These query trees or diffs; the nested fileset expression is independent of revset syntax.</td></tr>
 <tr><td>Evolution/operations</td><td><code>divergent()</code>, <code>working_copies()</code>, <code>at_operation(op,x)</code></td><td>Useful for recovering rewritten changes and inspecting historical repository views.</td></tr>
 </tbody></table>
@@ -1290,7 +1290,7 @@ jj log -r 'present(commit_id("prefix"))'</pre>
 <tr><td>Reachability</td><td><code>reachable(srcs, domain)</code>, <code>connected</code></td><td>Separate roots/sources from the domain to avoid accidentally traversing all refs.</td></tr>
 <tr><td>Boundaries</td><td><code>roots</code>, <code>heads</code>, <code>visible_heads</code></td><td>Reduce a set to minimal/maximal members; useful before rebase or publication.</td></tr>
 <tr><td>Graph points</td><td><code>fork_point</code>, <code>merge_point</code>, <code>latest</code>, <code>bisect</code></td><td>These choose graph-derived points; verify cardinality on forks/merges.</td></tr>
-<tr><td>Refs</td><td><code>bookmarks</code>, <code>remote_bookmarks</code>, tracked/untracked forms, <code>tags</code>, <code>git_refs</code></td><td>Names are sets of target commits; tracking changes which refs are included.</td></tr>
+<tr><td>Refs</td><td><code>bookmarks</code>, <code>remote_bookmarks</code>, tracked/untracked forms, <code>tags</code></td><td>Names are sets of target commits; tracking changes which refs are included. Native Git ref inspection uses <code>jj git</code> or Git tooling.</td></tr>
 <tr><td>Identity</td><td><code>commit_id</code>, <code>change_id</code>, <code>present</code>, <code>divergent</code></td><td>Commit identity and change identity answer different questions.</td></tr>
 <tr><td>Metadata</td><td><code>description</code>, <code>subject</code>, author/committer forms, <code>mine</code>, date forms, <code>signed</code></td><td>Pattern kind and author/committer choice are part of the query.</td></tr>
 <tr><td>Tree/conflict</td><td><code>files</code>, diff-line functions, <code>empty</code>, <code>conflicts</code>, <code>merges</code>, <code>forks</code></td><td>Query stored tree/diff state; conflict markers alone are not the predicate.</td></tr>
@@ -1378,7 +1378,7 @@ jj log -r '(::@) ~ (::main@origin)'
 <p>Symbol resolution is a semantic operation, not shell variable expansion. A name can resolve to a local bookmark, a remote bookmark qualified by a remote, a tag, a workspace symbol, a change ID, or a commit ID prefix. If a short prefix is ambiguous, jj reports the ambiguity rather than silently selecting one. In scripts use a full enough prefix or disambiguating syntax, and prefer a bookmark or an alias for a stable human role.</p>
 <pre>jj log -r 'main@origin'
 jj log -r 'review@origin'
-jj log -r 'workspace("review")'
+jj log -r 'review@'
 jj log -r 'change_id("qxy...")'
 jj log -r 'commit_id("3f0...")'</pre>
 <p>Use <code>change_id()</code> when the intent is “the current visible commit for this evolving logical change”. Use <code>commit_id()</code> when the intent is “this exact immutable object”. This difference is crucial in scripts that run after a rewrite. A build verifier should normally pin a commit ID; a command that asks to edit a review change should normally resolve its change ID or bookmark, then verify the selected singleton.</p>
@@ -1396,10 +1396,10 @@ jj edit 'my_query'</pre>
 jj log -r 'children(main@origin)'
 jj log -r 'heads(mutable() &amp; ::@)'
 jj log -r 'roots(::@ ~ ::main@origin)'
-jj log -r 'merges(::@)'
-jj log -r 'forks(::@)'
+jj log -r 'merges() &amp; ::@'
+jj log -r 'forks() &amp; ::@'
 </pre>
-<p><code>merges(X)</code> and <code>forks(X)</code> are structural predicates. A merge is a commit with multiple parents; a fork identifies commits whose selected topology branches. They do not identify “large” changes or review stacks. <code>reachable(S, T)</code> is useful when you need to ask whether the graph can reach one set from another, while <code>connected(X)</code> groups connected components where that is the function’s documented interpretation. When a query’s result seems too broad, replace it with a sequence of named subqueries and inspect each one.</p>
+<p><code>merges()</code> and <code>forks()</code> are zero-argument structural predicates; restrict either result with set intersection when you need a domain, for example <code>merges() &amp; ::@</code>. A merge is a commit with multiple parents; a fork identifies commits whose selected topology branches. They do not identify “large” changes or review stacks. <code>reachable(S, T)</code> is useful when you need to ask whether the graph can reach one set from another, while <code>connected(X)</code> groups connected components where that is the function’s documented interpretation. When a query’s result seems too broad, replace it with a sequence of named subqueries and inspect each one.</p>
 
 <h3 id="predicate-composition">Predicate composition</h3>
 <p>Most useful revsets are an intersection of a graph boundary with a semantic predicate. Start with the universe, narrow by reachability, then narrow by state:</p>
@@ -1465,8 +1465,8 @@ root--A-B         G
 parents(F) = {D}
 ancestors(F) = {F,D,C,B,A,root}
 descendants(B) = {B,C,D,E,F,G}
-merges(G) = {G}
-forks(B) = {B}
+merges() &amp; ::G = {G}
+forks() &amp; ::G = {B}
 </pre>
 <p>Now evaluate a corridor:</p>
 <pre>C::F = descendants(C) &amp; ancestors(F)
@@ -1678,13 +1678,13 @@ jj log -r 'author_email(exact:"a@example.org") &amp; committer_date(after:"2026-
 </tbody></table>
 <p>Several near-misses matter. <code>immutable()</code> is not “published”, because local policy can protect unpublished work. <code>empty()</code> is not “unimportant”, because an empty commit can be a deliberate marker. <code>conflicts()</code> is not “the working directory has markers”, because the value is stored in the commit graph. <code>divergent()</code> is about one change identity with multiple successors; two independently authored commits with identical text are not necessarily divergent.</p>
 <h4 id="revset-refs-and-identity-contracts">Refs, identity, and metadata</h4>
-<p><code>bookmarks()</code> selects commits named by local bookmarks. <code>remote_bookmarks()</code> selects commits named by remote bookmarks, with optional name/remote patterns. Tracking predicates distinguish relationships, not movement. <code>tags()</code> and remote-tag functions select release names; jj 0.45.1 provides tracked/untracked remote-tag predicates. <code>git_refs()</code> selects imported Git refs. These functions return target commits; template <code>CommitRef</code> values are where names, conflict targets, and tracking counts are rendered.</p>
+<p><code>bookmarks()</code> selects commits named by local bookmarks. <code>remote_bookmarks()</code> selects commits named by remote bookmarks, with optional name/remote patterns. Tracking predicates distinguish relationships, not movement. <code>tags()</code> and remote-tag functions select release names; jj 0.45.1 provides tracked/untracked remote-tag predicates. Native Git refs are inspected through <code>jj git</code> or Git tooling rather than a revset function. These functions return target commits; template <code>CommitRef</code> values are where names, conflict targets, and tracking counts are rendered.</p>
 <pre>jj log -r 'bookmarks()'
 jj log -r 'remote_bookmarks("main", "origin")'
 jj log -r 'remote_bookmarks(remote="origin")'
 jj log -r 'bookmarks() &amp; ~remote_bookmarks()'
 jj log -r 'tags() | remote_tags()'
-jj log -r 'git_refs() ~ bookmarks()'</pre>
+git for-each-ref --format='%(refname) %(objectname)'</pre>
 <table><thead><tr><th>Ref predicate</th><th>Basic example</th><th>What to verify in a real repository</th></tr></thead><tbody>
 <tr><td><code>bookmarks(P)</code></td><td><code>bookmarks(glob:"release/*")</code></td><td>It returns targets of local bookmarks matching the name pattern, not every commit below those bookmarks.</td></tr>
 <tr><td><code>remote_bookmarks(NAME, REMOTE)</code></td><td><code>remote_bookmarks(glob:"feature/*", exact:"origin")</code></td><td>The first argument filters bookmark names and the second filters remote names. Named form <code>remote_bookmarks(remote="origin")</code> avoids positional confusion.</td></tr>
@@ -1694,7 +1694,6 @@ jj log -r 'git_refs() ~ bookmarks()'</pre>
 <tr><td><code>remote_tags(P, REMOTE)</code></td><td><code>remote_tags(glob:"v2.*", exact:"origin")</code></td><td>Qualify the remote when GitHub and Gerrit remotes both publish tags.</td></tr>
 <tr><td><code>tracked_remote_tags()</code></td><td><code>tracked_remote_tags() &amp; remote_tags(remote="origin")</code></td><td>Shows remote tags with the local tracking relationship.</td></tr>
 <tr><td><code>untracked_remote_tags()</code></td><td><code>untracked_remote_tags() &amp; remote_tags(remote="origin")</code></td><td>Useful when explaining why a remote tag contributes to immutability.</td></tr>
-<tr><td><code>git_refs()</code></td><td><code>git_refs() ~ remote_bookmarks()</code></td><td>Find imported Git refs not represented by remote-bookmark names; inspect before native Git tooling or ref cleanup.</td></tr>
 </tbody></table>
 <p>Identity predicates are typed. <code>commit_id(P)</code> and <code>change_id(P)</code> match IDs; <code>description(P)</code> and <code>subject(P)</code> match message text; author and committer functions match metadata; <code>mine()</code> uses configured identity; date functions select timestamp ranges. Use explicit pattern kinds:</p>
 <pre>commit_id(prefix:"abc")
@@ -1914,7 +1913,7 @@ non-tests = 'rust ~ glob:**/tests.rs'
 <tr><td><code>file list/show/search</code></td><td>Choose the tree or commit to inspect.</td><td>Filter the displayed or searched paths.</td></tr>
 </tbody></table>
 <p>For a partial squash, inspect both the source and destination before and after:</p>
-<pre>jj diff --from C --to C^ 'glob:src/**/*.rs'
+<pre>jj diff --from C --to C- 'glob:src/**/*.rs'
 jj squash --from C --into B 'glob:src/parser/**/*.rs'
 jj show C
 jj show B</pre>
@@ -2369,7 +2368,7 @@ jj log -r 'remote_bookmarks()'
 
 <h4 id="push-safety-and-ref-publication">Push safety and ref publication</h4>
 <p>Push sends selected local bookmarks or tags to a remote. In jj 0.45.1, the safest scripted form names the remote and bookmark and performs the available <code>--dry-run</code> preview before the real push:</p>
-<pre>jj log -r 'bookmark("pr/parser")' -T 'commit_id ++ "\n"'
+<pre>jj log -r 'bookmarks(exact:"pr/parser")' -T 'commit_id ++ "\n"'
 jj git push --remote origin --bookmark pr/parser --dry-run
 jj git push --remote origin --bookmark pr/parser
 </pre>
@@ -3025,11 +3024,12 @@ ORANGE
 ...diff B → S3...
 &gt;&gt;&gt;&gt;&gt;&gt;&gt; conflict 1 of 1 ends</pre>
 <p>The exact commit labels identify the stored terms; the marker count identifies the conflict region within the file. If a file contains two independent conflict regions, their headers are <code>conflict 1 of 2</code> and <code>conflict 2 of 2</code>. A conflict can therefore have both multiple regions and multiple sides. Do not infer the number of parents from the number of visible marker blocks: the conflict value records the terms, while the file is only its textual projection.</p>
-<h5 id="alternative-conflict-marker-formats">The three marker styles</h5>
+<h5 id="alternative-conflict-marker-formats">The three stable marker styles and one experimental value</h5>
 <table><thead><tr><th>Style</th><th>File representation</th><th>Multi-sided behaviour</th><th>Use it when</th></tr></thead><tbody>
 <tr><td><code>diff</code> (default)</td><td>One complete snapshot plus diffs from the base to the other sides.</td><td>Supports arbitrarily many sides; additional sides appear as additional diff sections.</td><td>You want a compact, reviewable representation that makes each side's change explicit.</td></tr>
 <tr><td><code>snapshot</code></td><td>A complete snapshot section for each side and the base.</td><td>Supports multiple sides directly, at the cost of repeated unchanged content.</td><td>You need to inspect the full contents of every term or use a tool that expects snapshot blocks.</td></tr>
 <tr><td><code>git</code></td><td>Git diff3-style <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code>, <code>|||||||</code>, <code>=======</code>, and <code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code> sections.</td><td>Only supports two-sided conflicts; jj falls back to a snapshot-like representation for more than two sides.</td><td>A tool requires Git-style diff3 markers and the conflict is genuinely two-sided.</td></tr>
+<tr><td><code>diff-experimental</code></td><td>Experimental alternative to the default diff-based materialisation.</td><td>Accepted by the jj 0.45.1 configuration schema and capable of materialising conflicts, but its textual layout is not treated as a stable book-level interface.</td><td>Only when deliberately testing the target release and willing to track changes in later jj versions.</td></tr>
 </tbody></table>
 <p>These are alternatives; set exactly one value in an effective <code>[ui]</code> configuration table:</p>
 <pre>[ui]
@@ -3041,6 +3041,7 @@ conflict-marker-style = "snapshot"
 
 # Or: Git diff3 compatibility; not a general multi-sided format
 conflict-marker-style = "git"</pre>
+<p>The 0.45.1 schema also accepts <code>conflict-marker-style = "diff-experimental"</code>. It is intentionally not given a fixed marker example here: the value is experimental, and its rendering is subject to change. The stable choices for a book, merge-tool configuration, or interchange script are the three styles described above. Inspect the target with <code>jj util config-schema</code> and run a disposable conflict fixture before relying on the experimental style.</p>
 <p>For comparison, the two-sided part of <code>snapshot</code> style is represented as complete sections rather than a diff:</p>
 <pre>&lt;&lt;&lt;&lt;&lt;&lt;&lt; conflict 1 of 1
 +++++++ SIDEA123 "change A"
@@ -4703,7 +4704,7 @@ jj log -r 'A | descendants(A) | mutable()'</pre>
 <p><strong>Syntax/options.</strong> <code>jj edit REVSET</code> or <code>-r REVSET</code>; exactly one commit is required. <code>--ignore-working-copy</code> is usually inappropriate because edit is intended to update the filesystem. <code>--at-op</code> is for historical inspection, not continuation.</p>
 <p><strong>State effects.</strong> jj snapshots the old workspace first, then checks out the selected tree as the new <code>@</code>. The old working-copy commit remains unless abandoned. Filesystem edits made while another change was current become part of the pre-move snapshot.</p>
 <pre>jj edit 'change_id(abc...)'
-jj edit 'bookmark(review)'
+jj edit 'bookmarks(exact:"review")'
 jj status
 jj new</pre>
 <p><strong>Trap.</strong> “Edit A” is not Git checkout of a branch: A remains mutable and unnamed. Use <code>jj new A</code> to leave A unchanged and create a fresh child.</p></article>
@@ -5116,7 +5117,7 @@ jj show -r @ -T 'change_id ++ "\n" ++ description'</pre>
 <p><strong>Purpose and model.</strong> Adds or replaces a cryptographic signature on selected commits. Signing rewrites commits because the signature is metadata; it is separate from a Git hosting server's verification policy.</p>
 <p><strong>Syntax/options.</strong> <code>jj sign</code> selects commits with <code>-r/--revision REVSETS</code>, defaulting to <code>revsets.sign</code>, and accepts <code>--key KEY</code>. Commits are re-signed even if they appear already signed; hardware-key workflows should account for that.</p>
 <p><strong>State effects.</strong> Signed commits receive new commit IDs and may cause descendant successors. Change IDs normally persist. Bookmarks follow successors locally; pushing signed commits still requires the relevant bookmark/ref and server policy.</p>
-<pre>jj sign -r 'bookmark(release)'
+<pre>jj sign -r 'bookmarks(exact:"release")'
 jj sign --key KEYID -r @
 jj log -r @ -T 'if(signature, signature.status(), "unsigned") ++ "\n"'</pre>
 <p><strong>Trap.</strong> Presence does not prove a good signature. Template status/key/display can be expensive because verification may invoke GPG or SSH tooling.</p></article>
@@ -6055,7 +6056,7 @@ jj git push --remote origin --deleted
 <h3 id="case-study-build-review-and-development-workspaces">Case study: build, review, and development workspaces</h3>
 <p>Use one repository with three workspaces when the tasks need different filesystem states but share object storage:</p>
 <pre>jj workspace add --name build -r main@origin ../repo-build
-jj workspace add --name review -r 'bookmark("pr/parser")' ../repo-review
+jj workspace add --name review -r 'bookmarks(exact:"pr/parser")' ../repo-review
 jj workspace list
 </pre>
 <p>In the development workspace, rewrite the stack freely. In review, inspect the publication target and run review-specific tools. In build, run a clean build against the pinned commit. After a rewrite, check all three workspaces; a stale review or build workspace should be updated deliberately, not silently moved by a prompt hook.</p>
@@ -6445,7 +6446,7 @@ description.first_line() ++ "\n"
 <p>An empty commit has no tree delta relative to its parents, but it can carry a description, a bookmark, a signature, a workspace target, and descendants. It may be an intentional review boundary or an accidental result of a squash. Query <code>empty()</code> within the domain you care about. Do not remove every empty node from a stack without checking whether its message records a meaningful change or whether a publication workflow uses it as a boundary.</p>
 
 <h3 id="edge-merges">Merge commits</h3>
-<p>A merge has multiple parents, and many operations treat its parent list as a set rather than a single base. <code>parents(G)</code> returns both sides. <code>roots</code>, <code>heads</code>, ranges, first-parent traversal, and descendant selection all produce different results around a merge. Before a linear-only command, query <code>merges(domain)</code>. If it is non-empty, state whether the operation should preserve, flatten, or deliberately introduce the merge.</p>
+<p>A merge has multiple parents, and many operations treat its parent list as a set rather than a single base. <code>parents(G)</code> returns both sides. <code>roots</code>, <code>heads</code>, ranges, first-parent traversal, and descendant selection all produce different results around a merge. Before a linear-only command, query <code>merges() &amp; domain</code>. If it is non-empty, state whether the operation should preserve, flatten, or deliberately introduce the merge.</p>
 
 <h3 id="edge-hidden">Hidden commits</h3>
 <p>Hidden does not mean unreachable from every mechanism. An explicit full commit ID can identify a hidden predecessor; an ordinary visible query may omit it. If a hidden ID is introduced into a traversal, its ancestors can enter the search space. This is useful for recovery and surprising in a broad query. When comparing two results, state whether the search was current-visible or explicitly seeded with a hidden commit.</p>
@@ -6527,7 +6528,7 @@ A.. | B..          # commits not ancestors of A OR not ancestors of B
 <p>This identity follows from De Morgan's law applied to ancestry complements. It is not a jj peculiarity; it becomes visible because <code>..</code> is defined as a complement of reachability rather than as a path enumerator.</p>
 
 <h4 id="symbol-resolution-in-detail">Symbol resolution in detail</h4>
-<p>Resolution is deliberately ordered. Tags take priority over bookmarks, which take priority over commit-ID or change-ID interpretation. This makes a short symbol convenient for humans but potentially unstable in automation. Use <code>commit_id("...")</code>, <code>change_id("...")</code>, <code>bookmark("...")</code>, or the appropriate explicit function when the namespace matters.</p>
+<p>Resolution is deliberately ordered. Tags take priority over bookmarks, which take priority over commit-ID or change-ID interpretation. This makes a short symbol convenient for humans but potentially unstable in automation. Use <code>commit_id("...")</code>, <code>change_id("...")</code>, <code>bookmarks(exact:"...")</code>, or <code>tags(exact:"...")</code> when the namespace matters.</p>
 <p>A full commit ID identifies one object. A unique prefix identifies one object until a later object makes the prefix ambiguous. A full change ID identifies the visible evolution of a logical change; a divergent change ID requires an offset or an explicit query over the divergent commits. A short change ID copied from a review message is therefore not a safe immutable handle. Record the full commit ID for an exact object and the full change ID for the evolving change.</p>
 <pre># Treat a string as a literal symbol when punctuation is meaningful.
 jj log -r '"x-"'
@@ -6560,16 +6561,16 @@ jj edit "$candidate"</pre>
 <tr><td><code>reachable</code></td><td><code>reachable(sources, domain)</code></td><td>Walk from source commits but include only nodes satisfying the domain; a domain is not merely an output filter in every graph shape.</td><td>Find commits reachable from refs while excluding immutable or private regions.</td></tr>
 <tr><td><code>roots</code></td><td><code>roots(x)</code></td><td>Members with no parent in x; a merge-boundary set can have more than one root.</td><td>Find patch-stack bases.</td></tr>
 <tr><td><code>heads</code></td><td><code>heads(x)</code></td><td>Members with no descendant in x; an ancestor of a selected merge is not a head.</td><td>Find publication tips and test endpoints.</td></tr>
-<tr><td><code>merges</code></td><td><code>merges(x)</code></td><td>Members with more than one parent.</td><td>Audit merge commits before a linear-only operation.</td></tr>
+<tr><td><code>merges</code></td><td><code>merges()</code></td><td>Members with more than one parent.</td><td>Intersect with a domain, such as <code>merges() &amp; ::@</code>, before a linear-only operation.</td></tr>
 </tbody></table>
 <table><thead><tr><th>Function family</th><th>Members</th><th>Interpretation</th></tr></thead><tbody>
-<tr><td>State</td><td><code>empty()</code>, <code>conflicted()</code>, <code>mutable()</code>, <code>immutable()</code>, <code>divergent()</code></td><td>Predicates over stored commit state; an empty commit can still be published, and a conflicted commit can have descendants.</td></tr>
+<tr><td>State</td><td><code>empty()</code>, <code>conflicts()</code>, <code>mutable()</code>, <code>immutable()</code>, <code>divergent()</code></td><td>Predicates over stored commit state; an empty commit can still be published, and a conflicted commit can have descendants.</td></tr>
 <tr><td>Visibility</td><td><code>all()</code>, <code>none()</code>, <code>visible_heads()</code>, <code>immutable_heads()</code>, <code>builtin_immutable_heads()</code></td><td>Define the query domain and rewrite boundary; custom immutable heads are configuration, not a new commit type.</td></tr>
-<tr><td>Identity</td><td><code>commit_id(pattern)</code>, <code>change_id(pattern)</code>, <code>present(x)</code>, <code>evolution(x)</code></td><td>Resolve object or evolution identity explicitly; <code>present</code> avoids failing a query when an optional symbol is absent.</td></tr>
-<tr><td>References</td><td><code>bookmarks</code>, <code>remote_bookmarks</code>, <code>tracked_remote_bookmarks</code>, <code>untracked_remote_bookmarks</code>, <code>tags</code>, <code>remote_tags</code>, <code>git_refs</code></td><td>Reference state is not the same as reachability from a branch-like name.</td></tr>
-<tr><td>Workspace/operation</td><td><code>workspaces</code>, <code>working_copies</code>, <code>at_operation</code></td><td>Local workspace and historical-operation views are first-class query inputs.</td></tr>
+<tr><td>Identity</td><td><code>commit_id(pattern)</code>, <code>change_id(pattern)</code>, <code>present(x)</code></td><td>Resolve object or logical-change identity explicitly; inspect successive versions with <code>jj evolog</code>, not a revset function.</td></tr>
+<tr><td>References</td><td><code>bookmarks</code>, <code>remote_bookmarks</code>, <code>tracked_remote_bookmarks</code>, <code>untracked_remote_bookmarks</code>, <code>tags</code>, <code>remote_tags</code></td><td>Reference state is not the same as reachability from a branch-like name; inspect native Git refs through the backend when needed.</td></tr>
+<tr><td>Workspace/operation</td><td><code>working_copies()</code>, <code>at_operation(op,x)</code></td><td>Working-copy commits and historical-operation views are queryable; workspace records themselves are managed by <code>jj workspace</code>.</td></tr>
 <tr><td>Metadata</td><td><code>author</code>, <code>committer</code>, <code>author_email</code>, <code>committer_email</code>, <code>author_date</code>, <code>committer_date</code>, <code>description</code></td><td>Arguments are string/date patterns; there is no <code>email:</code> pattern kind.</td></tr>
-<tr><td>Content</td><td><code>file</code>, <code>files</code>, <code>diff_contains</code>, <code>diff_lines_added</code>, <code>diff_lines_removed</code></td><td>Tree and diff predicates can be expensive and should be bounded before mutation.</td></tr>
+<tr><td>Content</td><td><code>files</code>, <code>diff_lines</code>, <code>diff_lines_added</code>, <code>diff_lines_removed</code></td><td>Tree and diff predicates can be expensive and should be bounded before mutation.</td></tr>
 </tbody></table>
 <p>For an unfamiliar function, establish four facts before using it in a destructive command: does it accept a set or a single commit argument; does it include its argument or only its closure; does it search visible commits or explicitly named hidden commits; and does it inspect metadata at one commit or compare two trees? The name alone does not answer these questions.</p>
 
@@ -6644,7 +6645,7 @@ json(description.first_line()) ++ "\n"
 <tr><td><code>first_parent(x)</code></td><td>Revset, optional depth</td><td>First-parent walk, useful for merge-oriented views.</td><td>Use on a release line when side-parent changes should not appear as a linear series.</td></tr>
 <tr><td><code>roots(x)</code></td><td>Revset</td><td>Members with no parent also in <code>x</code>.</td><td><code>roots(main@origin..@)</code> identifies the base of each unpublished component.</td></tr>
 <tr><td><code>heads(x)</code></td><td>Revset</td><td>Members with no descendant also in <code>x</code>.</td><td><code>heads(B::G)</code> is <code>G</code> in the worked merge, not its parent-side ancestor.</td></tr>
-<tr><td><code>merges(x)</code></td><td>Revset</td><td>Members with more than one parent.</td><td><code>merges(::@)</code> audits whether a stack is actually linear.</td></tr>
+<tr><td><code>merges()</code></td><td>Revset</td><td>Members with more than one parent.</td><td><code>merges() &amp; ::@</code> audits whether the current ancestry is actually linear.</td></tr>
 <tr><td><code>connected(x)</code></td><td>Revset</td><td>The connected component or components containing the set under the documented graph domain.</td><td>Use before a bulk rewrite to detect independent roots.</td></tr>
 <tr><td><code>reachable(s, d)</code></td><td>Source revset and domain revset</td><td>Walks from <code>s</code> while restricting the reachable result using <code>d</code>.</td><td><code>reachable(bookmarks(), mutable())</code> asks which mutable nodes are reachable from named refs.</td></tr>
 </tbody></table>
@@ -6660,11 +6661,11 @@ json(description.first_line()) ++ "\n"
 <tr><td><code>builtin_immutable_heads()</code></td><td>Built-in immutable boundary before custom policy.</td><td>Useful for comparing policy to release defaults.</td><td>Audit a repository's safety policy after changing aliases.</td></tr>
 <tr><td><code>mutable()</code></td><td>Commits permitted to be rewritten under the current policy.</td><td>A mutable commit may still have an immutable ancestor and a remote bookmark.</td><td>Bound local surgery with <code>mutable() &amp; ::@</code>.</td></tr>
 <tr><td><code>immutable()</code></td><td>Commits protected by the current policy.</td><td>Protection is a command safety rule, not permanent object storage.</td><td>Find the boundary before explaining a rejected rewrite.</td></tr>
-<tr><td><code>conflicted()</code></td><td>Commits containing conflict values.</td><td>A clean working directory does not prove this set is empty elsewhere.</td><td>Use after rebase, merge, squash, or restore.</td></tr>
+<tr><td><code>conflicts()</code></td><td>Commits containing conflict values.</td><td>A clean working directory does not prove this set is empty elsewhere.</td><td>Use after rebase, merge, squash, or restore.</td></tr>
 <tr><td><code>empty()</code></td><td>Commits whose tree delta is empty under the command's comparison semantics.</td><td>An empty commit is still a graph node and can have descendants or a bookmark.</td><td>Audit accidental empty review changes.</td></tr>
 <tr><td><code>divergent()</code></td><td>Commits belonging to divergent change evolutions.</td><td>A divergent change ID may require an offset or a set query.</td><td>Find local evolution forks before convergence or manual surgery.</td></tr>
 <tr><td><code>present(x)</code></td><td>Commits in <code>x</code> that are present/visible under the current view.</td><td>Useful around optional names; it does not resurrect an arbitrary deleted object.</td><td>Guard a publication query against a missing remote ref.</td></tr>
-<tr><td><code>evolution(x)</code></td><td>Evolution-related commits for the selected change or set.</td><td>History includes predecessors/successors rather than a single current tip.</td><td>Investigate what an ancestor rewrite replaced.</td></tr>
+<tr><td>Evolution history</td><td>Not a revset function in jj 0.45.1.</td><td>Use <code>jj evolog -r X</code> to inspect successive commit versions of a logical change.</td><td>Investigate what an ancestor rewrite replaced without pretending the evolution log is a commit set.</td></tr>
 <tr><td><code>root()</code></td><td>The repository root commit.</td><td>Its parent set is empty; it is not a normal mutable working change.</td><td>Use <code>root()::</code> for a complete ancestry domain.</td></tr>
 </tbody></table>
 <p>Visibility and immutability are independent dimensions. A hidden commit can remain immutable, and a visible commit can be mutable. A remote bookmark can point at a mutable commit if local policy permits it; publication does not automatically make every local descendant immutable unless the configured boundary says so. Use separate predicates in a query when both dimensions matter.</p>
@@ -6677,10 +6678,8 @@ json(description.first_line()) ++ "\n"
 <tr><td><code>untracked_remote_bookmarks()</code></td><td>Optional patterns</td><td>Remote bookmarks without local tracking.</td><td>Find fetched refs that a push script must qualify explicitly.</td></tr>
 <tr><td><code>tags()</code></td><td>Optional name pattern</td><td>Commits targeted by local tags.</td><td><code>tags("v*")</code> finds release points.</td></tr>
 <tr><td><code>remote_tags()</code></td><td>Optional name and remote patterns</td><td>Fetched remote tag targets.</td><td>Compare release tags across remotes.</td></tr>
-<tr><td><code>git_refs()</code></td><td>Optional name pattern</td><td>Git refs imported into the jj view.</td><td>Audit refs created by native Git in a colocated repository.</td></tr>
-<tr><td><code>workspaces()</code></td><td>Optional workspace pattern</td><td>Working-copy targets for matching workspaces.</td><td><code>workspaces("build")</code> locates the build workspace's @.</td></tr>
-<tr><td><code>working_copies()</code></td><td>Optional workspace pattern</td><td>Commits serving as working copies.</td><td>Detect a commit held by multiple workspaces.</td></tr>
-<tr><td><code>at_operation()</code></td><td>Operation selector and optional revset</td><td>Evaluates a commit expression in a historical repository view.</td><td>Compare <code>at_operation(OP, @)</code> with current @.</td></tr>
+<tr><td><code>working_copies()</code></td><td>No arguments</td><td>Commits serving as working copies across all workspaces.</td><td><code>working_copies()</code> detects a commit held by one or more workspaces; use <code>jj workspace list</code> to identify the workspace names.</td></tr>
+<tr><td><code>at_operation(op, x)</code></td><td>Required operation and revset</td><td>Evaluates <code>x</code> in the repository view at operation <code>op</code>.</td><td><code>at_operation(OP, @-)</code> or <code>at_operation(@-, visible_heads())</code>; both arguments are required.</td></tr>
 </tbody></table>
 <p>Reference functions return targets, not the names themselves. To render names, use a commit template's bookmark or tag methods. This separation is useful: <code>bookmarks()</code> can select a set of commits, while a template can then show all names attached to each selected commit. If two local names point to the same commit, the selection still contains one commit.</p>
 <p>Remote arguments are patterns and can be qualified by labels according to the installed syntax. An unqualified <code>remote_bookmarks("main")</code> can select same-named refs from several remotes. In a publication safety check, pass the remote pattern or use an explicitly qualified symbol. In jj 0.45.1, remote tag predicates distinguish tracked and untracked relationships.</p>
@@ -6696,9 +6695,10 @@ json(description.first_line()) ++ "\n"
 <tr><td><code>committer_date(pattern)</code></td><td>Date pattern</td><td>Matches committer timestamps.</td><td>Find changes rewritten this week.</td></tr>
 <tr><td><code>commit_id(pattern)</code></td><td>String pattern</td><td>Resolves commit IDs without bookmark/change-ID precedence surprises.</td><td><code>commit_id(exact:"full-id")</code>.</td></tr>
 <tr><td><code>change_id(pattern)</code></td><td>String pattern</td><td>Resolves visible change IDs and their matching evolutions.</td><td>Use a full ID or offset for divergence.</td></tr>
-<tr><td><code>file(pattern)</code></td><td>Fileset-like path pattern</td><td>Selects commits containing a matching file.</td><td><code>file(root-file:"src/api.rs")</code>.</td></tr>
+<tr><td><code>files(fileset)</code></td><td>Fileset expression</td><td>Selects commits whose changes match the fileset.</td><td><code>files("root-file:src/api.rs")</code>.</td></tr>
 <tr><td><code>files(fileset)</code></td><td>Fileset expression</td><td>Selects commits changing/containing paths under the documented predicate.</td><td>Bound to a stack before use in automation.</td></tr>
-<tr><td><code>diff_contains(pattern)</code></td><td>String pattern</td><td>Matches changed content in a diff.</td><td>Find commits whose diff contains a diagnostic string.</td></tr>
+<tr><td><code>diff_lines(text, [files])</code></td><td>String pattern and optional fileset</td><td>Matches changed content line by line in a diff.</td><td><code>diff_lines(substring:"diagnostic", "root:src")</code>.</td></tr>
+<tr><td><code>diff_contains(pattern)</code> <span class="tag">deprecated</span></td><td>Compatibility string pattern</td><td>Accepted by jj 0.45.1 but emits a deprecation warning.</td><td>Use <code>diff_lines(pattern)</code> in new queries.</td></tr>
 <tr><td><code>diff_lines_added(pattern)</code></td><td>String pattern</td><td>Matches added lines.</td><td>Audit introduction of an API or marker.</td></tr>
 <tr><td><code>diff_lines_removed(pattern)</code></td><td>String pattern</td><td>Matches removed lines.</td><td>Find the change that removed a compatibility path.</td></tr>
 </tbody></table>
@@ -7532,7 +7532,7 @@ jj --ignore-working-copy log -r @ -T 'commit_id.normal_hex() ++ "\n"'</pre>
 <p>Use a merge graph and compare <code>(C|D)..</code> with <code>C.. | D..</code>. Render both sets as symbolic descriptions. Then compute <code>C.. &amp; D..</code> and demonstrate the equality with <code>(C|D)..</code>. Add a hidden predecessor explicitly and repeat; observe how the search domain changes. This lab should be a permanent regression test because range intuition is one of the most persistent sources of Git-to-jj mistakes.</p>
 
 <h3 id="lab-12-revset-symbol-collision">Lab 12: symbol collision</h3>
-<p>Create a bookmark whose name is also a unique prefix of a commit ID, then resolve the bare symbol, <code>commit_id()</code>, and <code>bookmark()</code> forms. Add a tag with the same name and observe the documented priority. Repeat with a non-unique prefix and with a divergent change ID. The expected results belong in the query-lab documentation so later aliases do not accidentally depend on resolution priority.</p>
+<p>Create a bookmark whose name is also a unique prefix of a commit ID, then resolve the bare symbol, <code>commit_id()</code>, and <code>bookmarks(exact:"name")</code> forms. Add a tag with the same name and compare <code>tags(exact:"name")</code>; observe the documented priority of the bare symbol. Repeat with a non-unique prefix and with a divergent change ID. The expected results belong in the query-lab documentation so later aliases do not accidentally depend on resolution priority.</p>
 
 <h3 id="lab-13-fileset-shell">Lab 13: fileset and shell parsing</h3>
 <p>Create files whose names contain spaces, parentheses, wildcard characters, and a colon. Run a simple path without inner syntax, then a complement and a function expression. Capture the shell's arguments with a harmless wrapper if necessary. The wrapper shows whether the shell expanded a glob before jj received it. Quote the complete expression and use explicit <code>root-file:</code> or <code>root-glob:</code> forms in the corrected command.</p>
@@ -7762,7 +7762,6 @@ version  workspace [add forget list rename root update-stale]</pre>
 <tr><td><code>remote_bookmarks([NAME],[REMOTE])</code></td><td>Commits targeted by remote bookmarks.</td><td>Remote qualification is essential with GitHub/Gerrit together.</td></tr>
 <tr><td><code>tracked_remote_bookmarks(...)</code>, <code>untracked_remote_bookmarks(...)</code></td><td>Remote refs grouped by tracking relation.</td><td>Tracking is local relationship metadata, not automatic @ following.</td></tr>
 <tr><td><code>tags([PATTERN])</code>, <code>remote_tags(...)</code></td><td>Tag targets.</td><td>jj 0.45.1 provides tracked/untracked remote-tag predicates.</td></tr>
-<tr><td><code>git_refs()</code></td><td>Git ref targets.</td><td>Backend/ref view; not a substitute for bookmark policy.</td></tr>
 <tr><td><code>visible_heads()</code></td><td>Visible graph heads.</td><td>Repository-level display boundary.</td></tr>
 <tr><td><code>change_id(PREFIX)</code>, <code>commit_id(PREFIX)</code></td><td>Identity-based selection.</td><td>Ambiguous prefixes require disambiguation; commit and change identity differ.</td></tr>
 <tr><td><code>description(PATTERN)</code>, <code>subject(PATTERN)</code></td><td>Description/first-line predicates.</td><td>Use explicit <code>exact</code>, <code>substring</code>, <code>glob</code>, or <code>regex</code>.</td></tr>
@@ -7803,9 +7802,9 @@ x | y</pre>
 <tr><td>Traversal</td><td><code>parents(X)</code>, <code>children(X)</code></td><td>Parent/child relationships, with optional depth forms where documented. Use for explicit edge inspection.</td></tr>
 <tr><td>Traversal</td><td><code>first_parent(X)</code>, <code>first_ancestors(X)</code></td><td>Follow first-parent integration history rather than every reachable parent.</td></tr>
 <tr><td>Traversal</td><td><code>reachable(X,Y)</code>, <code>connected(X)</code></td><td>Reachability/connectivity predicates for non-linear graphs. Test direction; reachability is not symmetric.</td></tr>
-<tr><td>Topology</td><td><code>merges(X)</code>, <code>forks(X)</code></td><td>Select merge/fork topology. A merge is not merely a commit with two reviews.</td></tr>
+<tr><td>Topology</td><td><code>merges()</code>, <code>forks()</code></td><td>Select merge/fork topology, then intersect with a domain. A merge is not merely a commit with two reviews.</td></tr>
 <tr><td>Topology</td><td><code>latest(X, N)</code></td><td>Choose latest commits by timestamp/ordering from X. A policy choice, not a cardinality assertion.</td></tr>
-<tr><td>Topology</td><td><code>fork_point(X,Y)</code>, <code>merge_point(X,Y)</code></td><td>Compute common graph points. Ambiguity and multiple common ancestors require inspection.</td></tr>
+<tr><td>Topology</td><td><code>fork_point(X)</code>, <code>merge_point(X)</code></td><td>Compute the documented graph point for one input set. Ambiguity and multiple common ancestors require inspection.</td></tr>
 <tr><td>State</td><td><code>mutable()</code>, <code>immutable()</code></td><td>Configured mutability predicates. Intersect with reachability for safe work selections.</td></tr>
 <tr><td>State</td><td><code>empty()</code></td><td>Commits whose tree has no change relative to its parents. Description alone does not make a tree non-empty.</td></tr>
 <tr><td>State</td><td><code>conflicts()</code></td><td>Commits with files in a conflicted state. This is distinct from a merge commit and from conflict markers currently visible on disk.</td></tr>
@@ -7822,11 +7821,10 @@ x | y</pre>
 <tr><td>Refs</td><td><code>tracked_remote_bookmarks()</code>, <code>untracked_remote_bookmarks()</code></td><td>Partition remote bookmarks by tracking relationship; useful for publication audits.</td></tr>
 <tr><td>Refs</td><td><code>tags()</code>, <code>remote_tags()</code></td><td>Tag-bearing commits, local/remote. Tags are release names, not review branches.</td></tr>
 <tr><td>Refs</td><td><code>tracked_remote_tags()</code>, <code>untracked_remote_tags()</code></td><td>Available in jj 0.45.1; untracked remote tags participate in default immutable heads.</td></tr>
-<tr><td>Refs</td><td><code>git_refs()</code></td><td>Git ref-derived selection. Backend/import state determines what is visible.</td></tr>
-<tr><td>Workspace</td><td><code>workspaces()</code>, <code>working_copies()</code></td><td>Commits associated with workspace records/current working copies. @ remains workspace-local.</td></tr>
+<tr><td>Workspace</td><td><code>working_copies()</code></td><td>Commits currently serving as working copies. Workspace records and names are managed by <code>jj workspace</code>; @ remains workspace-local.</td></tr>
 <tr><td>History</td><td><code>at_operation(OP, X)</code></td><td>Evaluate X in a historical operation view. Do not mix its graph with current filesystem state casually.</td></tr>
-<tr><td>History</td><td><code>evolution(X)</code></td><td>Select change evolutions/predecessors/successors as documented. Use with evolog for forensic inspection.</td></tr>
-<tr><td>Files</td><td><code>file(PATTERN)</code>, <code>files(PATTERN)</code></td><td>Match commits by changed files or tree paths. Pattern scope and diff direction are significant.</td></tr>
+<tr><td>History</td><td><code>jj evolog -r X</code></td><td>Evolution is inspected by command, not selected by a revset function. Use evolog for predecessor/successor forensic inspection.</td></tr>
+<tr><td>Files</td><td><code>files(FILESET)</code></td><td>Match commits by changed paths. Pattern scope and diff direction are significant.</td></tr>
 <tr><td>Files</td><td><code>diff_lines(TEXT, [FILESET])</code></td><td>Match changes whose diff lines contain the text, optionally limited by a fileset. Beware generated/binary content.</td></tr>
 <tr><td>Files</td><td><code>diff_lines_added(TEXT, [FILESET])</code>, <code>diff_lines_removed(TEXT, [FILESET])</code></td><td>Match added/removed diff lines. Use bounded ranges and inspect false positives.</td></tr>
 <tr><td>Review</td><td><code>mine()</code></td><td>Author matches configured user identity. A convenient predicate, not proof of ownership.</td></tr>

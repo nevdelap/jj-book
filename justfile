@@ -69,6 +69,7 @@ validate: setup
     uv run --frozen python scripts/validate-licenses.py
     JJ_BIN="{{jj}}" bash scripts/validate-templates.sh
     JJ_BIN="{{jj}}" bash scripts/validate-revsets.sh
+    JJ_BIN="{{jj}}" uv run --frozen python scripts/validate-revset-surface.py
     JJ_BIN="{{jj}}" bash scripts/validate-workspaces.sh
     JJ_BIN="{{jj}}" bash scripts/validate-semantics.sh
     JJ_BIN="{{jj}}" bash scripts/validate-sparse.sh

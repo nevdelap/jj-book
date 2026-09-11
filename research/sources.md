@@ -35,6 +35,12 @@ The following pages are consulted and paraphrased rather than copied:
 * Jujutsu image licence — https://github.com/jj-vcs/jj/blob/v0.45.1/docs/images/LICENSE
 * Licensing ledger for this book — `research/licenses.md`
 
+The conflict-marker section adapts the small apple/grape/orange example from
+the official conflicts page's “Conflict markers” section. The labels, prose,
+and resolution explanation were rewritten for this book; the source is
+recorded as an adapted example rather than as paraphrase-only material in the
+licence ledger.
+
 ## Local evidence
 
 The scripts capture `jj version`, `jj help`, `jj help --help`, and recursive command help for jj 0.45.1. Fixture repositories validate DAG rewrites, revsets, bookmarks, Git transport, conflicts, workspaces, sparse patterns, operation recovery, and colocated Git use.
