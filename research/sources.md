@@ -13,6 +13,8 @@ The following pages are consulted and paraphrased rather than copied:
 * Git compatibility source — https://github.com/jj-vcs/jj/blob/main/docs/git-compatibility.md
 * Bookmarks — https://docs.jj-vcs.dev/latest/bookmarks/
 * Revsets — https://docs.jj-vcs.dev/latest/revsets/
+* Rust regex syntax linked by jj 0.45.1 help — https://docs.rs/regex/latest/regex/#syntax
+* Rust globset syntax linked by jj 0.45.1 help — https://docs.rs/globset/latest/globset/#syntax
 * Filesets — https://docs.jj-vcs.dev/latest/filesets/
 * Templates — https://docs.jj-vcs.dev/latest/templates/
 * Configuration — https://docs.jj-vcs.dev/latest/config/

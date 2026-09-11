@@ -1045,28 +1045,139 @@ abandon:   main--A----C       B removed/hidden, C reconnected as policy permits<
 <p><code>@</code> is the current workspace commit; <code>workspace@</code> selects another workspace. Full or unique-prefix commit IDs resolve to one commit. Full or unique-prefix change IDs resolve to a visible commit, except ambiguous/divergent IDs require an offset such as <code>xyz/0</code>. Tags, bookmarks, and remote bookmarks are symbols. In 0.45.1 the documented precedence is tag name, bookmark name, then commit/change ID; use <code>commit_id(X)</code>, <code>change_id(X)</code>, <code>bookmark(X)</code>, or <code>tag(X)</code> when scripts must disambiguate.</p>
 <p>Shell quoting is part of the language boundary. Quote expressions containing <code>|</code>, <code>~</code>, parentheses, or spaces. A literal symbol that looks like an operator can require nested quoting, for example <code>jj log -r '"x-"'</code>.</p>
 <h4 id="operators-and-precedence">Revset operators and precedence</h4>
-<table><thead><tr><th>Binding</th><th>Syntax</th><th>Meaning</th></tr></thead><tbody>
-<tr><td>1</td><td><code>f(x)</code></td><td>Function call.</td></tr>
-<tr><td>2</td><td><code>x-</code>, <code>x+</code></td><td>Parents or children of members of x.</td></tr>
-<tr><td>3</td><td><code>p:x</code></td><td>String/date pattern or pattern alias.</td></tr>
-<tr><td>4</td><td><code>x::</code>, <code>::x</code>, <code>x::y</code></td><td>Descendants, ancestors, or descendants of x that are ancestors of y.</td></tr>
-<tr><td>4</td><td><code>x..</code>, <code>..x</code>, <code>x..y</code>, <code>..</code></td><td>Difference-style reachability ranges, with root/visible-head rules.</td></tr>
-<tr><td>5</td><td><code>~x</code></td><td>Complement of x within the revset search space.</td></tr>
-<tr><td>6</td><td><code>x &amp; y</code>, <code>x ~ y</code></td><td>Intersection; difference.</td></tr>
-<tr><td>7</td><td><code>x | y</code></td><td>Union.</td></tr>
+<p>The table gives binding power, not an evaluation order over commits. First the parser groups the expression according to this table; then jj resolves each operand to a set and applies the operator to those sets. The distinction matters because <code>x..y</code> and <code>x::y</code> are graph operations, while <code>~</code>, <code>&amp;</code>, and <code>|</code> are set operations. The names “range” and “parent/child” are useful mnemonics, but the formal set definitions below are the safer way to reason about a non-linear graph.</p>
+<table><thead><tr><th>Binding power</th><th>Form</th><th>Formal result</th><th>Important boundary and failure mode</th></tr></thead><tbody>
+<tr><td>1 — strongest</td><td><code>f(x)</code></td><td>Call function <code>f</code> with one or more revset arguments. The function returns a commit set or a value used by another expression.</td><td>Function arguments are grouped before surrounding operators. A function may require a singleton, a pattern, or a set; a syntactically valid call can still fail its cardinality contract.</td></tr>
+<tr><td>2</td><td><code>x-</code></td><td>The union of the immediate parents of every commit in <code>x</code>.</td><td>Parents are not transitive. A root has no parent, so <code>root()-</code> is empty; a merge can contribute more than one parent.</td></tr>
+<tr><td>2</td><td><code>x+</code></td><td>The union of the immediate children of every commit in <code>x</code>.</td><td>Children are not transitive. A fork can contribute several children; a tip has none. Use <code>x::</code> for all descendants.</td></tr>
+<tr><td>3</td><td><code>p:x</code></td><td>Interpret <code>x</code> using pattern kind or alias <code>p</code>, such as <code>exact:</code>, <code>substring:</code>, <code>glob:</code>, <code>regex:</code>, <code>after:</code>, or <code>before:</code>.</td><td>This changes how a predicate argument is interpreted; it does not traverse the graph. Quote the complete expression when the shell can interpret <code>|</code>, <code>~</code>, or parentheses.</td></tr>
+<tr><td>4</td><td><code>x::</code></td><td><em>Desc(x)</em>: <code>x</code> and every descendant reachable by repeatedly following child edges.</td><td>Includes <code>x</code>. With no explicit hidden commit, it is bounded by visible heads. It is not a first-parent chain and can contain forks, merges, and several independent tips.</td></tr>
+<tr><td>4</td><td><code>x..</code></td><td>The search domain minus <em>Anc(x)</em>: every commit that is not an ancestor of any commit in <code>x</code>. In the ordinary visible domain this is equivalent to <code>x..visible_heads()</code>.</td><td>It is not “descendants of <code>x</code>”. It can contain an unrelated branch and descendants of <code>x</code>, while excluding <code>x</code> and all of its ancestors.</td></tr>
+<tr><td>4</td><td><code>::x</code></td><td><em>Anc(x)</em>: <code>x</code> and every ancestor reached by repeatedly following parent edges.</td><td>Includes the root commit when it is reachable. It follows all parents of a merge, not only the first parent.</td></tr>
+<tr><td>4</td><td><code>..x</code></td><td><em>Anc(x) \ {root}</em>: the ancestors of <code>x</code>, including <code>x</code>, except the root commit.</td><td>Do not confuse it with <code>x..</code>. The two have opposite shapes: <code>..x</code> is an ancestor closure with a root boundary; <code>x..</code> is a complement of an ancestor closure.</td></tr>
+<tr><td>4</td><td><code>x::y</code></td><td><em>Desc(x) ∩ Anc(y)</em>: descendants of <code>x</code> that are also ancestors of <code>y</code>. Equivalent to <code>x:: &amp; ::y</code>.</td><td>It includes <code>x</code> and <code>y</code> only when the graph makes them members. It is the ancestry corridor, not every commit reachable from either endpoint.</td></tr>
+<tr><td>4</td><td><code>x..y</code></td><td><em>Anc(y) \ Anc(x)</em>: ancestors of <code>y</code> that are not also ancestors of <code>x</code>.</td><td><code>x</code> and <code>y</code> need not be related. It is the same set shape Git commonly denotes with <code>x..y</code>, but it is still a set and can include side history brought in through a merge.</td></tr>
+<tr><td>4</td><td><code>::</code></td><td>All visible commits in the current repository view.</td><td>It is not an infinite universe and normally does not include hidden commits unless the expression explicitly introduces them.</td></tr>
+<tr><td>4</td><td><code>..</code></td><td>All visible commits except the root commit.</td><td>Use <code>::</code> when the root is part of the intended domain; use <code>..</code> when a root-free domain is deliberate.</td></tr>
+<tr><td>5</td><td><code>~x</code></td><td>The complement of <code>x</code> in the current revset search domain.</td><td>It does not mean “the ancestors not in <code>x</code>”. Bound it explicitly, for example <code>(@:: &amp; mutable()) ~ bookmarks()</code>.</td></tr>
+<tr><td>6</td><td><code>x &amp; y</code></td><td><em>x ∩ y</em>: commits present in both sets.</td><td>Intersection is not a merge operation and does not create a new commit. It is commonly used to combine a graph boundary with a state predicate.</td></tr>
+<tr><td>6</td><td><code>x ~ y</code></td><td><em>x \ y</em>: commits in <code>x</code> after removing every commit in <code>y</code>.</td><td>Difference removes a set, not merely the named tip. Because it shares binding power with intersection, <code>x ~ y &amp; z</code> means <code>(x ~ y) &amp; z</code>.</td></tr>
+<tr><td>7 — weakest</td><td><code>x | y</code></td><td><em>x ∪ y</em>: commits present in either set or both.</td><td>Union is weaker than intersection/difference. Thus <code>x | y &amp; z</code> means <code>x | (y &amp; z)</code>; parenthesise when a union is an operand of traversal or subtraction.</td></tr>
 </tbody></table>
-<p>Strongest binds first, equal-strength infix operators associate left-to-right. <code>x..y</code> is <code>::y ~ ::x</code>; it is not necessarily one ancestry path. <code>x::y</code> is <code>x:: &amp; ::y</code>. The left side of <code>..</code> does not distribute over union: <code>(A|B)..</code> is equivalent to <code>A.. &amp; B..</code>, not <code>A.. | B..</code>.</p>
-<pre class="diagram">D
-|\
-B C       ::D = {D,C,B,A,root()}
-|/        B..D = {D,C}
-A         B::D = {B,D}
-|         B+ = {D}
-root      B- = {A}</pre>
+<p>These are the jj 0.45.1 operators. Equal-strength infix operators associate left-to-right. The complete graph identities worth memorising are <code>x::y = x:: &amp; ::y</code>, <code>x..y = ::y ~ ::x</code>, <code>..x = ::x ~ root()</code>, and, in the ordinary visible domain, <code>x.. = ~::x</code>. The last identity is domain-sensitive when hidden commits have been explicitly introduced. The unusual identity is the left-hand range union: <code>(A | B).. = A.. &amp; B..</code>, not <code>A.. | B..</code>.</p>
+<h5 id="operator-evaluation-graph">Evaluate operators on one explicit graph</h5>
+<p>Use this small merge graph for the examples below. Every set is written explicitly; braces mean set membership, not log display order. The arrows point from parent to child, so D has two parents, B and C.</p>
+<pre class="diagram">        D
+       / \
+      B   C
+       \ /
+        A
+        |
+       root
+
+Parents: D = {B,C}, B = {A}, C = {A}, A = {root}, root = {}
+Children: root = {A}, A = {B,C}, B = {D}, C = {D}, D = {}</pre>
+<table><thead><tr><th>Expression</th><th>Expansion</th><th>Exact result</th><th>What the result demonstrates</th></tr></thead><tbody>
+<tr><td><code>D-</code></td><td>Immediate parents of <code>D</code></td><td><code>{B,C}</code></td><td>A merge has two immediate parents.</td></tr>
+<tr><td><code>A+</code></td><td>Immediate children of <code>A</code></td><td><code>{B,C}</code></td><td>A child query can return a fork.</td></tr>
+<tr><td><code>B::</code></td><td>Descendants of <code>B</code>, including B</td><td><code>{B,D}</code></td><td>It does not include sibling C or their common ancestor A.</td></tr>
+<tr><td><code>::B</code></td><td>Ancestors of <code>B</code>, including B</td><td><code>{root,A,B}</code></td><td>It follows B's parent edge back to the root.</td></tr>
+<tr><td><code>B..</code></td><td>All visible commits minus <code>::B = {root,A,B}</code></td><td><code>{C,D}</code></td><td>The result includes the sibling C and merge D; it is not B's descendants.</td></tr>
+<tr><td><code>..B</code></td><td><code>::B</code> minus root</td><td><code>{A,B}</code></td><td>The result is an ancestor prefix with the root boundary removed.</td></tr>
+<tr><td><code>B::D</code></td><td><code>B:: ∩ ::D = {B,D} ∩ {root,A,B,C,D}</code></td><td><code>{B,D}</code></td><td>The corridor keeps B and D but excludes sibling C.</td></tr>
+<tr><td><code>B..D</code></td><td><code>::D \ ::B = {root,A,B,C,D} \ {root,A,B}</code></td><td><code>{C,D}</code></td><td>The range excludes B's ancestry and includes the side parent C.</td></tr>
+<tr><td><code>(B|C)::</code></td><td>Descendants of both fork members</td><td><code>{B,C,D}</code></td><td>Traversal distributes over a union of starting points.</td></tr>
+<tr><td><code>(B|C)..</code></td><td><code>B.. ∩ C.. = {C,D} ∩ {B,D}</code></td><td><code>{D}</code></td><td>Left-side range with a union is an intersection of complements.</td></tr>
+</tbody></table>
+<p>Run the same calculations in a fixture with stable descriptions and suppress the graph renderer when checking membership:</p>
+<pre>jj log --no-graph -r 'D-' -T 'description.first_line() ++ "\n"'
+# expected set: B, C
+jj log --no-graph -r 'B::D' -T 'description.first_line() ++ "\n"'
+# expected set: B, D
+jj log --no-graph -r 'B..D' -T 'description.first_line() ++ "\n"'
+# expected set: C, D
+jj log --no-graph -r '(B|C)..' -T 'description.first_line() ++ "\n"'
+# expected set: D</pre>
+<p>The order printed by <code>jj log</code> is a topological presentation chosen by the command; it is not part of the set's meaning. To assert a result in automation, render a stable identifier or description, sort it in the shell if order is irrelevant, and compare the resulting membership. To understand a surprising result, first print each operand separately, then print the parenthesised expression that combines them.</p>
+<h5 id="operator-precedence-worked-expressions">Precedence worked from the parse tree</h5>
+<p>These expressions look similar but ask different questions:</p>
+<table><thead><tr><th>Written expression</th><th>Parser grouping</th><th>Meaning</th></tr></thead><tbody>
+<tr><td><code>A | B &amp; C</code></td><td><code>A | (B &amp; C)</code></td><td>Take all of A, then add only the commits common to B and C.</td></tr>
+<tr><td><code>(A | B) &amp; C</code></td><td>Explicit grouping</td><td>Take the union first, then retain only members also in C.</td></tr>
+<tr><td><code>A ~ B &amp; C</code></td><td><code>(A ~ B) &amp; C</code></td><td>Remove B from A, then intersect with C; it is not <code>A ~ (B &amp; C)</code>.</td></tr>
+<tr><td><code>mutable() &amp; @:: | bookmarks()</code></td><td><code>(mutable() &amp; @::) | bookmarks()</code></td><td>Show the current mutable descendant domain plus every bookmark target.</td></tr>
+<tr><td><code>mutable() &amp; (@:: | bookmarks())</code></td><td>Explicit grouping</td><td>Show only mutable commits that are either current descendants or bookmark targets.</td></tr>
+<tr><td><code>::A | B</code></td><td><code>(::A) | B</code></td><td>Ancestors of A, plus B; it is not ancestors of the union.</td></tr>
+<tr><td><code>::(A | B)</code></td><td>Explicit grouping</td><td>Ancestors of both A and B, including ancestors introduced only through B.</td></tr>
+</tbody></table>
+<p>For a policy expression, write the intended set in words before writing punctuation. For example, “mutable descendants of @, plus publication tips” is <code>(@:: &amp; mutable()) | bookmarks()</code>. “Mutable commits in either the current descendant set or the bookmark targets” is <code>mutable() &amp; (@:: | bookmarks())</code>. Those are different policies, even if a simple repository happens to make their results equal.</p>
 <h4 id="patterns-dates-and-aliases">Patterns, dates, and aliases</h4>
 <p>String predicates accept pattern kinds such as <code>exact:</code>, <code>substring:</code>, <code>glob:</code>, and <code>regex:</code>, with quoting for spaces and punctuation. Date predicates use one of two explicitly named patterns: <code>after:"DATE"</code> is inclusive, while <code>before:"DATE"</code> is exclusive. A bounded interval is their intersection, not a <code>..</code> expression inside the date argument:</p>
 <pre>author_date(after:"2026-08-01") &amp; author_date(before:"2026-09-01")</pre>
 <p>The date string may be an ISO date such as <code>2024-02-01</code>, an ISO date-time such as <code>2024-02-01T12:00:00</code> or <code>2024-02-01T12:00:00-08:00</code>, a space-separated date-time such as <code>2024-02-01 12:00:00</code>, or a supported relative form such as <code>2 days ago</code>, <code>5 minutes ago</code>, <code>yesterday</code>, <code>yesterday 5pm</code>, or <code>yesterday 10:30</code>. Quote the complete revset for the shell and quote the date string inside the pattern. Prefer an absolute timestamp for reproducible reports; relative dates are evaluated when the query runs.</p>
+<p>The important rule is that a predicate does not receive an untyped “search string”. It receives a value in the revset pattern language. If the kind is omitted, jj 0.45.1 treats a string as a glob pattern. Every string predicate below therefore has two questions: which commit field is being inspected, and which pattern semantics are applied to that field.</p>
+<table><thead><tr><th>Pattern</th><th>Matching rule</th><th>Positive example</th><th>Contrast and composition</th></tr></thead><tbody>
+<tr><td><code>exact:</code></td><td>The complete field must equal the supplied string.</td><td><code>subject(exact:"Fix parser")</code> matches exactly that subject.</td><td><code>subject(exact:"parser")</code> does not match <code>Fix parser</code>; combine with <code>&amp; author_email(...)</code> to disambiguate a duplicate subject.</td></tr>
+<tr><td><code>substring:</code></td><td>The field contains the supplied literal substring. Metacharacters are ordinary text.</td><td><code>description(substring:"CVE-2026-")</code></td><td><code>description(substring:"a.b")</code> does not mean “a, any character, b”; use <code>regex:</code> for that.</td></tr>
+<tr><td><code>glob:</code></td><td>Unix-style wildcard matching, using the globset syntax linked by jj's help.</td><td><code>subject(glob:"fix: *")</code></td><td><code>*</code> is a wildcard, not a regex quantifier. Use <code>glob-i:</code> when case should not matter.</td></tr>
+<tr><td><code>regex:</code></td><td>Regular-expression substring matching. The expression need not consume the whole field.</td><td><code>description(regex:"(?i)CVE-[0-9]+")</code></td><td>Use <code>^</code> and <code>$</code> for boundaries. <code>regex-i:</code> is the case-insensitive form.</td></tr>
+<tr><td><code>exact-i:</code>, <code>substring-i:</code>, <code>glob-i:</code>, <code>regex-i:</code></td><td>The corresponding matcher, case-insensitive.</td><td><code>author_email(exact-i:"DEV@EXAMPLE.ORG")</code></td><td>The <code>-i</code> suffix belongs to the pattern kind; it is not a shell option and must remain inside the quoted revset.</td></tr>
+</tbody></table>
+<p>These are deliberately different from shell globs. The shell must pass one revset string to jj; jj then parses the pattern inside it. For example, the single quotes protect <code>*</code>, <code>!</code>, parentheses, spaces, and <code>$</code> from the shell, while the double quotes inside the revset delimit the pattern value. If a pattern contains a literal double quote, escape it for the revset parser as well as choosing suitable shell quoting.</p>
+<pre># The shell passes one argument; jj applies the four different matchers.
+jj log -r 'subject(exact:"API: quota")'
+jj log -r 'subject(substring:"quota")'
+jj log -r 'subject(glob:"API: *")'
+jj log -r 'subject(regex:"^API: (quota|rate limit)$")'
+
+# Case-insensitive forms are pattern kinds, not command flags.
+jj log -r 'author_email(exact-i:"DEV@EXAMPLE.ORG")'
+jj log -r 'description(regex-i:"security|authentication")'</pre>
+<h5 id="predicate-field-examples">Field predicates: one field, several questions</h5>
+<p>The following examples are intentionally paired. The first query asks for a field; the second narrows the same field query with graph or metadata state. This makes the result useful in a real repository rather than merely demonstrating that a function parses.</p>
+<table><thead><tr><th>Predicate</th><th>Field it tests</th><th>Basic query</th><th>Useful composed query</th></tr></thead><tbody>
+<tr><td><code>description(P)</code></td><td>Full commit message.</td><td><code>description(substring:"backport")</code></td><td><code>mutable() &amp; description(regex-i:"^(fix|revert):")</code></td></tr>
+<tr><td><code>subject(P)</code></td><td>Subject/first line of the message.</td><td><code>subject(glob:"API: *")</code></td><td><code>subject(exact:"API: quota") &amp; author_email(exact:"dev@example.org")</code></td></tr>
+<tr><td><code>author(P)</code></td><td>Author signature as a name/email value.</td><td><code>author(substring:"Example")</code></td><td><code>author(substring:"Example") &amp; ::main@origin</code></td></tr>
+<tr><td><code>author_name(P)</code></td><td>Author name only.</td><td><code>author_name(exact:"A. Engineer")</code></td><td><code>author_name(substring:"Engineer") &amp; author_date(after:"2026-01-01")</code></td></tr>
+<tr><td><code>author_email(P)</code></td><td>Author email only.</td><td><code>author_email(exact:"dev@example.org")</code></td><td><code>author_email(glob:"*@example.org") &amp; mutable()</code></td></tr>
+<tr><td><code>committer(P)</code></td><td>Committer signature.</td><td><code>committer(substring:"CI")</code></td><td><code>committer(substring:"CI") &amp; ~author(substring:"CI")</code></td></tr>
+<tr><td><code>committer_name(P)</code></td><td>Committer name only.</td><td><code>committer_name(exact:"Release Bot")</code></td><td><code>committer_name(exact:"Release Bot") &amp; tags()</code></td></tr>
+<tr><td><code>committer_email(P)</code></td><td>Committer email only.</td><td><code>committer_email(exact:"ci@example.org")</code></td><td><code>committer_email(exact:"ci@example.org") &amp; author_email(exact:"dev@example.org")</code></td></tr>
+<tr><td><code>mine()</code></td><td>Commits whose author email matches the configured user email.</td><td><code>mine()</code></td><td><code>mine() &amp; mutable() &amp; ::@</code></td></tr>
+</tbody></table>
+<p>An author and committer may differ after a rebase, import, automated rewrite, or bot-mediated publication. A query written against <code>author_email()</code> is therefore not interchangeable with one written against <code>committer_email()</code>. Likewise, <code>description()</code> can match a trailer or body line while <code>subject()</code> restricts the question to the first line.</p>
+<h5 id="date-patterns-in-detail">Date patterns in detail</h5>
+<p>In jj 0.45.1, date predicates accept the two boundary kinds <code>after:</code> and <code>before:</code>. <code>after:</code> includes a commit whose timestamp is exactly the boundary; <code>before:</code> excludes a commit exactly at the boundary. The date parser documents these forms:</p>
+<table><thead><tr><th>Form</th><th>Example</th><th>Meaning and reproducibility</th></tr></thead><tbody>
+<tr><td>Calendar date</td><td><code>after:"2024-02-01"</code></td><td>The date at the parser's date boundary; convenient for day-based reports.</td></tr>
+<tr><td>ISO local date-time</td><td><code>after:"2024-02-01T12:00:00"</code></td><td>Date and time without an explicit offset. Use only when the environment's interpretation is understood.</td></tr>
+<tr><td>ISO date-time with offset</td><td><code>before:"2024-02-01T12:00:00-08:00"</code></td><td>Best for a portable audit because the instant is explicit.</td></tr>
+<tr><td>Space-separated date-time</td><td><code>after:"2024-02-01 12:00:00"</code></td><td>Equivalent style to the local date-time form; retain the inner quotes.</td></tr>
+<tr><td>Relative duration</td><td><code>after:"2 days ago"</code>, <code>after:"5 minutes ago"</code></td><td>Evaluated when jj parses the query, so the same command changes meaning with time.</td></tr>
+<tr><td>Relative named day/time</td><td><code>after:"yesterday"</code>, <code>after:"yesterday 5pm"</code>, <code>after:"yesterday 10:30"</code>, <code>after:"yesterday 15:30"</code></td><td>Useful interactively; do not use as the sole definition of a reproducible release report.</td></tr>
+</tbody></table>
+<p>The official 0.45.1 help says “including” for the date forms, so the table records the documented portable surface rather than claiming that the parser can never accept another human-readable spelling. Test any additional spelling in the target jj binary. This is separate from commit creation timestamps: date predicates compare the selected author or committer field, and a command that creates or rewrites a commit may set those fields according to different rules.</p>
+<pre># Inclusive lower bound and exclusive upper bound.
+jj log -r 'author_date(after:"2026-08-01T00:00:00+00:00") &amp; author_date(before:"2026-09-01T00:00:00+00:00")'
+
+# Author and committer can answer different questions.
+jj log -r 'author_date(after:"2026-01-01") &amp; ~committer_date(after:"2026-01-01")'
+
+# Interactive query; the boundary moves whenever it is run.
+jj log -r 'committer_date(after:"2 days ago")'</pre>
+<h5 id="regex-dialect-and-escaping">The regex dialect jj actually uses</h5>
+<p>The 0.45.1 revset help links <code>regex:</code> to the Rust <code>regex</code> crate syntax. That means this is a Rust-regex-style engine, not PCRE, Perl, or a shell-regex implementation. The stable useful subset includes literal characters, character classes such as <code>[0-9]</code>, groups, alternation, repetitions such as <code>*</code>, <code>+</code>, <code>?</code>, and <code>{m,n}</code>, anchors such as <code>^</code> and <code>$</code>, and inline flags such as <code>(?i)</code>. The exact crate version is an implementation dependency of jj 0.45.1; the user-facing contract is the syntax documented by jj's linked Rust-regex reference, not a promise that a particular crate semver remains installed forever.</p>
+<p>Rust's <code>regex</code> syntax deliberately does not provide look-around or backreferences. jj consequently rejects expressions such as <code>(?=foo)bar</code> and <code>(foo)\1</code> as invalid string patterns. Rewrite those queries using consuming groups, alternation, character classes, or a second revset predicate. Regexes match substrings unless anchored, so <code>description(regex:"fix")</code> can match a body line as well as a subject; <code>subject(regex:"^fix:")</code> is a more precise question.</p>
+<pre># Supported Rust-regex features.
+jj log -r 'description(regex:"(?i)^(fix|revert):")'
+jj log -r 'description(regex:"CVE-[0-9]{4}-[0-9]{4,}")'
+jj log -r 'author_email(regex:"^[^@]+@example\\.org$")'
+
+# These fail in jj 0.45.1: look-around and backreferences are not supported.
+jj log -r 'description(regex:"(?=security)security")'
+jj log -r 'description(regex:"(security)\\1")'</pre>
+<p>There are two escaping layers in the last examples. Single quotes protect the whole revset from the POSIX shell; <code>\\.</code> and <code>\\1</code> then reach the revset string parser as regex escapes. If the pattern is generated by a script, log the exact argument or use a shell array so word splitting cannot silently alter it.</p>
 <pre>[revset-aliases]
 mine = 'author(exact:"A. Engineer")'
 stack(x) = 'x:: &amp; mutable()'
@@ -1548,13 +1659,42 @@ jj log -r 'author_email(exact:"a@example.org") &amp; committer_date(after:"2026-
 <tr><td><code>forks()</code></td><td>Commits participating in a fork.</td><td>A fork is a graph relation, not a pair of refs.</td></tr>
 <tr><td><code>divergent()</code></td><td>Several visible commits for one change identity.</td><td>Similar diffs with different change IDs are not divergent.</td></tr>
 </tbody></table>
+<h5 id="state-predicate-examples">State predicates with graph evidence</h5>
+<p>State predicates become less ambiguous when the query is paired with a graph boundary and rendered with an identity. The examples below assume a local mutable stack above <code>main@origin</code>, at least one immutable imported commit, and that conflicts or divergence have been created deliberately. They are query patterns, not claims that every repository contains every state.</p>
+<table><thead><tr><th>Predicate</th><th>What it selects</th><th>Standalone example</th><th>Useful composition</th></tr></thead><tbody>
+<tr><td><code>mutable()</code></td><td>Commits permitted by the current immutability policy to be rewritten.</td><td><code>jj log -r 'mutable()'</code></td><td><code>mutable() &amp; ::@ ~ ::main@origin</code> — local mutable ancestry outside imported trunk.</td></tr>
+<tr><td><code>immutable()</code></td><td>Commits protected from ordinary rewriting.</td><td><code>jj log -r 'immutable()'</code></td><td><code>immutable() &amp; ::@</code> — protected commits reachable from this workspace.</td></tr>
+<tr><td><code>visible()</code></td><td>Commits in the current repository view.</td><td><code>jj log -r 'visible()'</code></td><td><code>visible() ~ ::@</code> — visible history outside the current ancestry cone.</td></tr>
+<tr><td><code>hidden()</code></td><td>Retained commits omitted from the normal visible view.</td><td><code>jj log -r 'hidden()'</code></td><td><code>hidden() &amp; divergent()</code> — hidden divergent history worth investigating.</td></tr>
+<tr><td><code>visible_heads()</code></td><td>Visible graph tips according to jj's view.</td><td><code>jj log -r 'visible_heads()'</code></td><td><code>visible_heads() ~ bookmarks()</code> — visible tips without a local bookmark.</td></tr>
+<tr><td><code>immutable_heads()</code></td><td>The effective rewrite-protection boundary.</td><td><code>jj log -r 'immutable_heads()'</code></td><td><code>immutable_heads() &amp; ::@</code> — relevant protection boundaries.</td></tr>
+<tr><td><code>builtin_immutable_heads()</code></td><td>The built-in protection expression before policy overrides.</td><td><code>jj log -r 'builtin_immutable_heads()'</code></td><td><code>immutable_heads() ~ builtin_immutable_heads()</code> — policy-added protection.</td></tr>
+<tr><td><code>conflicts()</code></td><td>Commits containing a stored conflict value.</td><td><code>jj log -r 'conflicts()'</code></td><td><code>conflicts() &amp; ::@</code> — conflicts in the current ancestry.</td></tr>
+<tr><td><code>empty()</code></td><td>Commits whose tree is empty relative to their parent merge result.</td><td><code>jj log -r 'empty()'</code></td><td><code>empty() &amp; mutable() &amp; ::@</code> — local empty commits to inspect.</td></tr>
+<tr><td><code>merges()</code></td><td>Commits with more than one parent.</td><td><code>jj log -r 'merges()'</code></td><td><code>merges() &amp; ::@</code> — integration commits reachable from the workspace.</td></tr>
+<tr><td><code>forks()</code></td><td>Commits at the structural fork boundary defined by the function.</td><td><code>jj log -r 'forks()'</code></td><td><code>forks() &amp; ::@</code> — fork structure affecting current work.</td></tr>
+<tr><td><code>divergent()</code></td><td>Visible successor commits sharing one change ID.</td><td><code>jj log -r 'divergent()'</code></td><td><code>divergent() &amp; mutable()</code> — divergence that may need reconciliation.</td></tr>
+</tbody></table>
+<p>Several near-misses matter. <code>immutable()</code> is not “published”, because local policy can protect unpublished work. <code>empty()</code> is not “unimportant”, because an empty commit can be a deliberate marker. <code>conflicts()</code> is not “the working directory has markers”, because the value is stored in the commit graph. <code>divergent()</code> is about one change identity with multiple successors; two independently authored commits with identical text are not necessarily divergent.</p>
 <h4 id="revset-refs-and-identity-contracts">Refs, identity, and metadata</h4>
 <p><code>bookmarks()</code> selects commits named by local bookmarks. <code>remote_bookmarks()</code> selects commits named by remote bookmarks, with optional name/remote patterns. Tracking predicates distinguish relationships, not movement. <code>tags()</code> and remote-tag functions select release names; jj 0.45.1 provides tracked/untracked remote-tag predicates. <code>git_refs()</code> selects imported Git refs. These functions return target commits; template <code>CommitRef</code> values are where names, conflict targets, and tracking counts are rendered.</p>
 <pre>jj log -r 'bookmarks()'
-jj log -r 'remote_bookmarks("origin", "main")'
+jj log -r 'remote_bookmarks("main", "origin")'
+jj log -r 'remote_bookmarks(remote="origin")'
 jj log -r 'bookmarks() &amp; ~remote_bookmarks()'
 jj log -r 'tags() | remote_tags()'
 jj log -r 'git_refs() ~ bookmarks()'</pre>
+<table><thead><tr><th>Ref predicate</th><th>Basic example</th><th>What to verify in a real repository</th></tr></thead><tbody>
+<tr><td><code>bookmarks(P)</code></td><td><code>bookmarks(glob:"release/*")</code></td><td>It returns targets of local bookmarks matching the name pattern, not every commit below those bookmarks.</td></tr>
+<tr><td><code>remote_bookmarks(NAME, REMOTE)</code></td><td><code>remote_bookmarks(glob:"feature/*", exact:"origin")</code></td><td>The first argument filters bookmark names and the second filters remote names. Named form <code>remote_bookmarks(remote="origin")</code> avoids positional confusion.</td></tr>
+<tr><td><code>tracked_remote_bookmarks()</code></td><td><code>tracked_remote_bookmarks() &amp; remote_bookmarks(remote="origin")</code></td><td>Tracking is a local relationship to a remote bookmark; it does not make a local bookmark follow the working copy.</td></tr>
+<tr><td><code>untracked_remote_bookmarks()</code></td><td><code>untracked_remote_bookmarks() &amp; remote_bookmarks(remote="origin")</code></td><td>Useful for finding imported remote names that have no local tracking relationship.</td></tr>
+<tr><td><code>tags(P)</code></td><td><code>tags(glob:"v2.*")</code></td><td>Tags are release names, distinct from bookmarks; combine with <code>immutable()</code> only if policy makes that implication true.</td></tr>
+<tr><td><code>remote_tags(P, REMOTE)</code></td><td><code>remote_tags(glob:"v2.*", exact:"origin")</code></td><td>Qualify the remote when GitHub and Gerrit remotes both publish tags.</td></tr>
+<tr><td><code>tracked_remote_tags()</code></td><td><code>tracked_remote_tags() &amp; remote_tags(remote="origin")</code></td><td>Shows remote tags with the local tracking relationship.</td></tr>
+<tr><td><code>untracked_remote_tags()</code></td><td><code>untracked_remote_tags() &amp; remote_tags(remote="origin")</code></td><td>Useful when explaining why a remote tag contributes to immutability.</td></tr>
+<tr><td><code>git_refs()</code></td><td><code>git_refs() ~ remote_bookmarks()</code></td><td>Find imported Git refs not represented by remote-bookmark names; inspect before native Git tooling or ref cleanup.</td></tr>
+</tbody></table>
 <p>Identity predicates are typed. <code>commit_id(P)</code> and <code>change_id(P)</code> match IDs; <code>description(P)</code> and <code>subject(P)</code> match message text; author and committer functions match metadata; <code>mine()</code> uses configured identity; date functions select timestamp ranges. Use explicit pattern kinds:</p>
 <pre>commit_id(prefix:"abc")
 change_id(prefix:"xyz")
@@ -1563,11 +1703,34 @@ description(substring:"security")
 author_email(exact:"a@example.org")
 committer_date(after:"2026-01-01")</pre>
 <p>Do not invent <code>email:</code> as a pattern kind. An exact subject can match multiple duplicates; a prefix can become ambiguous after fetch; author and committer dates can differ after import. These are language and data-model edge cases, not reasons to select the first line of output in a shell pipeline.</p>
+<table><thead><tr><th>Identity/time predicate</th><th>Positive query</th><th>Contrast or operational use</th></tr></thead><tbody>
+<tr><td><code>commit_id(P)</code></td><td><code>commit_id(prefix:"abc123")</code></td><td>Matches an object identity; it stops following the object after a rewrite. Use a full ID when a script must name one commit.</td></tr>
+<tr><td><code>change_id(P)</code></td><td><code>change_id(prefix:"kmpv")</code></td><td>Matches an evolution identity; it can return multiple commits when the change diverged. Pair with <code>heads()</code> only when you want current tips.</td></tr>
+<tr><td><code>description(P)</code></td><td><code>description(regex-i:"Reviewed-by:.*")</code></td><td>Searches the complete message, including body/trailers. Use <code>subject()</code> when a trailer must not count.</td></tr>
+<tr><td><code>subject(P)</code></td><td><code>subject(glob:"fix: *")</code></td><td>Restricts the question to the subject line; <code>subject(regex:"^fix:")</code> makes the prefix explicit.</td></tr>
+<tr><td><code>author(P)</code></td><td><code>author(substring:"Example")</code></td><td>Matches the combined author signature; use the name/email predicates when one component must be exact.</td></tr>
+<tr><td><code>author_name(P)</code></td><td><code>author_name(exact:"A. Engineer")</code></td><td>Distinguishes a name change from an email change.</td></tr>
+<tr><td><code>author_email(P)</code></td><td><code>author_email(exact:"dev@example.org")</code></td><td>Useful for ownership reports: <code>author_email(glob:"*@example.org") &amp; ::main@origin</code>.</td></tr>
+<tr><td><code>committer(P)</code></td><td><code>committer(substring:"Release Bot")</code></td><td>Finds who recorded the commit, which can differ from the author.</td></tr>
+<tr><td><code>committer_name(P)</code></td><td><code>committer_name(exact:"Release Bot")</code></td><td>Use with <code>tags()</code> to inspect bot-created release targets.</td></tr>
+<tr><td><code>committer_email(P)</code></td><td><code>committer_email(exact:"ci@example.org")</code></td><td>Finds imported or automated commits by recording identity.</td></tr>
+<tr><td><code>mine()</code></td><td><code>mine()</code></td><td>Uses configured <code>user.email</code>; inspect config before using it in a multi-identity report.</td></tr>
+<tr><td><code>author_date(P)</code></td><td><code>author_date(after:"2026-01-01")</code></td><td>Measures when the author says the work was authored; use an interval by intersecting <code>after</code> and <code>before</code>.</td></tr>
+<tr><td><code>committer_date(P)</code></td><td><code>committer_date(before:"2026-09-01")</code></td><td>Measures recording time; it often changes when a stack is rewritten or imported.</td></tr>
+<tr><td><code>signed()</code></td><td><code>signed()</code></td><td>Finds commits with a recognised signature; combine with <code>immutable()</code> when auditing protected history.</td></tr>
+</tbody></table>
 <h4 id="revset-file-predicate-contracts">File and content predicates</h4>
 <p>File predicates accept a fileset/pattern argument and return commits whose changes satisfy it. They do not return paths and they do not necessarily mean that a path exists in the resulting tree. Renames, deletions, merge diffs, binary entries, and conflicts make the distinction important.</p>
 <pre>jj log -r 'files("root-prefix-glob:src") &amp; ::@'
 jj log -r 'diff_lines_added(substring:"TODO") &amp; mutable()'
 jj diff -r 'files("root-prefix-glob:src")'</pre>
+<table><thead><tr><th>File/content predicate</th><th>Basic example</th><th>Composition and boundary</th></tr></thead><tbody>
+<tr><td><code>files(EXPRESSION)</code></td><td><code>files("root-prefix-glob:src")</code></td><td><code>files("root-glob:**/*.rs") &amp; ::@</code> finds current ancestry commits modifying Rust paths. It does not assert that every selected tree still contains the path.</td></tr>
+<tr><td><code>diff_lines(TEXT, FILES)</code></td><td><code>diff_lines(substring:"TODO", "root-prefix-glob:src")</code></td><td>Matches changed lines on either side of the diff. Add <code>&amp; mutable()</code> to restrict an audit to rewritable history.</td></tr>
+<tr><td><code>diff_lines_added(TEXT, FILES)</code></td><td><code>diff_lines_added(substring:"TODO", "root-prefix-glob:src")</code></td><td>Finds additions, not merely a commit whose final file contains TODO. Add <code>&amp; ~empty()</code> to exclude marker commits.</td></tr>
+<tr><td><code>diff_lines_removed(TEXT, FILES)</code></td><td><code>diff_lines_removed(regex:"deprecated_[a-z]+", "root-glob:**/*.rs")</code></td><td>Finds removals; pair with <code>author_email()</code> or a release range to audit a particular change set.</td></tr>
+</tbody></table>
+<p>The first argument of the diff-line functions is itself a string pattern, so the same <code>exact</code>, <code>substring</code>, <code>glob</code>, <code>regex</code>, and case-insensitive forms apply. The optional second argument is a fileset expression, not a revset. The command-line path arguments of a surrounding command are not a substitute for this nested fileset argument; keep the path scope inside the function when the query must be portable and explicit.</p>
 <p>Inspect the exact target-version signature before using a content predicate in policy. Use <code>jj file list</code> for final-tree membership and <code>jj diff</code> for diff membership. A revset selects commits; a fileset selects paths inside the selected trees or diffs.</p>
 <h4 id="revset-composition-proof-patterns">Composition patterns and proof order</h4>
 <pre># Reviewable heads in current mutable ancestry:
