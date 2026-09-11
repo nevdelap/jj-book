@@ -2992,6 +2992,86 @@ jj show -r 'conflicts() &amp; ::@' --summary</pre>
 <p>Query the graph before opening an editor. If B' is conflicted and C' is clean, editing C' first can still be useful for reviewing its independent diff, but a later repair to B' may rebase C' again. If the conflict is at an ancestor, resolving it can change every descendant commit ID even when their content remains semantically identical. Use change IDs to follow the logical changes and operation/evolution logs to account for object churn.</p>
 <h4 id="materialising-and-inspecting-conflict-sides">Materialisation and sides</h4>
 <p>For a two-sided conflict, the workspace contains a marker representation with a base and the competing sides according to the configured conflict marker style. A multi-sided conflict can contain more than two alternatives because repeated rebases and merges preserve more than one side. Treat markers as an input format to a merge editor, not a syntax to resolve by deleting lines at random.</p>
+<h5 id="conflict-marker-file-format">What the materialised file looks like</h5>
+<p>In jj 0.45.1 the default marker style is <code>diff</code>. The following is an illustrative two-sided file; the abbreviated IDs and descriptions are labels, not part of the conflict algebra:</p>
+<pre>before:
+apple
+grape
+orange
+
+after materialising the conflict:
+&lt;&lt;&lt;&lt;&lt;&lt;&lt; conflict 1 of 1
+%%%%%%% diff from: BASE1234 "merge base"
+\\\\\\\        to: SIDEA123 "change A"
+ apple
+-grape
++grapefruit
+ orange
++++++++ SIDEB456 "change B"
+APPLE
+GRAPE
+ORANGE
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; conflict 1 of 1 ends</pre>
+<p>Read this as an instruction for constructing a result, not as two independent files separated by a line of equals signs. The <code>+++++++</code> section is a complete snapshot of one side. The <code>%%%%%%%</code>/<code>\\\\\\\</code> section describes a diff from the base to another side: context lines begin with a space, removed lines with <code>-</code>, and added lines with <code>+</code>. Applying that diff to the snapshot produces the other side. In this example the useful resolution is to combine the intent—<code>APPLE</code>, <code>GRAPEFRUIT</code>, <code>ORANGE</code>—and remove the markers before jj snapshots the result.</p>
+<p>A multi-sided conflict uses the same structure but has one snapshot section and more than one diff section. Conceptually, for a base <code>B</code> and sides <code>S1</code>, <code>S2</code>, and <code>S3</code>, the file has the shape:</p>
+<pre>&lt;&lt;&lt;&lt;&lt;&lt;&lt; conflict 1 of 1
++++++++ S1 "one snapshot side"
+...complete contents of S1...
+%%%%%%% diff from: B "common base"
+\\\\\\\        to: S2 "second side"
+...diff B → S2...
+%%%%%%% diff from: B "common base"
+\\\\\\\        to: S3 "third side"
+...diff B → S3...
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; conflict 1 of 1 ends</pre>
+<p>The exact commit labels identify the stored terms; the marker count identifies the conflict region within the file. If a file contains two independent conflict regions, their headers are <code>conflict 1 of 2</code> and <code>conflict 2 of 2</code>. A conflict can therefore have both multiple regions and multiple sides. Do not infer the number of parents from the number of visible marker blocks: the conflict value records the terms, while the file is only its textual projection.</p>
+<h5 id="alternative-conflict-marker-formats">The three marker styles</h5>
+<table><thead><tr><th>Style</th><th>File representation</th><th>Multi-sided behaviour</th><th>Use it when</th></tr></thead><tbody>
+<tr><td><code>diff</code> (default)</td><td>One complete snapshot plus diffs from the base to the other sides.</td><td>Supports arbitrarily many sides; additional sides appear as additional diff sections.</td><td>You want a compact, reviewable representation that makes each side's change explicit.</td></tr>
+<tr><td><code>snapshot</code></td><td>A complete snapshot section for each side and the base.</td><td>Supports multiple sides directly, at the cost of repeated unchanged content.</td><td>You need to inspect the full contents of every term or use a tool that expects snapshot blocks.</td></tr>
+<tr><td><code>git</code></td><td>Git diff3-style <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code>, <code>|||||||</code>, <code>=======</code>, and <code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code> sections.</td><td>Only supports two-sided conflicts; jj falls back to a snapshot-like representation for more than two sides.</td><td>A tool requires Git-style diff3 markers and the conflict is genuinely two-sided.</td></tr>
+</tbody></table>
+<p>These are alternatives; set exactly one value in an effective <code>[ui]</code> configuration table:</p>
+<pre>[ui]
+# Choose one. jj's default: one snapshot plus one or more diffs
+conflict-marker-style = "diff"
+
+# Or: complete snapshots for base and every side
+conflict-marker-style = "snapshot"
+
+# Or: Git diff3 compatibility; not a general multi-sided format
+conflict-marker-style = "git"</pre>
+<p>For comparison, the two-sided part of <code>snapshot</code> style is represented as complete sections rather than a diff:</p>
+<pre>&lt;&lt;&lt;&lt;&lt;&lt;&lt; conflict 1 of 1
++++++++ SIDEA123 "change A"
+apple
+grapefruit
+orange
+------- BASE1234 "merge base"
+apple
+grape
+orange
++++++++ SIDEB456 "change B"
+APPLE
+GRAPE
+ORANGE
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; conflict 1 of 1 ends</pre>
+<p>A three-sided snapshot contains one <code>+++++++</code> section for each side plus the <code>-------</code> base section. It is easy to read but can repeat a large amount of unchanged text; the default diff style represents the same alternatives more compactly.</p>
+<p>In Git style, the conceptual two-sided form is:</p>
+<pre>&lt;&lt;&lt;&lt;&lt;&lt;&lt; SIDEA123 "change A"
+apple
+grapefruit
+orange
+||||||| BASE1234 "merge base"
+apple
+grape
+orange
+=======
+APPLE
+GRAPE
+ORANGE
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; SIDEB456 "change B"</pre>
+<p>Changing <code>ui.conflict-marker-style</code> changes only this materialised representation. It does not change the stored conflict value or make a conflict two-sided. Marker lines are normally seven characters long, but jj can lengthen them when file content could otherwise be mistaken for a marker. Files without a terminating newline receive special treatment so that every marker begins on its own line; the closing marker may consequently have no terminating newline. These details matter to scripts and parsers, so use jj's configured merge tooling rather than matching marker text with an ad-hoc regular expression. The layouts and fallback behaviour in this section follow the official <a href="https://docs.jj-vcs.dev/latest/conflicts/#conflict-markers">jj conflict-marker documentation</a>; the abbreviated examples are original and use illustrative labels.</p>
 <pre>jj log -r @ -T 'conflict ++ \" sides=\" ++ conflicted_files.map(|f| f.conflict_side_count()).join(\",\") ++ \"\\n\"'
 jj resolve --list
 jj resolve --tool :builtin</pre>
