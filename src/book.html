@@ -3012,6 +3012,7 @@ GRAPE
 ORANGE
 &gt;&gt;&gt;&gt;&gt;&gt;&gt; conflict 1 of 1 ends</pre>
 <p>Read this as an instruction for constructing a result, not as two independent files separated by a line of equals signs. The <code>+++++++</code> section is a complete snapshot of one side. The <code>%%%%%%%</code>/<code>\\\\\\\</code> section describes a diff from the base to another side: context lines begin with a space, removed lines with <code>-</code>, and added lines with <code>+</code>. Applying that diff to the snapshot produces the other side. In this example the useful resolution is to combine the intent—<code>APPLE</code>, <code>GRAPEFRUIT</code>, <code>ORANGE</code>—and remove the markers before jj snapshots the result.</p>
+<p>In that example, the one-space rule applies only to the diff section between <code>%%%%%%%</code> and the next side marker: the literal leading spaces on <code> apple</code> and <code> orange</code> are context prefixes. The uppercase <code>APPLE</code>, <code>GRAPE</code>, and <code>ORANGE</code> lines belong to the complete snapshot section and intentionally have no diff prefix.</p>
 <p>A multi-sided conflict uses the same structure but has one snapshot section and more than one diff section. Conceptually, for a base <code>B</code> and sides <code>S1</code>, <code>S2</code>, and <code>S3</code>, the file has the shape:</p>
 <pre>&lt;&lt;&lt;&lt;&lt;&lt;&lt; conflict 1 of 1
 +++++++ S1 "one snapshot side"
