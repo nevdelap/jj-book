@@ -413,7 +413,7 @@ jj evolog -r @ -T 'commit_id ++ " " ++ change_id ++ "\n"'
 printf 'test limit\n' &gt; src/value-test.txt
 jj status
 jj describe -m 'Tests: exercise the limit'
-jj log -r 'stack(@)' -T 'commit_id.short() ++ " " ++ change_id.short() ++ " " ++ description.first_line() ++ "\n"'
+jj log -r '::@ &amp; mutable()' -T 'commit_id.short() ++ " " ++ change_id.short() ++ " " ++ description.first_line() ++ "\n"'
 </pre>
 <p>Now edit the parent change explicitly. A normal workflow can locate it by its change ID rather than by an unstable commit prefix:</p>
 <pre>parent=$(jj log -r 'description(substring:"Parser: add")' --no-graph -T 'change_id ++ "\n"')
@@ -783,7 +783,7 @@ workspace records:
 jj squash --into B --interactive
 jj edit B
 jj describe -m "API: expose parser diagnostics"
-jj log -r 'stack(B)'</pre>
+jj log -r 'B:: &amp; mutable()'</pre>
 <p>The interactive squash changes B’s tree and leaves only the residual diff in C. When B evolves, C and @ are descendants and are automatically rebased. If their diffs apply cleanly, their logical changes continue with new commit IDs. If the context no longer exists, the rebased descendant records a conflict rather than forcing the user into an interrupted rebase session.</p>
 <pre class="diagram">before:
 A--B(API)--C(tests)--@ docs
@@ -1071,7 +1071,7 @@ root      B- = {A}</pre>
 mine = 'author(exact:"A. Engineer")'
 stack(x) = 'x:: &amp; mutable()'
 reviewable(x) = 'x:: &amp; ~immutable_heads() &amp; ~empty()'</pre>
-<p>Aliases are parsed as revsets and parameterised aliases substitute expressions, not shell text. Keep aliases small, name them after the set they denote, and test them against a fixture graph. A repository alias can shadow a user alias; inspect effective configuration with <code>jj config list</code>.</p>
+<p><strong><code>stack(x)</code> is not a builtin jj function.</strong> It becomes available only after this alias has been placed in an effective <code>[revset-aliases]</code> configuration table. Standalone commands in this book therefore use the equivalent explicit expression <code>::X &amp; mutable()</code> unless the surrounding example is deliberately teaching the alias. Aliases are parsed as revsets and parameterised aliases substitute expressions, not shell text. Keep aliases small, name them after the set they denote, and test them against a fixture graph. A repository alias can shadow a user alias; inspect effective configuration with <code>jj config list</code>.</p>
 </section>
 <section id="revset-functions"><h3 class="toc-entry" id="6-revset-operators-and-public-functions">13. Revset operators and public functions</h3>
 <p>The following reference groups the public 0.45.1 functions by the property they expose. Function availability and signatures follow the installed release's <code>jj help -k revsets</code>; that help remains the release-specific authority when a later version differs.</p>
@@ -1424,7 +1424,7 @@ jj edit 'exactly(subject(exact:"API: quota"), 1)'
 <pre>[revset-aliases]
 'patches(base, tip)' = 'roots(base..tip)::'
 'unpublished(tip)' = '::tip ~ remote_bookmarks()::'
-'conflicted-stack(tip)' = 'stack(tip) &amp; conflicts()'
+'conflicted-stack(tip)' = 'tip:: &amp; mutable() &amp; conflicts()'
 </pre>
 <p>Before installing these globally, test the parameters with a fork and a merge. The alias <code>patches</code> can return multiple roots; a command that requires one root must apply <code>roots</code> or enforce cardinality. The alias <code>unpublished</code> encodes a broad publication policy and should be narrowed in a multi-remote repository. Alias design is policy design; review it like code.</p>
 
@@ -2314,7 +2314,7 @@ jj git push --remote origin --bookmark pr/api --bookmark pr/metrics</pre>
 <pre>jj git fetch --remote origin
 jj log -r 'main@origin'
 jj rebase -b 'roots(main@origin..pr/metrics)' -o main@origin
-jj log -r 'stack(pr/metrics) &amp; conflicts()'
+jj log -r 'pr/metrics:: &amp; mutable() &amp; conflicts()'
 jj resolve
 jj bookmark set pr/api -r 'subject(exact:"API: correct quota")'
 jj bookmark set pr/metrics -r @
@@ -2565,7 +2565,7 @@ jj gerrit upload --remote gerrit --remote-branch main --revision 'roots(main@ger
 <tr><td>Bookmark/ref</td><td>Local/remote Git ref namespaces</td><td>Only if explicitly moved/exported.</td><td>Reachability and publication.</td></tr>
 </tbody></table>
 <p>A review command should print all relevant fields before upload:</p>
-<pre>jj log -r 'stack(@)' -T '
+<pre>jj log -r '::@ &amp; mutable()' -T '
 change_id.short() ++ "\t" ++ commit_id ++ "\t" ++
 description.first_line() ++ "\n"
 '
@@ -2574,7 +2574,7 @@ git log -n 1 --format='%H%n%B'  # inspect Gerrit footer through Git when needed
 <p>Use the native Git command only as a cross-check of the exported commit object. The jj description is the source of the commit message in the jj model; a colocated Git view may lag until export/import or normal backend synchronisation occurs.</p>
 
 <h4 id="upload-a-stack-deliberately">Upload a stack deliberately</h4>
-<p>A stack upload should define its base and its upper boundary. A query such as <code>stack(@)</code> is convenient for the current workspace but can include a temporary child or omit a sibling review. For a repeatable review, select the exact stack by bookmark, remote trunk, or a named revset alias and print the result.</p>
+<p>A stack upload should define its base and its upper boundary. The explicit query <code>::@ &amp; mutable()</code> selects the mutable descendant closure of the current workspace commit, but can include a temporary child or omit a sibling review. For a repeatable review, select the exact stack by bookmark, remote trunk, or a named revset alias and print the result.</p>
 <pre>jj log -r 'roots(main@gerrit..@)::' --no-graph \
   -T 'commit_id.short() ++ " " ++ description.first_line() ++ "\n"'
 jj gerrit upload --dry-run --remote gerrit \
@@ -2823,7 +2823,7 @@ rewrite: base--A'--B'--C'(@)  B' carries a conflict
 <p>Conflicts arise when a diff cannot be applied cleanly to its new parent or when multiple parent trees cannot be merged without choosing content. Common producers are rebase, squash, restore, split, and an explicit merge. The producer operation can complete even when the result is conflicted. Automatic descendant rebasing then attempts to apply each descendant diff to the changed context. A descendant that does not touch the affected region may remain clean; one that does may carry a conflict of its own.</p>
 <pre>jj log -G -r '::@'
 jj log -r 'conflicts() &amp; ::@'
-jj log -r 'conflicts() &amp; stack(@)'
+jj log -r 'conflicts() &amp; ::@ &amp; mutable()'
 jj show -r 'conflicts() &amp; ::@' --summary</pre>
 <p>Query the graph before opening an editor. If B' is conflicted and C' is clean, editing C' first can still be useful for reviewing its independent diff, but a later repair to B' may rebase C' again. If the conflict is at an ancestor, resolving it can change every descendant commit ID even when their content remains semantically identical. Use change IDs to follow the logical changes and operation/evolution logs to account for object churn.</p>
 <h4 id="materialising-and-inspecting-conflict-sides">Materialisation and sides</h4>
@@ -2907,7 +2907,7 @@ jj op restore OP</pre>
 <tr><td>Recover after a server push?</td><td>Server/ref inspection plus local operation tools</td><td>Local undo cannot undo an external remote mutation.</td></tr>
 </tbody></table>
 <h4 id="exercise-1-rewrite-the-wrong-change">Exercise 1: rewrite the wrong change</h4>
-<pre>jj log -r 'stack(@)'
+<pre>jj log -r '::@ &amp; mutable()'
 jj op log -n 3
 # mistakenly select an ancestor:
 jj edit A
@@ -3042,7 +3042,7 @@ jj edit B
 jj describe -m "WRONG"
 jj op show
 jj undo
-jj log -r 'stack(@)'
+jj log -r '::@ &amp; mutable()'
 jj bookmark delete recovery-before</pre>
 <p>The temporary bookmark is not needed for undo, but it gives a graph-level assertion. If the command sequence included an editor failure, an automatic snapshot, or an unrelated operation, the latest operation may not be the one you intended. In that case inspect operation IDs and use <code>--at-operation</code> before selecting a restore/revert strategy.</p>
 
@@ -3344,11 +3344,11 @@ jj config set --user user.email 'a@example.test'
 
 # safe display and explicit daily scope
 jj config set --user ui.pager 'less -FRX'
-jj config set --user revsets.log 'stack(@) | bookmarks() | remote_bookmarks()'
+jj config set --user revsets.log '(::@ &amp; mutable()) | bookmarks() | remote_bookmarks()'
 
 # personal aliases
 jj config set --user 'revset-aliases.unpublished()' 'mutable() ~ ::remote_bookmarks()'
-jj config set --user 'command-aliases.stack' 'log -r "stack(@)"'</pre>
+jj config set --user 'command-aliases.stack' 'log -r "::@ &amp; mutable()"'</pre>
 <p>Use <code>config edit</code> for nested TOML and multi-line values; command-line setting must satisfy both the shell and the TOML parser. The last line is illustrative of a command alias and should be checked against the exact alias syntax in the installed schema/help before adoption. A config test should inspect the effective value rather than assuming the write landed in the desired layer.</p>
 <h4 id="ui-and-output-policy">UI and output policy</h4>
 <p><code>ui.*</code> settings govern editor, pager, colour, timestamps, diff formatter/editor, merge editor, default command, movement policy, and related presentation. Separate human output from machine output: a human default may use a pager, graph, colour, relative dates, and compact descriptions; a script should specify <code>--no-pager --color=never</code>, a bounded revset, and an explicit template.</p>
@@ -3467,14 +3467,14 @@ log = "builtin_log_compact"
 jj git push --remote github --bookmark pr/parser
 
 # Gerrit review upload
-jj gerrit upload --remote gerrit --remote-branch main -r 'stack(@)'
+jj gerrit upload --remote gerrit --remote-branch main -r '::@ &amp; mutable()'
 </pre>
 <p>For 0.45.1, Gerrit-specific defaults such as <code>gerrit.default-remote</code>, <code>gerrit.default-remote-branch</code>, and <code>gerrit.review-url</code> can reduce repetition. In a shared config, document that those keys are not a guarantee that a GitHub push will use the same remote. Separate command aliases by transport and require a bookmark argument for destructive or public operations.</p>
 
 <h4 id="aliases-as-an-interface">Aliases as an interface</h4>
 <p>An alias is a small program in configuration. Name it for its invariant, not its keystrokes. A good read alias prints stable IDs and uses a bounded revset. A risky alias should be explicit about its source, destination, remote, and safety behaviour. Version aliases that use a target-release-specific command or predicate, or gate them with a documented release check.</p>
 <pre>[aliases]
-st = ["log", "-r", "stack(@)", "-T", "builtin_log_compact"]
+st = ["log", "-r", "::@ &amp; mutable()", "-T", "builtin_log_compact"]
 pub = ["git", "push", "--remote", "github", "--bookmark"]
 review = ["gerrit", "upload", "--remote", "gerrit", "--remote-branch", "main"]
 </pre>
@@ -3529,7 +3529,7 @@ track-default-bookmark-on-clone = true
 <h4 id="revset-defaults">Revset defaults</h4>
 <p>The <code>revsets</code> namespace chooses default commit sets for commands such as log, arrange, fix, run, sign, and simplify-parents. Defaults should be readable and bounded. <code>builtin_log()</code> is usually a better base than copying a release-specific expansion. A default that uses a private alias or a target-release-specific function must be version-gated.</p>
 <pre>[revsets]
-log = 'stack(@)'
+log = '::@ &amp; mutable()'
 fix = 'mutable() &amp; ::@'
 run = 'mutable() &amp; ::@'
 sign = 'mutable() &amp; ::@'
@@ -3610,11 +3610,11 @@ editor = ["nvim", "-f"]
 pager = ["less", "-FRX"]
 paginate = "auto"
 color = "auto"
-default-command = ["log", "-r", "stack(@) | bookmarks() | remote_bookmarks()"]</pre>
+default-command = ["log", "-r", "(::@ &amp; mutable()) | bookmarks() | remote_bookmarks()"]</pre>
 <p>Start with identity and output, then add selection aliases, then add transport policy. A broken template or alias in the user file can make every repository unusable; add one family at a time and run a disposable command after each change.</p>
 <h4 id="config-revset-template-policy">Revset and template defaults</h4>
 <pre>[revsets]
-log = 'stack(@) | bookmarks() | remote_bookmarks()'
+log = '(::@ &amp; mutable()) | bookmarks() | remote_bookmarks()'
 status = 'mutable() &amp; ::@'
 fix = 'mutable() &amp; ::@'
 run = 'mutable() &amp; ::@'
@@ -3883,26 +3883,26 @@ compact-id = { definition = 'change_id.shortest(10)', doc = 'Short unique change
 
 <h3 id="14-building-a-daily-advanced-log">14. Building a daily advanced log</h3>
 <p>Build a template from stable fields rather than trying to clone every glyph of the builtin log. First create an unambiguous record:</p>
-<pre>jj log -G -r 'stack(@)' -T
+<pre>jj log -G -r '::@ &amp; mutable()' -T
   'change_id.shortest(10) ++ " " ++
    commit_id.short(10) ++ " " ++
    description.first_line() ++ "\n"'</pre>
 <p>Then add graph-relevant state and publication names:</p>
-<pre>jj log -G -r 'stack(@) | bookmarks() | remote_bookmarks()' -T
+<pre>jj log -G -r '(::@ &amp; mutable()) | bookmarks() | remote_bookmarks()' -T
   'change_id.shortest(10) ++ " " ++ commit_id.short(10) ++ " " ++
    if(conflict, label("conflict", "CONFLICT "), "") ++
    if(empty, label("empty", "EMPTY "), "") ++
    description.first_line() ++
    separate(" ", bookmarks, tags) ++ "\n"'</pre>
 <p>Finally add author/date only when the output is being used for review:</p>
-<pre>jj log -G -r 'stack(@) | bookmarks() | remote_bookmarks()' -T
+<pre>jj log -G -r '(::@ &amp; mutable()) | bookmarks() | remote_bookmarks()' -T
   'change_id.shortest(10) ++ " " ++
    if(current_working_copy(), "@", " ") ++ " " ++
    commit_id.short(10) ++ " " ++
    author.timestamp().ago() ++ " " ++
    description.first_line() ++
    separate(" ", bookmarks, tags) ++ "\n"'</pre>
-<p>This is a display template, not a new definition of <code>stack()</code>.
+<p>This is a display template, not a new revset alias.
 Keep the revset and template independently configurable so a log can change
 its search domain without changing its fields.</p>
 
@@ -3944,7 +3944,7 @@ jj log -r @ -T 'if(conflict, "CONFLICT ", "") ++ description.first_line() ++ "\n
 <p>Keywords in a commit template are typed properties. The form <code>commit_id</code> yields an ID object; <code>commit_id.short()</code> invokes its method and yields a shorter rendering. <code>description</code> is a description value with methods such as <code>first_line()</code>. A method call is not interchangeable with a global function call: <code>signature()</code> is not the right spelling in a commit context when the language exposes <code>signature</code> as a keyword. When in doubt, consult the type-specific help and test the smallest expression.</p>
 
 <h4 id="formatting-a-record">Formatting a record</h4>
-<pre>jj log --no-graph -r 'stack(@)' -T '
+<pre>jj log --no-graph -r '::@ &amp; mutable()' -T '
 commit_id.short() ++ "\t" ++
 change_id.short() ++ "\t" ++
 if(empty, "E", "") ++
@@ -3995,7 +3995,7 @@ hyperlink(git_web_url(), commit_id.short())
 
 <h3 id="json-and-safe-extraction">JSON and safe extraction</h3>
 <p>JSON is a boundary protocol, not a decoration. Quote and escape values with the template’s JSON function rather than hand-building a JSON string. Emit one complete object per record only if the consuming tool expects newline-delimited JSON; otherwise emit an array with deliberate separators. Test quotes, backslashes, Unicode, empty descriptions, and multiline descriptions.</p>
-<pre>jj log --no-graph -r 'stack(@)' -T '
+<pre>jj log --no-graph -r '::@ &amp; mutable()' -T '
 "{\"commit\":\"" ++ json(commit_id) ++
 "\",\"change\":\"" ++ json(change_id) ++
 "\",\"subject\":\"" ++ json(description.first_line()) ++ "\"}\n"
@@ -4013,7 +4013,7 @@ hyperlink(git_web_url(), commit_id.short())
 
 <h3 id="reconstructing-and-replacing-the-default-log">Reconstructing and replacing the default log</h3>
 <p>The default log is a composition of graph rendering, change identity, description, author/date metadata, ref labels, working-copy state, and conflict/empty markers. Reconstructing it is an educational exercise: first print the commit ID and description, then add change ID, author, refs, parents, state flags, and labels. Compare against <code>builtin_log()</code> or the documented builtin template in the target release. Do not copy an internal builtin into a long-lived config without recording the version it came from.</p>
-<pre>jj log -r 'stack(@)' -T '
+<pre>jj log -r '::@ &amp; mutable()' -T '
 change_id.short() ++ " " ++
 commit_id.short() ++ " " ++
 if(conflict, "[conflict] ", "") ++
@@ -4143,7 +4143,7 @@ hyperlink(git_web_url(), commit_id.short(), commit_id.short())</pre>
 <p>Do not put raw escape sequences in JSON or TSV output. Use <code>--color=never</code> and <code>--no-pager</code> for machine consumers. A template can be syntactically correct yet unsafe for a downstream parser because a label or hyperlink introduced control bytes.</p>
 <h4 id="template-json-and-alias-contracts">JSON and aliases</h4>
 <p><code>json(value)</code> serialises a serialisable value; <code>String.escape_json()</code> escapes a scalar string. Use one complete JSON object per output record and test quotes, backslashes, Unicode, empty values, and newlines. Do not parse ordinary graph output as JSON-like text.</p>
-<pre>jj log --no-graph --color=never -r 'stack(@)' -T '
+<pre>jj log --no-graph --color=never -r '::@ &amp; mutable()' -T '
 "{\"commit\":" ++ json(commit_id) ++
 ",\"change\":" ++ json(change_id) ++
 ",\"subject\":" ++ json(description.first_line()) ++
@@ -4223,7 +4223,7 @@ refs = 'separate(" ", bookmarks, remote_bookmarks, tags)'
 <p><strong>Purpose and model.</strong> Hides the selected commits from the ordinary visible graph and reconnects their children to the abandoned commits' parents. It is a graph operation, not deletion of immutable Git objects. The default commit is <code>@</code>; the argument is a revset and may select several commits.</p>
 <p><strong>Syntax/options.</strong> <code>jj abandon [REVSETS...]</code>; <code>--retain-bookmarks</code> keeps bookmarks by moving them to parent commits, and <code>--restore-descendants</code> preserves children’s content rather than preserving their diff relative to the changed parents. The latter can prevent a surprising descendant rewrite when the purpose is to discard an ancestor's content.</p>
 <p><strong>State effects.</strong> jj snapshots first, creates an operation, and may create a new empty working-copy commit if the current <code>@</code> is abandoned. Descendants normally change because their parent edge and diff context change; conflicts can be produced. Bookmarks pointing at abandoned commits are normally deleted or handled according to the command's policy unless retained. Native Git refs are not the unit of selection, but exported bookmark movement can later affect Git.</p>
-<pre>jj log -r 'stack(@)'
+<pre>jj log -r '::@ &amp; mutable()'
 jj abandon 'change_id(abc...)'
 jj op log
 jj evolog -r 'change_id(abc...)'</pre>
@@ -4233,16 +4233,16 @@ jj evolog -r 'change_id(abc...)'</pre>
 <p><strong>Purpose and model.</strong> Distributes the current change's file-level modifications into suitable mutable ancestors. It is an inference-driven stack operation: jj compares the source diff with ancestor changes and moves an individual diff hunk to the nearest compatible destination, rather than blindly squashing all content into the parent.</p>
 <p><strong>Syntax/options.</strong> <code>jj absorb [FILESETS...]</code>; <code>-f/--from REVSET</code> selects the source (default <code>@</code>), <code>-t/--into REVSETS</code> bounds candidate destinations (default <code>mutable()</code>, only ancestors of the source), <code>-i/--interactive</code> chooses parts, and <code>--tool NAME</code> selects the diff editor and implies interactive mode.</p>
 <p><strong>State effects.</strong> The source and one or more mutable ancestors can be rewritten; descendants of every changed ancestor are rebased. The source may become empty or retain changes that could not be attributed. Change IDs normally follow their logical evolutions; commit IDs change for every rewritten node. A fileset restricts candidate content, not the commit domain.</p>
-<pre>jj absorb --from @ --into 'stack(@)'
+<pre>jj absorb --from @ --into '::@ &amp; mutable()'
 jj absorb --interactive -- 'glob:src/**'
-jj log -r 'stack(@) | conflicts()'</pre>
+jj log -r '::@ &amp; mutable() &amp; conflicts()'</pre>
 <p><strong>Trap.</strong> “Earliest compatible” is a semantic choice, not a promise that every individual diff hunk goes to the immediate parent. Review the diff and evolution log. Use <code>jj squash</code> when the intended destination is explicit, and <code>jj undo</code> if attribution was wrong.</p></article>
 
 <article class="command-entry" id="cmd-arrange"><h4 id="jj-arrange"><code>jj arrange</code></h4>
 <p><strong>Purpose and model.</strong> Opens the interactive graph arrangement interface for the selected commits. It is intended for visual reordering and abandoning of a graph region; it is not a text editor for commit messages and not a replacement for understanding the resulting parent edges.</p>
 <p><strong>Syntax/options.</strong> <code>jj arrange [REVSETS...]</code>; the default selection comes from <code>revsets.arrange</code> if no commit is supplied, and <code>-r</code> is the commit alias. There are no command-specific rewrite switches in 0.45.1. Global repository, immutability, colour, and operation-view options still apply.</p>
 <p><strong>State effects.</strong> The TUI can create several graph transformations in one operation. Mutable commits and descendants may receive new commit IDs; bookmarks can move or become conflicted according to the resulting graph. Snapshotting occurs at the normal command boundary. Review <code>jj op show</code> after leaving the interface because the visual action is otherwise hard to audit.</p>
-<pre>jj arrange -r 'stack(@)'
+<pre>jj arrange -r '::@ &amp; mutable()'
 jj op show
 jj log -r 'visible_heads() | bookmarks()'</pre>
 <p><strong>Trap.</strong> Use a narrow revset. A broad arrangement selection can expose immutable boundaries or make the intended graph difficult to recognise. For repeatable automation use <code>rebase</code>, <code>parallelize</code>, <code>new --insert-after</code>, or explicit bookmark operations.</p></article>
@@ -4390,8 +4390,8 @@ jj config path --workspace</pre>
 <article class="command-entry" id="cmd-config-set"><h4 id="jj-config-set"><code>jj config set</code></h4>
 <p>Sets one TOML value in a selected scope. Syntax is <code>jj config set --user|--repo|--workspace NAME VALUE</code>. The value is a TOML expression; strings, arrays, booleans, integers, and multi-line strings therefore need both TOML and shell quoting.</p>
 <pre>jj config set --user ui.pager 'less -FRX'
-jj config set --repo revsets.log 'stack(@) | bookmarks()'
-jj config set --workspace ui.default-command '["log", "-r", "stack(@)"]'</pre>
+jj config set --repo revsets.log '(::@ &amp; mutable()) | bookmarks()'
+jj config set --workspace ui.default-command '["log", "-r", "::@ &amp; mutable()"]'</pre>
 <p>Use <code>config edit</code> for complex values. In 0.45.1, <code>--file PATH</code> can target a specific config file. Do not assume a string without quotes has the desired TOML type.</p></article>
 
 <article class="command-entry" id="cmd-config-unset"><h4 id="jj-config-unset"><code>jj config unset</code></h4>
@@ -4423,7 +4423,7 @@ heuristic or interactive choices. It is not a squash from X2 into X1.</pre>
 <p><strong>State effects.</strong> This is a metadata rewrite, but descendants can still be rewritten because their parent commit IDs change. The filesystem normally remains the same tree. Bookmarks follow successor graph locations; Git export sees a new Git commit when the changed commit is exported.</p>
 <pre>jj describe -m 'API: introduce quota limits'
 jj describe --stdin -r 'mutable()'
-jj log -r 'stack(@)' -T 'change_id ++ " " ++ description.first_line() ++ "\n"'</pre>
+jj log -r '::@ &amp; mutable()' -T 'change_id ++ " " ++ description.first_line() ++ "\n"'</pre>
 <p><strong>Trap.</strong> Supplying one message to a set is intentional but often wrong for a stack. Use one commit or a per-commit workflow. Use <code>jj metaedit</code> for author/timestamp/signature metadata.</p></article>
 
 <article class="command-entry" id="cmd-diff"><h4 id="jj-diff"><code>jj diff</code></h4>
@@ -4525,7 +4525,7 @@ jj status</pre>
 <p><strong>Purpose and model.</strong> Runs configured fixer programs against files in selected commits. It is a history rewrite operation whose input is a commit domain and whose file scope is a fileset/configured fixer policy.</p>
 <p><strong>Syntax/options.</strong> <code>jj fix [FILESETS...]</code>; <code>-s/--source REVSETS</code> selects commits and descendants, defaulting to <code>revsets.fix</code> or <code>reachable(@, mutable())</code>. <code>--include-unchanged-files</code> fixes files even when not changed in the target; <code>-a/--all-lines</code> asks for all lines rather than modified lines when the fixer supports ranges.</p>
 <p><strong>State effects.</strong> Fixers can rewrite many commits and trigger descendant rebasing/conflicts. A failing fixer may leave a useful operation to inspect, but do not assume partial output is a valid stack. Fix configuration supplies commands, environment, file patterns, and range protocol; the working-copy commit is not special except as a selected commit.</p>
-<pre>jj fix -s 'stack(@)' -- 'glob:src/**'
+<pre>jj fix -s '::@ &amp; mutable()' -- 'glob:src/**'
 jj fix --all-lines -s 'mutable()'
 jj log -r 'mutable() &amp; conflicts()'</pre>
 <p><strong>Trap.</strong> Run first on a small revset and inspect the diff. A formatter that does not understand modified-line ranges can rewrite entire files. For reproducible automation, pin the fixer executable/version and use <code>run --ignore-changes</code> for checks that should not rewrite history.</p></article>
@@ -4686,7 +4686,7 @@ jj interdiff --from A --to B --stat -- 'glob:src/**'</pre>
 <article class="command-entry" id="cmd-log"><h4 id="jj-log"><code>jj log</code></h4>
 <p><strong>Purpose and model.</strong> Displays a graph projection of a commit set. It does not show “branches” by default; it shows the selected visible commits, their topology, and a template rendering for each. The default revset and template are configuration, so a stable script supplies both.</p>
 <p><strong>Syntax/options.</strong> <code>jj log [FILESETS...]</code>; <code>-r/--revision REVSETS</code> selects commits, <code>-n/--limit N</code> limits after filtering and topological ordering, <code>--reversed</code> shows older first, <code>-G/--no-graph</code> produces a flat list, <code>-T/--template</code> renders commits, <code>-p/--patch</code> includes patches, and <code>--count</code> prints a count. A fileset restricts commits that modify those paths.</p>
-<pre>jj log -r 'stack(@)'
+<pre>jj log -r '::@ &amp; mutable()'
 jj log -r 'mutable() &amp; conflicts()' -p
 jj log -G --color=never -T 'commit_id ++ "\n"'
 jj log -n 20 --reversed -r 'main@origin..@'</pre>
@@ -4858,7 +4858,7 @@ git -C "$(jj root)" status</pre>
 <p><strong>Execution contract.</strong> Each selected commit is tested in a private materialisation; the selected revset is not a shell loop over the current workspace. A non-zero command status stops or reports the run according to the command mode, while files written without <code>--ignore-changes</code> become candidate tree rewrites. Parallel jobs require isolated caches and temporary directories. Use a bounded revset, a deterministic command, and a template or log record containing the tested commit ID.</p>
 <p><strong>Graph effects.</strong> With changes enabled, a formatter or generator can create successors and automatically rebase descendants. With <code>--ignore-changes</code>, output is evidence only and should not be mistaken for a clean working-copy or a committed fix. The operation log records the repository effects, but it cannot make an external test side effect reproducible.</p>
 <pre>jj run --ignore-changes --clean -r 'main@origin..@' -- ./check.sh
-jj run -r 'stack(@)' -- ./format-and-test.sh</pre>
+jj run -r '::@ &amp; mutable()' -- ./format-and-test.sh</pre>
 <p>Without <code>--ignore-changes</code>, files written by the command can become commit rewrites and rebase descendants. The full execution model is in Part XVI.</p></article>
 
 <article class="command-entry" id="cmd-show"><h4 id="jj-show"><code>jj show</code></h4>
@@ -5295,7 +5295,7 @@ GIT_DIR=$(jj git root) git show-ref</pre>
 <h3 id="immutability-and-safety-boundaries">Immutability and safety boundaries</h3><p>Configure immutable heads to protect imported/public history. The check applies to rewrites; the revset/template notions of immutable state remain observable even with <code>--ignore-immutable</code>. Hidden commits and divergent change IDs are useful forensic states, not garbage to delete reflexively.</p>
 <h3 id="evolution-concurrency-and-operation-merging">Evolution, concurrency, and operation merging</h3><p>Run concurrent read commands with a clear snapshot policy. <code>--no-integrate-operation</code> lets automation create an operation without changing the integrated operation head; it does not suppress side effects such as a network push. Inspect and integrate deliberately.</p>
 <h3 id="jj-fix-and-jj-run"><code>jj fix</code> and <code>jj run</code></h3><p>Fix tools are configured programs that transform files. <code>jj fix</code> can operate over a commit set and may rewrite a stack. In jj 0.45.1, <code>jj run</code> uses private working copies for selected commits, allowing checks or formatters to update changes and propagate conflicts. Treat command exit status and operation boundaries as part of your automation contract.</p>
-<pre>jj run -r 'stack(@)' -- cargo test
+<pre>jj run -r '::@ &amp; mutable()' -- cargo test
 jj run -r 'mutable() &amp; description(substring:"API")' -- cargo fix
 jj fix -s 'mutable()'</pre>
 <h3 id="bisect-tags-signing-completion-and-maintenance">Bisect, tags, signing, completion, and maintenance</h3><p><code>jj bisect run</code> automates commit bisection; tags provide stable release names; <code>jj sign</code>/<code>unsign</code> manage supported cryptographic metadata; <code>jj util completion</code> generates shell completion. Use <code>jj util gc</code> and backend maintenance only after understanding operation/recovery retention. In large repositories, narrow revsets, use immutable remote boundaries, avoid rendering enormous diffs, and use <code>--ignore-working-copy</code> for stable monitoring reads.</p>
@@ -5350,7 +5350,7 @@ jj fix -s 'roots(main@origin..@)::' -- 'root-prefix-glob:"src/**"'</pre>
 </tbody></table>
 <pre>jj run --ignore-changes --clean -r 'main@origin..@' -- ./ci/check.sh
 jj run -j 4 --ignore-changes -r 'heads(mutable())' -- ./ci/check.sh
-jj run -r 'stack(@)' -- ./format-current-tree.sh</pre>
+jj run -r '::@ &amp; mutable()' -- ./format-current-tree.sh</pre>
 <p>The current directory is the invocation directory unless <code>--root</code> is supplied. Use <code>--</code> before command arguments beginning with a dash. Capture exit status and inspect the operation when changes are permitted.</p>
 <h4 id="bisect-signing-and-release-boundaries">Bisect, signing, and release boundaries</h4>
 <p>Bisection assumes a monotonic predicate over the selected graph range. Merge-heavy graphs, non-deterministic tests, and environment-dependent failures violate that assumption. Define the range, make the script exit status unambiguous, and preserve the discovered commit before leaving the investigation.</p>
@@ -5406,7 +5406,7 @@ jj log -r '::@ &amp; conflicts()'</pre>
 <tr><td><code>--root PATH</code></td><td>Run command at a chosen root.</td><td>Relative paths and generated artefacts can differ.</td></tr>
 </tbody></table>
 <pre>jj run --ignore-changes --clean -j 4 -r 'main@origin..@' -- ./ci/check.sh
-jj run --clean -r 'stack(@)' -- ./format.sh</pre>
+jj run --clean -r '::@ &amp; mutable()' -- ./format.sh</pre>
 <p>Do not use an ordinary workspace path as a lock-free coordination directory for parallel jobs. A test that writes to <code>/tmp/result</code>, a shared compiler cache with unsafe locking, or a generated file outside the private root can make independent commits interfere. Capture each job’s status and map it back to the full commit ID. A successful command may still leave a failed graph rewrite if the tool’s exit status was misreported.</p>
 
 <h3 id="bisect-as-a-predicate-search">Bisect as a predicate search</h3>
@@ -5521,7 +5521,7 @@ jj util completion fish &gt; ~/.config/fish/completions/jj.fish</pre>
 <section id="part16">
 <h2 class="toc-entry" id="part-xvi-complete-real-workflows">Part XVII — Workflow map and complete real workflows</h2>
 <p>The eleven entries below are a map of the complete narratives that follow, not substitutes for them. Each map entry identifies the authoritative worked case; read that case for the starting graph, commands, resulting graph/ref state, identity consequences, conflicts, recovery, and cleanup. The detailed language and command explanations remain in Parts IV–XV; the cases apply them in sequence.</p>
-<h3 id="1-branchless-daily-development">1. Branchless daily development — map</h3><p>See <a href="#branchless-day-from-fetch-to-publication">Branchless day: from fetch to publication</a>. Fetch; create a child of the imported trunk; work in @; use <code>jj log -r 'stack(@)'</code>; make changes with describe/squash/split/absorb; create a publication bookmark only at the boundary; push; then forget it when its server purpose ends.</p>
+<h3 id="1-branchless-daily-development">1. Branchless daily development — map</h3><p>See <a href="#branchless-day-from-fetch-to-publication">Branchless day: from fetch to publication</a>. Fetch; create a child of the imported trunk; work in @; use <code>jj log -r '::@ &amp; mutable()'</code>; make changes with describe/squash/split/absorb; create a publication bookmark only at the boundary; push; then forget it when its server purpose ends.</p>
 <h3 id="2-github-feature-and-stacked-prs">2. GitHub feature and stacked PRs — map</h3><p>See <a href="#case-study-a-branchless-github-feature-through-review">Case study: a branchless GitHub feature through review</a> and <a href="#workflow-stacked-github-review">stacked GitHub review</a>. Use one bookmark per PR boundary, rebase the mutable stack onto <code>main@origin</code>, move bookmarks, push, and let GitHub merge. Treat server merge and local graph update as separate fetch steps.</p>
 <h3 id="3-gerrit-patch-stack">3. Gerrit patch stack — map</h3><p>See <a href="#workflow-gerrit-patch-stack">Gerrit patch stack over two review iterations</a>. Keep Gerrit Change-Id footers in descriptions, use jj change IDs for local evolution, edit an early review, let descendants rebase, then upload the series again. Fetch landed changes and rebase the remaining stack.</p>
 <h3 id="4-rewriting-an-early-patch-after-review">4. Rewriting an early change after review — map</h3><p>See <a href="#workflow-rewrite-reviewed-early-patch">Case 4: rewrite an early reviewed change</a>.</p><pre>jj edit A
@@ -5531,17 +5531,17 @@ jj log -r '::@'
 jj git push --bookmark review --remote origin</pre><p>Review the operation log before and after. The review bookmark must be moved to the successor tip; the change ID is the local continuity signal.</p>
 <h3 id="5-upstream-synchronisation">5. Upstream synchronisation — map</h3><p>See <a href="#upstream-movement-with-a-conflict-branch">Upstream movement with a conflict branch</a>.</p><pre>jj git fetch --remote origin
 jj rebase -b 'roots(main@origin..@)' -o main@origin
-jj log -r 'stack(@) &amp; conflicts()'
+jj log -r '::@ &amp; mutable() &amp; conflicts()'
 jj resolve</pre><p>Choose <code>-b</code> for a whole relative stack and <code>-r</code> for surgical selection. Do not substitute a Git branch mental model for the source/destination semantics.</p>
 <h3 id="6-two-remotes">6. Two remotes — map</h3><p>See <a href="#case-study-two-remotes-and-one-local-dag">Case study: two remotes and one local DAG</a>. Fetch GitHub and Gerrit independently, qualify symbols, name publication bookmarks explicitly, and make each push command specify its remote.</p>
 <h3 id="7-moving-unfinished-work">7. Moving unfinished work — map</h3><p>See <a href="#two-machines-and-a-temporary-publication">Two machines and a temporary publication</a>. Create a temporary bookmark, push to a private remote, fetch on the second clone, edit or rebase there, and delete the temporary bookmark after verifying the receiving clone.</p>
 <h3 id="8-build-review-workspaces">8. Build/review workspaces — map</h3><p>See <a href="#case-study-build-review-and-development-workspaces">Case study: build, review, and development workspaces</a>. Add separate workspaces at the build and review commits, use sparse patterns where appropriate, and remember that a shared rewrite can make either workspace stale.</p>
 <h3 id="9-recovery">9. Recovery — map</h3><p>See <a href="#workflow-recovery-and-operations">Recovery and operations</a>. Stop, record <code>jj op log</code>, inspect with <code>--at-op</code>, then undo or restore the operation. Do not attempt recovery by guessing commit IDs alone.</p>
 <h3 id="10-git-in-a-colocated-repository">10. Git in a colocated repository — map</h3><p>See <a href="#native-git-in-a-colocated-checkout">Native Git in a colocated checkout</a>. Use Git for inspection, hooks, and transport when useful; import ref changes before relying on them; never let independent worktree writers race.</p>
-<h3 id="11-revset-driven-daily-work">11. Revset-driven daily work — map</h3><p>See <a href="#revset-driven-daily-gate">Revset-driven daily gate</a>.</p><pre>alias stack='jj log -r "stack(@)"'
+<h3 id="11-revset-driven-daily-work">11. Revset-driven daily work — map</h3><p>See <a href="#revset-driven-daily-gate">Revset-driven daily gate</a>.</p><pre>alias jj-stack='jj log -r "::@ &amp; mutable()"'
 jj log -r 'mutable() ~ ::remote_bookmarks()'
-jj diff -r 'roots(stack(@))..@'
-jj run -r 'stack(@) &amp; conflicts()' -- test -f CONFLICTS</pre><p>Revsets let policy be expressed once and reused across log, diff, run, rebase, and publication checks.</p>
+jj diff -r 'roots((::@ &amp; mutable()))..@'
+jj run -r '::@ &amp; mutable() &amp; conflicts()' -- test -f CONFLICTS</pre><p>Revsets let policy be expressed once and reused across log, diff, run, rebase, and publication checks.</p>
 </section>
 
 <section id="workflow-state-ledgers">
@@ -5701,7 +5701,7 @@ jj status
 </pre>
 <p>The working-copy commit is already the reviewable logical change. If the tests reveal that documentation and implementation should be separate, split the change before publication:</p>
 <pre>jj split -r @ 'root-glob:src/**/*.rs'
-jj log -r 'stack(@)'</pre>
+jj log -r '::@ &amp; mutable()'</pre>
 <pre class="diagram">main@origin--A--B--C(API)--D(docs)--@</pre>
 <p>Create a bookmark at the boundary GitHub should expose. If the two changes are one PR, use one bookmark at D. If they should be stacked PRs, create names at C and D and publish both explicitly. The bookmark is a ref for GitHub; it is not the local unit of editing.</p>
 <pre>jj bookmark create pr/parser-api -r C
@@ -5733,7 +5733,7 @@ main@origin(old)--B</pre>
 <pre>jj git fetch --remote origin
 jj log -r 'main@origin'
 jj rebase -s 'roots(main@origin..D)' -d main@origin
-jj log -r 'stack(D)'
+jj log -r 'D:: &amp; mutable()'
 jj diff --from old-main --to main@origin
 </pre>
 <p>Choose the source set carefully. A broad source selection can include an unrelated fork; a narrow selection can leave a dependent child behind. Record the old trunk commit before the fetch if you need a precise comparison. After the rebase, inspect changed commit IDs and run tests at the stack head. Update publication bookmarks only after the graph is correct, then push them explicitly.</p>
@@ -5772,7 +5772,7 @@ local reviews:       D--E (still based on old C)
 jj log -r 'main@origin | C::E'
 # choose the remaining stack explicitly
 jj rebase -s 'roots(D::E)' -d main@origin
-jj log -r 'stack(E)'
+jj log -r 'E:: &amp; mutable()'
 </pre>
 <p>When a review is abandoned, a local change can be retained as a new change, moved to another publication bookmark, or abandoned after creating a safety bookmark. The correct action depends on whether the code is still wanted; server review state is not a command to delete local graph state.</p>
 
@@ -5790,7 +5790,7 @@ refs:
 jj git fetch --remote gerrit
 jj log -r 'main@origin | main@gerrit | github/pr-parser'
 jj git push --remote origin --bookmark github/pr-parser
-jj gerrit upload --remote gerrit --remote-branch main -r 'stack(@)'
+jj gerrit upload --remote gerrit --remote-branch main -r '::@ &amp; mutable()'
 </pre>
 <p>One commit can be reachable from multiple publication systems, but server policy is not shared. A GitHub branch protection rule does not protect a Gerrit review ref, and a Gerrit upload option does not affect a GitHub push. Keep credentials, aliases, and remote names explicit.</p>
 
@@ -5966,7 +5966,7 @@ jj diff --no-pager -r \"$domain\" --summary
 <p>Use ordinary commands when the current filesystem is part of the question. Use <code>--ignore-working-copy</code> when the question is specifically about the last recorded commit, or when another process owns the workspace. Use <code>--at-operation OP</code> when the question is about a historical repository view; it implies that current filesystem state must not be inserted into that view.</p>
 <pre># Human inspection: include edits in the snapshot boundary.
 jj status
-jj log -r 'stack(@)'
+jj log -r '::@ &amp; mutable()'
 
 # Stable inspection of the recorded commit, without taking a snapshot.
 jj --ignore-working-copy log -r @ -T 'commit_id ++ " " ++ description.first_line() ++ "\n"'
@@ -6265,14 +6265,14 @@ jj log --no-pager --color never -r 'heads(B::G)' \
 mutable() &amp; ::@
 (::@ ~ ::main@origin) &amp; ~conflicts()</pre>
 <p>These are not interchangeable in every graph. The first removes every ancestor of remote main from the mutable set. The second first narrows to ancestors of the current workspace and then removes remote ancestry. The third additionally excludes conflicted nodes. State the intended universe before choosing the algebra.</p>
-<p>A complement is best used inside a bounded expression. <code>~bookmarks()</code> means every visible commit that is not named by a bookmark, not “the commits in my current stack that have no bookmark”. The latter is <code>stack(@) ~ bookmarks()</code> or another explicitly bounded set. This is one of the most common ways a correct operator produces an unsafe mutation.</p>
+<p>A complement is best used inside a bounded expression. <code>~bookmarks()</code> means every visible commit that is not named by a bookmark, not “the commits in my current stack that have no bookmark”. The latter is <code>(::@ &amp; mutable()) ~ bookmarks()</code> or another explicitly bounded set. This is one of the most common ways a correct operator produces an unsafe mutation.</p>
 
 <h4 id="reachability-and-ranges">Reachability and ranges</h4>
 <p>The double-colon operators are closures; the double-dot operators are ancestry differences. <code>x::y</code> is a bounded path-shaped intersection: descendants of <code>x</code> that are ancestors of <code>y</code>. <code>x..y</code> is ancestors of <code>y</code> excluding ancestors of <code>x</code>. The endpoints do not have to be related. In a fork, <code>left..right</code> can include the right branch and common descendants while excluding the common base; it is not a list of edges on one unique path.</p>
 <table><thead><tr><th>Question</th><th>Derivation</th><th>Why the obvious spelling can fail</th></tr></thead><tbody>
 <tr><td>What changed since base?</td><td><code>base..tip</code></td><td>Includes all ancestors of tip not also ancestors of base, including side branches merged into tip.</td></tr>
 <tr><td>What is on the ancestry path from base to tip?</td><td><code>base::tip</code> then remove the base if the diff should exclude it</td><td><code>base..tip</code> has different endpoint and fork semantics.</td></tr>
-<tr><td>What is the complete stack below the current change?</td><td><code>stack(@)</code> or an explicit configured alias</td><td><code>::@</code> includes trunk and every ancestor, not only mutable stack nodes.</td></tr>
+<tr><td>What is the complete stack below the current change?</td><td><code>::@ &amp; mutable()</code> or an explicitly configured alias</td><td><code>::@</code> includes trunk and every ancestor, not only mutable stack nodes.</td></tr>
 <tr><td>What is reachable from either publication ref?</td><td><code>::(main@origin | release)</code></td><td><code>::main@origin | release</code> has the same result only if the grouping and parser precedence are understood.</td></tr>
 <tr><td>What remains unpublished in a bounded topic?</td><td><code>(topic:: &amp; mutable()) ~ ::main@origin</code></td><td><code>mutable() ~ ::main@origin</code> can include unrelated work.</td></tr>
 </tbody></table>
@@ -6371,7 +6371,7 @@ jj log -r @ -T 'parents.map(|p| p.commit_id().short()).join(", ") ++ "\n"'
 jj log -r @ -T 'if(conflict(), "CONFLICT ", "") ++ description.first_line() ++ "\n"'
 
 # Width and truncation for a human log.
-jj log -r 'stack(@)' -T 'pad_end(12, commit_id.short()) ++ " " ++ truncate_end(72, description.first_line(), "…") ++ "\n"'</pre>
+jj log -r '::@ &amp; mutable()' -T 'pad_end(12, commit_id.short()) ++ " " ++ truncate_end(72, description.first_line(), "…") ++ "\n"'</pre>
 <p>Methods are resolved from the value's type. <code>commit_id.short()</code> is a method on a commit-ID value. <code>description.first_line()</code> is a method on a string-like value. <code>parents.map</code> operates on a list and invokes a lambda once per element. Calling a commit method on <code>commit_id.short()</code>, or a string method on the commit itself, is a type error, not a formatting preference.</p>
 <p>Optional values require a policy. A signature may be absent, a remote ref may not be tracked, and a workspace root may be stale. Use a Boolean predicate, <code>if</code>, <code>try</code>, or <code>coalesce</code> as appropriate. A fallback should identify absence rather than quietly render a misleading zero value.</p>
 <pre>jj log -r 'all()' -T '
@@ -6472,7 +6472,7 @@ author_date(after:"2026-01-01" &amp; before:"2026-02-01")</pre>
 <p>Use exact patterns for identity and release automation. Use substring for interactive search. Use glob when a conventional naming family is deliberate, and regex only when the additional syntax is worth the portability and escaping cost. A pattern alias can hide that policy; give aliases descriptive names and document whether they match case, punctuation, and whitespace.</p>
 <p>Revset aliases are parsed in the context in which they are used. A parameterless alias names a reusable set; a parameterised alias behaves like a function. Keep aliases small enough that <code>jj log -r ALIAS</code> remains explainable. Avoid aliases that silently choose the first result or that combine publication and mutability policy without a name that reveals both. Test recursive aliases and aliases that shadow builtin functions in a disposable configuration.</p>
 <pre>[revset-aliases]
-"unpublished_stack()" = "stack(@) ~ ::remote_bookmarks()"
+"unpublished_stack()" = "(::@ &amp; mutable()) ~ ::remote_bookmarks()"
 "owned_work()" = "author_email(exact:\"dev@example.org\") &amp; mutable()"
 "release_line()" = "first_parent(tags())"
 </pre>
@@ -6515,7 +6515,7 @@ email = "a.engineer@example.org"
 pager = "less -FRX"
 paginate = "auto"
 color = "auto"
-default-command = ["log", "-r", "stack(@)"]
+default-command = ["log", "-r", "::@ &amp; mutable()"]
 
 [revset-aliases]
 "mine()" = "author_email(exact:\"a.engineer@example.org\")"
@@ -6547,7 +6547,7 @@ default-command = ["log", "-r", "stack(@)"]
 <p>Defaults such as the log, status, fix, sign, run, and bookmark-advance revsets are executable policy. A default is evaluated in a graph that changes over time, so a command that was narrow when configured can become broad after a merge or workspace handoff. Before changing a default, run the old and new expressions side by side on the query fixture.</p>
 <pre>old=$(jj config get revsets.log)
 jj log -r "$old" -T 'commit_id.short() ++ " " ++ description.first_line() ++ "\n"'
-jj log -r 'stack(@) | main@origin' -T 'commit_id.short() ++ " " ++ description.first_line() ++ "\n"'</pre>
+jj log -r '(::@ &amp; mutable()) | main@origin' -T 'commit_id.short() ++ " " ++ description.first_line() ++ "\n"'</pre>
 <p>The immutable boundary is a special case. In 0.45.1, the configured function is <code>revset-aliases."immutable_heads()"</code>, whose definition can refer to tags, remote bookmarks, and the root. A key called <code>revsets.immutable_heads</code> is merely unknown data and does not redefine the function. Demonstrate a safety setting by querying the function and attempting a protected rewrite in a disposable repository.</p>
 <pre>[revset-aliases]
 "immutable_heads()" = "builtin_immutable_heads() | main@origin | tags()"</pre>
@@ -6977,7 +6977,7 @@ operation DAG:       op_0 -- op_1(rewrite B)
 <p>Begin by naming the question in graph terms. “Put the tests with the API change” is underspecified. It might mean move the test diff into the API change, copy the test tree into the API change, split one mixed change, or create a new dependent change. Those are different tree and identity transformations. A useful precondition record therefore contains the selected commit set, the destination commit set, the selected fileset, and the intended diff owner. It also records whether the operation is allowed to cross an immutable head and whether a publication bookmark currently names any affected commit.</p>
 <table><thead><tr><th>Proof item</th><th>Question</th><th>Typical observation</th></tr></thead><tbody>
 <tr><td>Domain</td><td>Which commits can the expression see?</td><td><code>jj log -r 'visible() &amp; ::@'</code></td></tr>
-<tr><td>Selection</td><td>Which exact commits will the command consume?</td><td><code>jj log --no-graph -r 'roots(stack(@))'</code></td></tr>
+<tr><td>Selection</td><td>Which exact commits will the command consume?</td><td><code>jj log --no-graph -r 'roots(::@ &amp; mutable())'</code></td></tr>
 <tr><td>Tree delta</td><td>Which paths and diff hunks are actually changing?</td><td><code>jj diff -r R -- fileset</code></td></tr>
 <tr><td>Destination</td><td>Which parent edge or tree endpoint will change?</td><td><code>jj log -r 'parents(R) | destination'</code></td></tr>
 <tr><td>Identity</td><td>Which commit IDs and change IDs may evolve?</td><td><code>jj log -T 'commit_id ++ " " ++ change_id'</code></td></tr>
