@@ -82,6 +82,129 @@ Target release: <strong>jj 0.45.1</strong> · Git 2.53.0 · build timestamp: 202
 <li><a href="#part13">Part XIV — Templates</a></li>
 <li class="n2"><a href="#template-language-lab">Template language laboratory</a></li>
 <li><a href="#part14">Part XV — CLI reference</a></li>
+<li class="n2"><a href="#cli-revision-arguments">Revision arguments: aliases and real options</a></li>
+<li class="n2"><a href="#cli-command-reference-alphabetical">Command reference entries</a></li>
+<li class="n3"><a href="#jj-abandon">jj abandon</a></li>
+<li class="n3"><a href="#jj-absorb">jj absorb</a></li>
+<li class="n3"><a href="#jj-arrange">jj arrange</a></li>
+<li class="n3"><a href="#jj-bisect-and-jj-bisect-run">jj bisect and jj bisect run</a></li>
+<li class="n3"><a href="#jj-bisect-run">jj bisect run</a></li>
+<li class="n3"><a href="#jj-bookmark">jj bookmark</a></li>
+<li class="n3"><a href="#jj-bookmark-advance">jj bookmark advance</a></li>
+<li class="n3"><a href="#jj-bookmark-create">jj bookmark create</a></li>
+<li class="n3"><a href="#jj-bookmark-delete">jj bookmark delete</a></li>
+<li class="n3"><a href="#jj-bookmark-forget">jj bookmark forget</a></li>
+<li class="n3"><a href="#jj-bookmark-list">jj bookmark list</a></li>
+<li class="n3"><a href="#jj-bookmark-move">jj bookmark move</a></li>
+<li class="n3"><a href="#jj-bookmark-rename">jj bookmark rename</a></li>
+<li class="n3"><a href="#jj-bookmark-set">jj bookmark set</a></li>
+<li class="n3"><a href="#jj-bookmark-track">jj bookmark track</a></li>
+<li class="n3"><a href="#jj-bookmark-untrack">jj bookmark untrack</a></li>
+<li class="n3"><a href="#jj-commit">jj commit</a></li>
+<li class="n3"><a href="#jj-config">jj config</a></li>
+<li class="n3"><a href="#jj-config-edit">jj config edit</a></li>
+<li class="n3"><a href="#jj-config-gc">jj config gc</a></li>
+<li class="n3"><a href="#jj-config-get">jj config get</a></li>
+<li class="n3"><a href="#jj-config-list">jj config list</a></li>
+<li class="n3"><a href="#jj-config-path">jj config path</a></li>
+<li class="n3"><a href="#jj-config-set">jj config set</a></li>
+<li class="n3"><a href="#jj-config-unset">jj config unset</a></li>
+<li class="n3"><a href="#jj-converge-0-45-x">jj converge 0.45.1</a></li>
+<li class="n3"><a href="#jj-describe">jj describe</a></li>
+<li class="n3"><a href="#jj-diff">jj diff</a></li>
+<li class="n3"><a href="#jj-diffedit">jj diffedit</a></li>
+<li class="n3"><a href="#jj-duplicate">jj duplicate</a></li>
+<li class="n3"><a href="#jj-edit">jj edit</a></li>
+<li class="n3"><a href="#jj-evolog">jj evolog</a></li>
+<li class="n3"><a href="#jj-file">jj file</a></li>
+<li class="n3"><a href="#jj-file-annotate">jj file annotate</a></li>
+<li class="n3"><a href="#jj-file-chmod">jj file chmod</a></li>
+<li class="n3"><a href="#jj-file-list">jj file list</a></li>
+<li class="n3"><a href="#jj-file-search">jj file search</a></li>
+<li class="n3"><a href="#jj-file-show">jj file show</a></li>
+<li class="n3"><a href="#jj-file-track">jj file track</a></li>
+<li class="n3"><a href="#jj-file-untrack">jj file untrack</a></li>
+<li class="n3"><a href="#jj-fix">jj fix</a></li>
+<li class="n3"><a href="#jj-gerrit-and-jj-gerrit-upload">jj gerrit and jj gerrit upload</a></li>
+<li class="n3"><a href="#jj-gerrit-upload">jj gerrit upload</a></li>
+<li class="n3"><a href="#jj-git">jj git</a></li>
+<li class="n3"><a href="#jj-git-clone">jj git clone</a></li>
+<li class="n3"><a href="#jj-git-colocation">jj git colocation</a></li>
+<li class="n3"><a href="#jj-git-colocation-disable">jj git colocation disable</a></li>
+<li class="n3"><a href="#jj-git-colocation-enable">jj git colocation enable</a></li>
+<li class="n3"><a href="#jj-git-colocation-status">jj git colocation status</a></li>
+<li class="n3"><a href="#jj-git-export">jj git export</a></li>
+<li class="n3"><a href="#jj-git-fetch">jj git fetch</a></li>
+<li class="n3"><a href="#jj-git-import">jj git import</a></li>
+<li class="n3"><a href="#jj-git-init">jj git init</a></li>
+<li class="n3"><a href="#jj-git-push">jj git push</a></li>
+<li class="n3"><a href="#jj-git-remote">jj git remote</a></li>
+<li class="n3"><a href="#jj-git-remote-add">jj git remote add</a></li>
+<li class="n3"><a href="#jj-git-remote-list">jj git remote list</a></li>
+<li class="n3"><a href="#jj-git-remote-remove">jj git remote remove</a></li>
+<li class="n3"><a href="#jj-git-remote-rename">jj git remote rename</a></li>
+<li class="n3"><a href="#jj-git-remote-set-url">jj git remote set-url</a></li>
+<li class="n3"><a href="#jj-git-root">jj git root</a></li>
+<li class="n3"><a href="#jj-help">jj help</a></li>
+<li class="n3"><a href="#jj-interdiff">jj interdiff</a></li>
+<li class="n3"><a href="#jj-log">jj log</a></li>
+<li class="n3"><a href="#jj-metaedit">jj metaedit</a></li>
+<li class="n3"><a href="#jj-new">jj new</a></li>
+<li class="n3"><a href="#jj-next">jj next</a></li>
+<li class="n3"><a href="#jj-operation-jj-op">jj operation / jj op</a></li>
+<li class="n3"><a href="#jj-operation-abandon-alias-jj-op-abandon">jj operation abandon / jj op abandon</a></li>
+<li class="n3"><a href="#jj-operation-diff-alias-jj-op-diff">jj operation diff / jj op diff</a></li>
+<li class="n3"><a href="#jj-operation-integrate-alias-jj-op-integrate">jj operation integrate / jj op integrate</a></li>
+<li class="n3"><a href="#jj-operation-log-alias-jj-op-log">jj operation log / jj op log</a></li>
+<li class="n3"><a href="#jj-operation-restore-alias-jj-op-restore">jj operation restore / jj op restore</a></li>
+<li class="n3"><a href="#jj-operation-revert-alias-jj-op-revert">jj operation revert / jj op revert</a></li>
+<li class="n3"><a href="#jj-operation-show-alias-jj-op-show">jj operation show / jj op show</a></li>
+<li class="n3"><a href="#jj-parallelize">jj parallelize</a></li>
+<li class="n3"><a href="#jj-prev">jj prev</a></li>
+<li class="n3"><a href="#jj-rebase">jj rebase</a></li>
+<li class="n3"><a href="#jj-redo">jj redo</a></li>
+<li class="n3"><a href="#jj-resolve">jj resolve</a></li>
+<li class="n3"><a href="#jj-restore">jj restore</a></li>
+<li class="n3"><a href="#jj-revert">jj revert</a></li>
+<li class="n3"><a href="#jj-root">jj root</a></li>
+<li class="n3"><a href="#jj-run">jj run</a></li>
+<li class="n3"><a href="#jj-show">jj show</a></li>
+<li class="n3"><a href="#jj-sign">jj sign</a></li>
+<li class="n3"><a href="#jj-simplify-parents">jj simplify-parents</a></li>
+<li class="n3"><a href="#jj-sparse">jj sparse</a></li>
+<li class="n3"><a href="#jj-sparse-edit">jj sparse edit</a></li>
+<li class="n3"><a href="#jj-sparse-list">jj sparse list</a></li>
+<li class="n3"><a href="#jj-sparse-reset">jj sparse reset</a></li>
+<li class="n3"><a href="#jj-sparse-set">jj sparse set</a></li>
+<li class="n3"><a href="#jj-split">jj split</a></li>
+<li class="n3"><a href="#jj-squash">jj squash</a></li>
+<li class="n3"><a href="#jj-status">jj status</a></li>
+<li class="n3"><a href="#jj-tag">jj tag</a></li>
+<li class="n3"><a href="#jj-tag-delete">jj tag delete</a></li>
+<li class="n3"><a href="#jj-tag-list">jj tag list</a></li>
+<li class="n3"><a href="#jj-tag-set">jj tag set</a></li>
+<li class="n3"><a href="#jj-tag-track">jj tag track</a></li>
+<li class="n3"><a href="#jj-tag-untrack">jj tag untrack</a></li>
+<li class="n3"><a href="#jj-undo">jj undo</a></li>
+<li class="n3"><a href="#jj-unsign">jj unsign</a></li>
+<li class="n3"><a href="#jj-util">jj util</a></li>
+<li class="n3"><a href="#jj-util-backend-and-jj-util-backend-name">jj util backend / jj util backend name</a></li>
+<li class="n3"><a href="#jj-util-backend-name">jj util backend name</a></li>
+<li class="n3"><a href="#jj-util-completion">jj util completion</a></li>
+<li class="n3"><a href="#jj-util-config-schema">jj util config-schema</a></li>
+<li class="n3"><a href="#jj-util-exec">jj util exec</a></li>
+<li class="n3"><a href="#jj-util-gc">jj util gc</a></li>
+<li class="n3"><a href="#jj-util-install-man-pages">jj util install-man-pages</a></li>
+<li class="n3"><a href="#jj-util-markdown-help">jj util markdown-help</a></li>
+<li class="n3"><a href="#jj-util-snapshot">jj util snapshot</a></li>
+<li class="n3"><a href="#jj-version">jj version</a></li>
+<li class="n3"><a href="#jj-workspace">jj workspace</a></li>
+<li class="n3"><a href="#jj-workspace-add">jj workspace add</a></li>
+<li class="n3"><a href="#jj-workspace-forget">jj workspace forget</a></li>
+<li class="n3"><a href="#jj-workspace-list">jj workspace list</a></li>
+<li class="n3"><a href="#jj-workspace-rename">jj workspace rename</a></li>
+<li class="n3"><a href="#jj-workspace-root">jj workspace root</a></li>
+<li class="n3"><a href="#jj-workspace-update-stale">jj workspace update-stale</a></li>
 <li class="n2"><a href="#cli-contract-depth">Command contracts</a></li>
 <li><a href="#part15">Part XVI — Advanced mechanics</a></li>
 <li><a href="#part16">Part XVII — Complete workflows</a></li>
@@ -4461,6 +4584,31 @@ refs = 'separate(" ", bookmarks, remote_bookmarks, tags)'
 <h3 id="cli-reading">How to read the command entries</h3>
 <p>Each entry below is organised around semantics rather than a transcription of help output. “Snapshot” means the normal command boundary at which jj records the current filesystem in the workspace commit. “Rewrite” means new successor commits may be created and descendants may be rebased. “One commit” means a command requires a single resolved commit; a revset can still be syntactically valid and operationally invalid if it returns zero or several commits.</p>
 <p>Short options are retained because they are useful at a terminal, but durable aliases and documentation should prefer the long option when it makes the dimension explicit. Global options apply to every entry: <code>-R/--repository</code>, <code>--ignore-working-copy</code>, <code>--no-integrate-operation</code>, <code>--ignore-immutable</code>, <code>--at-operation/--at-op</code>, <code>--debug</code>, <code>--color</code>, <code>--quiet</code>, <code>--no-pager</code>, repeatable <code>--config</code> and <code>--config-file</code>, and help/version options. Their interaction is explained after the command entries.</p>
+
+<h3 class="toc-entry" id="cli-revision-arguments">Revision arguments: positional aliases versus real options</h3>
+<p>The spelling <code>-r</code> does not identify a special kind of revset. It has two different command-line roles in the 0.45.1 CLI, and the command's help tells you which role applies.</p>
+<p>For some commands, a revision is the command's primary subject and the positional argument has <code>-r</code> as an alias. These forms are equivalent:</p>
+<pre>jj show C
+jj show -r C
+
+jj describe C
+jj describe -r C
+
+jj edit C
+jj edit -r C
+
+jj abandon C
+jj abandon -r C</pre>
+<p>In this case <code>-r</code> is not adding another selection dimension. It is simply an alternate spelling of the positional <code>REVSET</code>. The help expresses this with wording such as <code>[aliases: -r]</code> beside the positional argument.</p>
+<p>Other commands have a genuine revision-selection option because their positional arguments are filesets, or because they need several independently named revision roles:</p>
+<pre>jj log -r 'mutable() &amp; ::@' -- 'glob:src/**'
+jj diff -r 'C::D' -- 'root-glob:src/**'
+jj rebase -r C --onto B
+jj rebase --source C --onto B
+jj squash -r C
+jj squash --from C --into B</pre>
+<p>These are not all interchangeable. In <code>jj log</code> and <code>jj diff</code>, <code>-r</code> selects the commits to display or compare while the positional arguments select paths. In <code>jj rebase</code>, <code>-r</code>/<code>--revisions</code> means “rebase exactly this selected set”; <code>-s</code>/<code>--source</code> includes the selected commits' descendants, and <code>-b</code>/<code>--branch</code> selects the branch-shaped set defined by the command. In <code>jj squash</code>, <code>-r</code> selects the change whose content is moved into its parent, whereas <code>--from</code> and <code>--into</code> name the source and destination independently.</p>
+<p>The practical rule is to read the argument heading and the option description together. A positional <code>REVSET</code> is the command's primary subject; an option-valued <code>REVSET</code> occupies a named role such as displayed revisions, source, destination, or parent. Both values are parsed by the same revset language, but the command determines their cardinality, default, and effect on the graph.</p>
 
 <h3 id="cli-command-reference-alphabetical">Alphabetical command reference entries</h3>
 <p>These reader-facing entries are ordered by canonical command path. The order is deliberately independent of the conceptual grouping used in the teaching chapters; use the browser's find function or the printed contents to reach a command, then follow the related-command links for semantics and workflows.</p>

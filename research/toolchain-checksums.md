@@ -1,6 +1,6 @@
 # Pinned toolchain checksums
 
-Generated: 2026-09-11 UTC by `scripts/write-completeness-report.sh`.
+Generated: 2026-09-16 UTC by `scripts/write-completeness-report.sh`.
 
 | Binary | Version | SHA-256 | Provisioning/verification |
 |---|---|---|---|
