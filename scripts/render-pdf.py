@@ -25,27 +25,30 @@ pdf_timestamp = "D:" + build_timestamp[:19].replace("-", "").replace(":", "").re
 
 
 class HeadingParser(HTMLParser):
-    """Collect the curated h2/h3 headings used for the PDF outline.
+    """Collect the curated headings used for the PDF outline.
 
-    The HTML remains the authored source. Chapter headings marked
-    ``toc-entry`` form the curated sequence; selected reference h4 headings
-    remain PDF-bookmark destinations without being promoted into the printed
-    contents. This parser only supplies the PDF's navigational layer after
-    xhtml2pdf has laid out the pages.
+    Chapter headings marked ``toc-entry`` form the curated sequence. Every
+    command-reference article is also a navigable h4 entry, so the printed
+    command reference can be used without searching through the PDF.
     """
 
     def __init__(self):
         super().__init__(convert_charrefs=True)
         self.current = None
         self.headings = []
+        self.in_command_entry = False
 
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
+        if tag == "article" and "command-entry" in attrs.get("class", "").split():
+            self.in_command_entry = True
         selected_heading = (
             tag in {"h2", "h3"}
             and "toc-entry" in attrs.get("class", "").split()
         )
-        selected_h4 = tag == "h4" and "pdf-outline" in attrs.get("class", "").split()
+        selected_h4 = tag == "h4" and (
+            "pdf-outline" in attrs.get("class", "").split() or self.in_command_entry
+        )
         if selected_heading or selected_h4:
             self.current = [int(tag[1]), attrs.get("id", ""), []]
 
@@ -56,6 +59,8 @@ class HeadingParser(HTMLParser):
             if title and ident:
                 self.headings.append((level, ident, title))
             self.current = None
+        if tag == "article" and self.in_command_entry:
+            self.in_command_entry = False
 
     def handle_data(self, data):
         if self.current:
@@ -96,7 +101,16 @@ def heading_pages(html_path, pdf_reader):
         cursor = found
     return located
 
-html = source.read_bytes()
+html_text = source.read_text(encoding="utf-8")
+# xhtml2pdf's printed ``pdf:toc`` honours the explicit outline class more
+# reliably than a compound CSS selector. Keep the authored HTML unchanged and
+# add the class only to the renderer input for command-reference h4 headings.
+html_text = re.sub(
+    r'(<article\s+class="command-entry"[^>]*>\s*<h4)(\s+id=)',
+    r'\1 class="pdf-outline"\2',
+    html_text,
+)
+html = html_text.encode("utf-8")
 with output.open("wb") as stream:
     result = pisa.CreatePDF(html, dest=stream, path=str(source), encoding="utf-8")
 if result.err:
