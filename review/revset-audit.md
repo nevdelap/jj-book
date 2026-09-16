@@ -1,4 +1,7 @@
-# Revset audit
+# Superseded historical revset audit
+
+> The current authoritative audit is [`current-revset-audit.md`](current-revset-audit.md).
+> The findings below are retained as historical evidence.
 
 ## Evidence
 
@@ -19,4 +22,3 @@ The local 0.44.0 help defines `heads(x)` as commits in x that are not ancestors 
 ## Suggested validation matrix
 
 For each operator/function, record graph, expression, expected symbolic set, actual full IDs, cardinality, version, and whether hidden/divergent/conflicted states are involved. Include merge graphs for `heads`, `roots`, `..`, `::`, `reachable`, `fork_point`, and `merge_point`; include ambiguity and invalid-pattern cases.
-
