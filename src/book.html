@@ -3260,6 +3260,25 @@ jj undo
 jj redo</pre>
 <p><code>jj undo</code> reverses the latest operation; <code>redo</code> reapplies the most recently undone operation when available. <code>op restore</code> loads a repository state from the operation DAG. <code>--at-operation OP</code> inspects an old state without snapshotting the current filesystem. Operations created with <code>--no-integrate-operation</code> are not merged into the current operation head until explicitly integrated.</p>
 
+<h4 id="operation-views-and-ids">Views and IDs</h4>
+<p>An operation ID identifies a repository transformation in this clone. Loading <code>jj --at-operation OP log</code> asks jj to evaluate the commit graph and refs as they were at that operation, while ignoring today's working-copy snapshot. It does not roll back the filesystem. A historical view is therefore an observation tool, not a checkout command.</p>
+<pre>jj op log -n 20
+jj op show OP
+jj op diff --from OP1 --to OP2
+jj --at-operation OP log -r 'all()'
+jj --at-operation OP status</pre>
+<p>Record operation IDs before a risky rewrite, not only after it. The ID printed by <code>op log</code> may be a short unique prefix; retain the full ID in an incident note when the repository is important. A later operation does not necessarily erase the earlier record, but garbage collection or operation abandonment can reduce recoverability.</p>
+<h4 id="undo-restore-revert-and-abandon">Undo, restore, revert, and abandon are different</h4>
+<table><thead><tr><th>Operation</th><th>Target</th><th>Result</th><th>Use</th></tr></thead><tbody>
+<tr><td><code>jj undo</code></td><td>Most recent integrated operation.</td><td>Creates a reverse operation.</td><td>Immediate, unambiguous mistake.</td></tr>
+<tr><td><code>jj redo</code></td><td>Available undone operation.</td><td>Reapplies it when redo state exists.</td><td>Recover from an over-hasty undo.</td></tr>
+<tr><td><code>jj op restore OP</code></td><td>Named historical repository state.</td><td>Creates a new state matching selected operation data.</td><td>Return to a known graph/ref state.</td></tr>
+<tr><td><code>jj op revert OP</code></td><td>Effect of a selected operation.</td><td>Creates a reversing operation while remaining in operation history.</td><td>Reverse a named operation after later history exists.</td></tr>
+<tr><td><code>jj op abandon OP</code></td><td>Operation record.</td><td>Removes/abandons an operation according to local semantics.</td><td>Maintenance after recovery, not commit deletion.</td></tr>
+<tr><td><code>jj abandon REV</code></td><td>Selected commit.</td><td>Hides/abandons a change and rebases or updates dependants.</td><td>Declare graph work no longer wanted.</td></tr>
+</tbody></table>
+<p>In particular, <code>jj op revert</code> is not <code>jj revert</code>. The former reverses repository-state effects; the latter creates an inverse content change. Likewise, <code>jj op restore</code> does not promise to restore an external push or today's files. If the mistake crossed a network boundary, repair that server separately and then fetch to make the local observation agree.</p>
+
 <section id="evolution-history-laboratory">
 <h3 class="toc-entry" id="evolution-log-following-one-change-through-time">Evolution log: following one change through time</h3>
 <p><code>jj evolog</code> is the command to use when the question is “what happened to this logical change?” It follows one jj change ID through the successive commit objects that represented it. That is a different question from “what did the repository-wide operation do?” (<code>jj op show</code>) and from “where did a bookmark point?” (<code>jj bookmark list</code>). A Git commit ID identifies one object; an evolution entry connects that object to its predecessor versions of the same logical change.</p>
@@ -3451,6 +3470,8 @@ operations:      o2      o3      o4      o5</pre>
 <tr><td>Fetched remote bookmark and server UI</td><td>Which object is currently published and reviewed</td><td>What was present only in an unfetched local clone</td></tr>
 </tbody></table>
 <p>This is the practical purpose of <code>evolog</code>: it lets a GitHub or Gerrit user follow the logical change while separately accounting for the exact Git objects and the local operations that produced them. It complements, rather than replaces, the operation log, remote bookmarks, server review history, and Git commit inspection.</p>
+</section>
+<section id="operation-evolution-correlation-section">
 <h3 class="toc-entry" id="operation-evolution-correlation">Correlating operation history with change evolution</h3>
 <p>The two histories answer different questions and become most useful together. <code>jj evolog</code> identifies the successive commit objects that represent one logical change; <code>jj op show</code> identifies the repository-wide transformation that created or rewrote it. Correlate them when an ancestor rewrite produces several successors, when a review upload must be matched to a local version, or when recovery needs both the intended change and the surrounding ref/workspace effects.</p>
 <pre># Select one logical change and record both evidence layers.
@@ -3587,7 +3608,7 @@ A--B′--C′[conflict]--D′[conflict or adjusted]</pre>
 
 <section id="operation-depth-lab">
 <h3 class="toc-entry" id="concurrency-retention-and-cross-machine-limits">Concurrency, retention, and cross-machine limits</h3>
-<p>Once the operation history and change evolution models are separate, their limits become easier to reason about. An operation can snapshot the working copy, create a commit, rewrite an ancestor and all its descendants, move bookmarks, import Git refs, update workspace metadata, or perform several of those actions together. The material below is the reference laboratory for concurrent operations, retention, and the fact that operation history is local to a clone.</p>
+<p>Once the operation model has been established above, these are its boundary conditions. Concurrent operations can branch the operation history, retention and garbage collection affect recovery, and Git transport does not transfer operation IDs to another clone.</p>
 <pre class="diagram">commit DAG:       A--B--C(@)
                       \
                        D
@@ -3599,47 +3620,6 @@ operation DAG:   O0--O1--O2--O3
 O2 may have rewritten B→B', C→C' while O4 is an
 independent operation started from O2. Commit identity and
 operation ancestry are related but not interchangeable.</pre>
-<h4 id="operation-views-and-ids">Views and IDs</h4>
-<p>An operation ID identifies a repository transformation in this clone. Loading <code>jj --at-operation OP log</code> asks jj to evaluate the commit graph and refs as they were at that operation, while ignoring today's working-copy snapshot. It does not roll back the filesystem. A historical view is therefore an observation tool, not a checkout command.</p>
-<pre>jj op log -n 20
-jj op show OP
-jj op diff --from OP1 --to OP2
-jj --at-operation OP log -r 'all()'
-jj --at-operation OP status</pre>
-<p>Record operation IDs before a risky rewrite, not only after it. The ID printed by <code>op log</code> may be a short unique prefix; retain the full ID in an incident note when the repository is important. A later operation does not necessarily erase the earlier record, but garbage collection or operation abandonment can reduce recoverability.</p>
-<h4 id="undo-restore-revert-and-abandon">Undo, restore, revert, and abandon are different</h4>
-<table><thead><tr><th>Operation</th><th>Target</th><th>Result</th><th>Use</th></tr></thead><tbody>
-<tr><td><code>jj undo</code></td><td>Most recent integrated operation.</td><td>Creates a reverse operation.</td><td>Immediate, unambiguous mistake.</td></tr>
-<tr><td><code>jj redo</code></td><td>Available undone operation.</td><td>Reapplies it when redo state exists.</td><td>Recover from an over-hasty undo.</td></tr>
-<tr><td><code>jj op restore OP</code></td><td>Named historical repository state.</td><td>Creates a new state matching selected operation data.</td><td>Return to a known graph/ref state.</td></tr>
-<tr><td><code>jj op revert OP</code></td><td>Effect of a selected operation.</td><td>Creates a reversing operation while remaining in operation history.</td><td>Reverse a named operation after later history exists.</td></tr>
-<tr><td><code>jj op abandon OP</code></td><td>Operation record.</td><td>Removes/abandons an operation according to local semantics.</td><td>Maintenance after recovery, not commit deletion.</td></tr>
-<tr><td><code>jj abandon REV</code></td><td>Selected commit.</td><td>Hides/abandons a change and rebases or updates dependants.</td><td>Declare graph work no longer wanted.</td></tr>
-</tbody></table>
-<p>In particular, <code>jj op revert</code> is not <code>jj revert</code>. The former reverses repository-state effects; the latter creates an inverse content change. Likewise, <code>jj op restore</code> does not promise to restore an external push or today's files. If the mistake crossed a network boundary, repair that server separately and then fetch to make the local observation agree.</p>
-<h4 id="recovery-exercise-wrong-ancestor">Recovery exercise: rewrite the wrong ancestor</h4>
-<pre class="diagram">before: main@origin--A--B--C--D(@)
-                      B = reviewed API
-                      C = tests
-                      D = docs</pre>
-<ol><li>Create a temporary bookmark at D and record the operation head.</li><li>Edit B and make an intentionally wrong metadata or content change.</li><li>Observe successors B', C', D' and inspect the operation diff.</li><li>Use undo only if the wrong rewrite is the latest integrated operation.</li><li>Compare the restored graph with the bookmark and historical operation view.</li></ol>
-<pre>jj bookmark create recovery-before -r @
-jj op log -n 1
-jj edit 'change_id(API_CHANGE)'
-jj describe -m 'WRONG'
-jj op show
-jj undo
-jj log -G -r 'recovery-before | ::recovery-before'
-jj op log -n 5</pre>
-<p>The temporary bookmark is not needed by undo; it is an independent assertion of the intended tip. If the editor or a status command caused an intervening snapshot, the latest operation may not be the rewrite. Find the operation that changed the target, use <code>--at-operation</code> to inspect it, and decide whether a named restore or an evolution-level repair is safer.</p>
-<h4 id="recovery-exercise-abandon-and-late-discovery">Recovery exercise: abandon useful work, then notice later</h4>
-<pre>jj bookmark create rescue -r @
-jj abandon @
-jj op log -n 10
-jj --at-operation OP log -r 'rescue'
-jj evolog -r 'rescue'
-jj op show OP</pre>
-<p>Replace <code>OP</code> with an operation selected from the log. The bookmark makes the commit nameable even if the default visible query no longer shows it. If the abandoned commit has successors, follow the change ID and evolution entries rather than restoring an arbitrary predecessor. The safe order is identify, inspect, name, compare, then restore or recreate.</p>
 <h4 id="concurrent-operation-history">Concurrency and operation integration</h4>
 <p>Two processes can start at one operation and produce independent operations. <code>--no-integrate-operation</code> deliberately leaves a successful operation outside the current integrated head and prints an operation ID. It does not make external side effects transactional and does not protect the filesystem from another writer. <code>jj op integrate OP</code> brings that operation into the current operation history; integration may expose divergent repository state or conflicts that were not visible from either isolated view.</p>
 <pre>jj status --no-integrate-operation
@@ -3649,13 +3629,6 @@ jj op integrate OP
 jj op diff --operation OP
 jj log -G -r 'all()'</pre>
 <p>Use this mode when a supervisor wants to control integration or when testing concurrency. It is not a replacement for a filesystem lock. Editors, build tools, Git, jj, and workspaces can still race over files and refs. Serialise mutation of one worktree and use separate workspaces or clones for concurrent tasks.</p>
-<h4 id="evolution-and-operation-correlation">Correlation checklist</h4>
-<p>Evolution is change-centric; operations are repository-centric. If a commit has a surprising successor, <code>jj evolog</code> tells you which predecessor and successor belong to that logical change. The operation record tells you what else changed at the same time: descendants, bookmarks, remote-tracking refs, and workspace pointers. A recovery note should record both:</p>
-<pre>jj evolog -r 'change_id(API_CHANGE)' -p
-jj op log -n 10
-jj op show OP -p
-jj op diff --from BEFORE --to AFTER</pre>
-<p>A change may have several visible successors because two operations independently rewrote it. That is divergence, not an operation-log fork alone. Conversely, an operation can rewrite many changes while every change retains one logical evolution. Do not use the number of operation entries as a count of review changes.</p>
 <h4 id="operation-retention-and-gc">Retention and garbage collection</h4>
 <p>Recovery depends on data that has not been pruned. Abandoning a commit hides it from ordinary views but may leave it addressable; abandoning an operation removes recovery metadata according to the command's semantics; repository GC can reclaim objects no longer considered reachable. Before maintenance, inspect the operation and evolution history, confirm that published refs and temporary rescue bookmarks are no longer needed, and make an independent backup if policy requires one.</p>
 <pre>jj op log
