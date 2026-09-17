@@ -2,6 +2,14 @@
 
 This repository contains the source and rendered HTML for the book **Jujutsu for Git Experts: Graph-First Version Control**.
 
+> **Bespoke-edition notice**
+>
+> [jj-book.pdf](jj-book.pdf) is a bespoke book created by someone for his own learning. It has not been created nor edited to be suitable for a more general audience. It is publically available just in case it might be useful to someone, somewhere, at sometime.
+>
+> The creator thanks everyone involved in the creation of Jujutsu. It is fantastic.
+>
+> Please report any issues you find with the content to [the project issue tracker](https://github.com/nevdelap/jj-book/issues).
+
 ## Version policy
 
 The validation target is **jj 0.45.1**. Examples, inventories, fixtures, and reference tables are generated and checked against that binary.
@@ -10,7 +18,7 @@ The local validation binary is installed at `.toolchain/bin/jj` by the `justfile
 
 ## Build and rendered output
 
-The deliverable is `jj-book.html` at the project root, symlinked to the first-class authored HTML source `src/book.html`. It is not Markdown converted to HTML. The PDF is rendered directly from that HTML by pinned `xhtml2pdf` and normalised with pinned `pypdf`; no browser or Markdown conversion step is involved. The current output is a 7.5 × 10 inch portrait PDF, 521 pages at the current manuscript size, suitable for Kindle Scribe import and printing. It includes a generated printed contents section, page-number footer, PDF-reader outline, and build timestamp in both the cover and PDF metadata. `build/jj-book.pdf.sha256` records the generated checksum. The `just pdf` recipe pins `PYTHONHASHSEED=0` because xhtml2pdf 0.2.18 uses Python's salted hash for in-memory image resource names; `just pdf-repro` renders twice and compares the bytes.
+The deliverable is `jj-book.html` at the project root, symlinked to the first-class authored HTML source `src/book.html`. It is not Markdown converted to HTML. The PDF is rendered directly from that HTML by pinned `xhtml2pdf` and normalised with pinned `pypdf`; no browser or Markdown conversion step is involved. The current output is a 7.5 × 10 inch portrait PDF, 522 pages at the current manuscript size, suitable for Kindle Scribe import and printing. It includes a generated printed contents section, page-number footer, PDF-reader outline, and build timestamp in both the cover and PDF metadata. `build/jj-book.pdf.sha256` records the generated checksum. The `just pdf` recipe pins `PYTHONHASHSEED=0` because xhtml2pdf 0.2.18 uses Python's salted hash for in-memory image resource names; `just pdf-repro` renders twice and compares the bytes.
 
 ```sh
 uv sync --locked     # install the pinned Python renderer/validator
