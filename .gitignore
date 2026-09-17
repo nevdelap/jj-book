@@ -5,3 +5,4 @@ build/*.pdf
 build/*.epub
 build/*.html
 build/visual-inspection/
+build/evolog-inspection/

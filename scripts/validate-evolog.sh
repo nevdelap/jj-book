@@ -44,6 +44,12 @@ test "$c2" != "$c3"
 
 normal=$("$J" evolog -G -r "$change" -T 'commit.commit_id() ++ "\n"')
 reversed=$("$J" evolog --reversed -G -r "$change" -T 'commit.commit_id() ++ "\n"')
+multiline=$("$J" evolog -G -r "$change" -T \
+  'commit.commit_id() ++ " " ++
+   commit.change_id() ++ " " ++
+   operation.id() ++ " " ++
+   commit.description().first_line() ++ "\n"')
+test -n "$multiline"
 test "$(printf '%s\n' "$normal" | tail -n 1)" = "$(printf '%s\n' "$reversed" | head -n 1)"
 test "$(printf '%s\n' "$normal" | head -n 1)" = "$c3"
 test "$(printf '%s\n' "$normal" | wc -l)" -ge 4
