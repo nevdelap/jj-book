@@ -12,6 +12,10 @@ command_entries=$(grep -c '<article class="command-entry"' "$ROOT/src/book.html"
 canonical_entries=$paths
 pdf_pages=$(if test -f "$ROOT/build/jj-book.pdf"; then uv run --frozen python -c 'from pypdf import PdfReader; print(len(PdfReader("build/jj-book.pdf").pages))'; else echo not-built; fi)
 pdf_sha256=$(if test -f "$ROOT/build/jj-book.pdf.sha256"; then awk '{print $1}' "$ROOT/build/jj-book.pdf.sha256"; else echo not-built; fi)
+git_version=$(git --version 2>/dev/null || true)
+if test -z "$git_version"; then
+  git_version="unavailable (native Git commands are disabled in this validation environment)"
+fi
 toc_pages=$(if test -f "$ROOT/build/jj-book.pdf"; then uv run --frozen python - <<'PY'
 from pypdf import PdfReader
 pages = PdfReader("build/jj-book.pdf").pages
@@ -61,7 +65,7 @@ Generated: $(date -u +%F)
 ## Targets
 
 * Target: jj $V (expected 0.45.1)
-* Git: $(git --version)
+* Git: $git_version
 * Authored deliverable: ../jj-book.html, a symlink to the first-class HTML source src/book.html
 
 ## Inventories
@@ -96,6 +100,7 @@ Generated: $(date -u +%F)
 * local bare Git remote add, push, fetch, and tracking
 * Git-backend object/HEAD/ref reachability, raw change-id header, colocated export, and non-colocated layout fixture
 * authored template examples against the validation repository
+* dedicated evolog fixture: successive versions, descendant rebasing, ordering/limit modes, the inter-diff option, template identity export, and divergent successors
 * representative revset topology, state, pattern, and visibility expressions parse and execute
 * directional revset result assertions on an interior mutable stack: <code>A:: &amp; mutable()</code> = A/B/C/D, <code>::A &amp; mutable()</code> = A, with roots/heads assertions
 * source-level audit rejects standalone <code>stack(@)</code>, the invalid <code>::X &amp; mutable()</code> spelling, and descendant-closure prose using the ancestor operator

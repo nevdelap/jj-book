@@ -23,6 +23,7 @@ The following pages are consulted and paraphrased rather than copied:
 * Conflicts — https://docs.jj-vcs.dev/latest/conflicts/
 * Technical conflict representation — https://docs.jj-vcs.dev/latest/technical/conflicts/
 * Operation log — https://docs.jj-vcs.dev/latest/operation-log/
+* Evolution log CLI and template context — local jj 0.45.1 help from `jj evolog --help` and `jj help -k templates`; the command's `CommitEvolutionEntry` context documents `commit()`, `operation()`, `predecessors()`, and `inter_diff()`.
 * Workspaces — https://docs.jj-vcs.dev/latest/workspaces/
 * Sparse working copies — https://docs.jj-vcs.dev/latest/sparse-patterns/
 * Signing — https://docs.jj-vcs.dev/latest/signing/

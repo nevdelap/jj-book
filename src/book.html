@@ -74,6 +74,7 @@ Target release: <strong>jj 0.45.1</strong> · Git 2.53.0 · build timestamp: 202
 <li><a href="#part9">Part X — Conflicts and merges</a></li>
 <li class="n2"><a href="#conflict-lifecycle-lab">Conflict lifecycle laboratory</a></li>
 <li><a href="#part10">Part XI — Operation log and recovery</a></li>
+<li class="n2"><a href="#evolution-history-laboratory">Evolution history: following one change through time</a></li>
 <li class="n2"><a href="#operation-depth-lab">Operation laboratory</a></li>
 <li><a href="#part11">Part XII — Workspaces and multiple machines</a></li>
 <li class="n2"><a href="#workspace-depth-lab">Workspace laboratory</a></li>
@@ -3253,6 +3254,191 @@ jj op revert OPERATION
 jj undo
 jj redo</pre>
 <p><code>jj undo</code> reverses the latest operation; <code>redo</code> reapplies the most recently undone operation when available. <code>op restore</code> loads a repository state from the operation DAG. <code>--at-operation OP</code> inspects an old state without snapshotting the current filesystem. Operations created with <code>--no-integrate-operation</code> are not merged into the current operation head until explicitly integrated.</p>
+
+<section id="evolution-history-laboratory">
+<h3 class="toc-entry" id="evolution-history-following-one-change-through-time">Evolution history: following one change through time</h3>
+<p><code>jj evolog</code> is the command to use when the question is “what happened to this logical change?” It follows one jj change ID through the successive commit objects that represented it. That is a different question from “what did the repository-wide operation do?” (<code>jj op show</code>) and from “where did a bookmark point?” (<code>jj bookmark list</code>). A Git commit ID identifies one object; an evolution entry connects that object to its predecessor versions of the same logical change.</p>
+<pre class="diagram">logical change X
+
+X0  --describe/rewrite--&gt;  X1  --ancestor rebase--&gt;  X2  --resolve--&gt;  X3
+|                          |                           |
+commit c0                  commit c1                   commit c2
+operation o0               operation o1                operation o2</pre>
+<p>The arrows are not ordinary parent edges in the commit DAG. A successor may have the same parent, a new parent, a different tree, or different metadata; its change ID normally remains the logical identity. Descendants can receive their own successors because their parent commit IDs changed. A bookmark normally follows the rewritten local graph target, while an already fetched remote bookmark remains the local observation of the server until the next import.</p>
+<p>Evolution is therefore not a second commit DAG and not a ref log. It is a change-centric history layered over commit objects. The operation DAG supplies the wider causal context: it can show that one operation rewrote X, its descendants, a bookmark, and a workspace together. Evolution tells you which of those commit objects belong to X.</p>
+
+<h4 id="evolog-fixture-and-recording-identities">A reusable fixture: record identities before reasoning</h4>
+<p>Use a disposable repository with a named logical change, several amendments, and a descendant. The important discipline is to record full IDs, not the short graph labels used in diagrams:</p>
+<pre>mkdir -p /tmp/jj-evolog-lab
+cd /tmp/jj-evolog-lab
+jj git init --colocate
+printf 'one\n' &gt; api.txt
+jj describe -m 'API: initial contract'
+change=$(jj log -r @ --no-graph -T 'change_id ++ "\n"')
+c0=$(jj log -r @ --no-graph -T 'commit_id ++ "\n"')
+
+printf 'two\n' &gt; api.txt
+jj describe -m 'API: two contract'
+c1=$(jj log -r @ --no-graph -T 'commit_id ++ "\n"')
+
+printf 'three\n' &gt; api.txt
+jj describe -m 'API: three contract'
+c2=$(jj log -r @ --no-graph -T 'commit_id ++ "\n"')
+
+jj new -m 'Tests: cover API'
+printf 'test\n' &gt; test.txt
+jj status
+child=$(jj log -r @ --no-graph -T 'change_id ++ "\n"')
+
+printf 'logical change: %s\n' "$change"
+printf 'initial/current/descendant: %s %s %s\n' "$c0" "$c2" "$child"
+jj evolog -r "$change" -G -T
+  'commit.commit_id() ++ "\t" ++ commit.change_id() ++ "\t" ++
+   operation.id() ++ "\t" ++ commit.description().first_line() ++ "\n"'</pre>
+<p>The last command is deliberately a tabular evidence export. Its template runs in the <code>CommitEvolutionEntry</code> context, so the commit and operation are accessed as <code>commit.commit_id()</code> and <code>operation.id()</code>, not as the ordinary log keywords <code>commit_id</code> and <code>change_id</code>. Store the output when correlating a review or incident. Short IDs are useful for a screen; the full commit ID, change ID, and operation ID are the durable local evidence.</p>
+<table><thead><tr><th>Stage</th><th>Commit-DAG state</th><th>Evolution evidence</th><th>Ref/operation consequence</th></tr></thead><tbody>
+<tr><td>Initial</td><td><code>root -&gt; X0</code></td><td><code>c0</code> and <code>change</code> are recorded before the first rewrite.</td><td>The working-copy commit points at X0; no publication bookmark is required.</td></tr>
+<tr><td>Amendments</td><td><code>root -&gt; X1</code>, then <code>root -&gt; X2</code></td><td><code>c1</code> and <code>c2</code> differ, while <code>change</code> is normally unchanged.</td><td>Each <code>describe</code> creates an operation and hides the preceding commit from ordinary visible output.</td></tr>
+<tr><td>Descendant</td><td><code>root -&gt; X2 -&gt; T</code></td><td><code>T</code> has its own change ID and can be followed independently.</td><td>A bookmark at T names a publication boundary; it does not replace X's evolution history.</td></tr>
+<tr><td>Ancestor rewrite</td><td><code>root -&gt; X3 -&gt; T'</code></td><td><code>evolog -r "$change"</code> finds X0...X3; <code>evolog -r "$child"</code> can find T and T'.</td><td>T' may have a new commit ID even when its own intended diff is unchanged, because its parent changed.</td></tr>
+</tbody></table>
+<p>This table separates four identifiers that are often collapsed in review conversations:</p>
+<ul><li><strong>change ID</strong>: the logical identity followed by <code>evolog</code>;</li><li><strong>commit ID</strong>: one exact tree/parent/metadata object, suitable for matching a CI result or exported Git object;</li><li><strong>bookmark</strong>: a local publication/navigation name that may move to a successor;</li><li><strong>operation ID</strong>: the repository-wide transformation that created or rewrote the commit.</li></ul>
+<h4 id="evolog-reading-order-and-selection">Reading order, selection, and output modes</h4>
+<p>The basic command follows the change selected by the revision set. With no <code>-r</code>, the default is <code>@</code>; in scripts, select the logical change explicitly and save the full value first:</p>
+<pre>change=$(jj log -r @ --no-graph -T 'change_id ++ "\n"')
+jj evolog -r "$change"
+jj evolog -r "$change" --reversed
+jj evolog -r "$change" -n 4
+jj evolog -r "$change" -G</pre>
+<p>Normal output presents the current version first and walks backwards through predecessors. <code>--reversed</code> presents the oldest entry first and the current version last, which is usually better for a narrative of a review. <code>-n</code>/<code>--limit</code> limits the entries after jj has selected and topologically ordered the evolution; with <code>--reversed</code>, the limit therefore describes the beginning of the reversed display, not necessarily the newest versions. <code>-G</code>/<code>--no-graph</code> removes graph decoration but does not change which entries are selected.</p>
+<p>Use a template when the question is identity or correlation rather than prose:</p>
+<pre>jj evolog -G -r "$change" -T
+  'commit.commit_id().short(12) ++ " " ++
+   commit.change_id().short(12) ++ " " ++
+   operation.id().short(12) ++ " " ++
+   commit.description().first_line() ++ "\n"'</pre>
+<p>The template context is an evolution entry. The important methods are <code>commit()</code>, <code>operation()</code>, <code>predecessors()</code>, and <code>inter_diff()</code>. Use the corresponding commit methods when the report needs signatures and timestamps. Keep an unlabelled, newline-delimited form for scripts; terminal labels and graph glyphs are presentation, not evidence.</p>
+
+<h4 id="evolog-patch-comparing-successive-versions">Comparing successive versions with <code>-p</code></h4>
+<p><code>jj evolog -p</code> adds the inter-diff between an evolution entry and its previous version. It answers “what changed in this logical change between these two versions?”, which is usually the question a reviewer means by “what changed in patch set 4?”:</p>
+<pre>jj evolog -r "$change" -p
+jj evolog -r "$change" -p --stat
+jj evolog -r "$change" -p --name-only
+jj evolog -r "$change" --reversed -p</pre>
+<p>The first entry has no earlier version of the same change, so it has no meaningful predecessor diff. Later entries show the change between successive versions, not the complete diff from the repository root and not necessarily the diff between two arbitrary branch tips. Use <code>jj diff --from OLD --to NEW</code> when the endpoints are arbitrary commits rather than adjacent versions of one change.</p>
+<div class="callout version"><strong>Parent-rebase caveat.</strong> If the previous version has different parents, jj temporarily rebases that previous version to the new version's parents before computing the inter-diff. This prevents an unrelated ancestor change from appearing as though it were part of the logical change's revision. The displayed patch is therefore an evolution comparison, not necessarily the raw tree diff between the two stored commit objects. Do not reconstruct it by blindly running <code>jj diff --from OLD --to NEW</code> when their parent contexts differ.</div>
+<p>For a machine-readable review record, combine the identity template with a separate patch command. Save the current and predecessor full IDs from the evolution output, then run the explicit diff only when you intentionally want object-to-object comparison:</p>
+<pre>jj evolog -G -r "$change" -T
+  'commit.commit_id() ++ " " ++ operation.id() ++ " " ++
+   commit.description().first_line() ++ "\n"'
+# After choosing adjacent entries OLD and NEW deliberately:
+jj diff --from OLD --to NEW --git</pre>
+
+<h4 id="evolog-ancestor-rewrite-and-descendant-correlation">Ancestor rewrites: one operation, several evolutions</h4>
+<p>Rewrite the named change after creating a descendant, then inspect both evolutions:</p>
+<pre>jj edit "$change"
+printf 'four\n' &gt; api.txt
+jj describe -m 'API: four contract'
+jj evolog -r "$change" --reversed -G
+jj evolog -r "$child" --reversed -G
+jj op log -n 10
+jj op show</pre>
+<p>The change-centric result shows X's versions. The child-centric result shows that T received a successor when its parent changed. The operation-centric result shows the one command that caused the related graph rewrites. This is why a review stack can report several new Git commit IDs after the author changed one early patch: each descendant's parent field contains a different commit ID, so jj creates a successor even when the descendant's own intended content is unchanged.</p>
+<table><thead><tr><th>Question</th><th>Use first</th><th>What it proves</th><th>What it does not prove</th></tr></thead><tbody>
+<tr><td>How did logical change X evolve?</td><td><code>jj evolog -r X</code></td><td>Successive commit versions and their operation links.</td><td>Why unrelated bookmarks or descendants also moved.</td></tr>
+<tr><td>What did the rewrite operation affect?</td><td><code>jj op show OP</code> or <code>jj op diff</code></td><td>Repository-wide graph/ref/workspace effects.</td><td>That every affected commit belongs to one logical change.</td></tr>
+<tr><td>What changed between two X versions?</td><td><code>jj evolog -p -r X</code></td><td>Successive-version inter-diff with parent-context handling.</td><td>A comparison between arbitrary non-successor commits.</td></tr>
+<tr><td>Where was X published?</td><td><code>jj bookmark list</code>, remote bookmarks, Git refs</td><td>Names and locally observed publication targets.</td><td>The complete local evolution history or server review history.</td></tr>
+</tbody></table>
+
+<h4 id="evolog-divergence-and-selection">Divergence: two successors of one logical change</h4>
+<p>Two independent operations can start from one operation head and rewrite the same change differently. After both operations are integrated, the visible graph can contain two successors with one change ID:</p>
+<pre class="diagram">              X1  (successor one, change qqq...)
+             /
+X0  --------&lt;
+             \
+              X2  (successor two, change qqq...)</pre>
+<p>This is not two ordinary commits that happen to have similar text. It is one logical change with multiple visible evolutions. A bare change-ID symbol is consequently ambiguous; inspect the evolution and select a specific offset or full commit ID only after comparing the alternatives:</p>
+<pre>jj log -r 'divergent()'
+jj evolog -r 'divergent()'
+jj log -r 'change_id("PREFIX")' --no-graph -T
+  'commit_id ++ " " ++ change_id ++ " " ++ description.first_line() ++ "\n"'
+jj op log -n 20</pre>
+<p>Possible decisions are different operations, not spelling variants: keep one successor and abandon the other; duplicate one as a new independent change; edit one and converge the visible evolutions with <code>jj converge</code>; or preserve both if they represent genuinely different work. Compare descriptions, parents, diffs, conflicts, bookmarks, and review identifiers before choosing. A convergence operation combines the selected divergent evolutions into one successor for that logical change; it is not a squash merely because several commits are involved.</p>
+<pre>jj show -r 'change_id("PREFIX")/0'
+jj show -r 'change_id("PREFIX")/1'
+jj diff --from 'change_id("PREFIX")/0' --to 'change_id("PREFIX")/1'
+jj converge -r 'divergent()'
+jj evolog -r 'change_id("PREFIX")'
+jj op show</pre>
+<p>The offset is a selection of an evolution, not a permanent name. After another rewrite or convergence, use the full commit ID, bookmark, or current change-ID resolution shown by the latest <code>evolog</code>. If a command requires one commit, verify cardinality before passing a divergent query to it.</p>
+
+<h4 id="evolog-recovery-and-reflog-crosswalk">Recovery: evolog beside operation history</h4>
+<p>For a Git expert, the safest replacement for the single-word question “reflog?” is to choose the evidence layer:</p>
+<table><thead><tr><th>Question</th><th>jj evidence</th><th>Git evidence</th><th>Gerrit evidence</th></tr></thead><tbody>
+<tr><td>How did this logical change evolve locally?</td><td><code>jj evolog</code></td><td>No direct equivalent; a reflog follows refs, not jj change identity.</td><td>Not a server-side Gerrit question.</td></tr>
+<tr><td>Which repository-wide operation caused it?</td><td><code>jj op log/show/diff</code></td><td>Ref/reflog and command-specific logs, with less jj graph context.</td><td>Server audit where available.</td></tr>
+<tr><td>Which exported object was reviewed?</td><td>Commit ID plus publication bookmark and fetched remote bookmark.</td><td>Commit ID and ref history.</td><td>Patch set number plus Gerrit <code>Change-Id</code>.</td></tr>
+<tr><td>What changed between two versions?</td><td><code>jj evolog -p</code> for successors, or explicit <code>jj diff</code>.</td><td>Commit/range diff.</td><td>Patch-set comparison.</td></tr>
+</tbody></table>
+<p>A practical recovery sequence is:</p>
+<pre># First preserve both kinds of evidence.
+jj op log -n 20
+jj evolog -r "$change" --reversed -G
+
+# Inspect, without changing the live repository.
+jj op show OP
+jj op diff --from OP_BEFORE --to OP_AFTER
+jj --at-operation OP_BEFORE log -r 'all()'
+
+# Choose the repair only after comparing the evidence.
+jj undo                         # only for the latest integrated operation
+jj op restore OP_BEFORE        # restore a named repository state
+jj op revert OP                 # reverse one operation while retaining later history</pre>
+<p><code>evolog</code> cannot restore a repository state. <code>op restore</code> cannot tell you which successor is the intended version of a review change. <code>undo</code> is appropriate only when the unwanted operation is the latest integrated operation; otherwise use a named operation or perform a deliberate graph repair. Neither local tool can undo a GitHub/Gerrit push: fetch the server state, identify the exported commit/ref, and repair the remote publication separately.</p>
+<h4 id="evolog-github-gerrit-and-git-transfer">Publication, Git transfer, and review-system identity</h4>
+<p>A local evolution entry becomes externally meaningful only when a particular commit object is exported. Git transport transfers commit objects and refs; it does not transfer jj's local operation DAG or the complete evolution ledger. A remote bookmark such as <code>review@origin</code> tells this clone which remote ref was observed at a fetch. It is not a server-side copy of <code>evolog</code>. If a later push replaces the publication bookmark, the server sees a new Git commit ID or ref target; the local change ID is not part of the Git protocol.</p>
+<p>GitHub normally treats the pushed bookmark as the PR branch. Gerrit normally treats each commit pushed to <code>refs/for/&lt;branch&gt;</code> as a review change, matching later patch sets by the Gerrit <code>Change-Id</code> trailer. These are three different identity layers:</p>
+<table><thead><tr><th>Layer</th><th>Stable across a local rewrite?</th><th>Where it is observed</th></tr></thead><tbody>
+<tr><td>jj change ID</td><td>Normally yes, while the logical change evolves</td><td><code>jj evolog</code>, log output, local jj metadata</td></tr>
+<tr><td>Git commit ID</td><td>No: a changed tree, parent, or metadata creates another object</td><td>Git refs, CI records, GitHub commits, Gerrit patch-set commit</td></tr>
+<tr><td>Gerrit <code>Change-Id</code></td><td>Usually yes when the trailer is preserved</td><td>Commit message and Gerrit review page</td></tr>
+<tr><td>GitHub PR / bookmark</td><td>The PR name may remain while its branch target moves</td><td>Publication ref and hosting service</td></tr>
+</tbody></table>
+<p>For an upload incident, record all four where available. “The change is still the same” may be true in jj's evolution model and in Gerrit's review model while false for the Git commit ID used by CI. Conversely, a commit with a familiar Git message is not enough evidence that it is the intended successor: compare its full ID, parent, diff, bookmark, and operation.</p>
+<pre># Export one exact evolution entry, then correlate it with transport state.
+jj evolog -G -r "$change" -T 'commit.commit_id() ++ " " ++ commit.change_id() ++ " " ++ operation.id() ++ " " ++ commit.description().first_line() ++ "\n"'
+jj bookmark list --all-remotes
+jj git fetch --remote origin
+jj log -r 'review | review@origin' -T 'commit_id ++ " " ++ description.first_line() ++ "\n"'
+jj op log -n 20</pre>
+<p>The exact inspection command depends on the publication path. Do not infer a remote's current state from a stale remote bookmark: fetch first. Do not infer an operation from a Gerrit patch-set number: use the local evolution and operation records, then match the exported commit ID and message trailer. The operation ID is local evidence and may have no counterpart on another machine.</p>
+<h4 id="evolog-incident-exercise">Incident exercise: CI commit 2, Gerrit patch set 4, local commit 5</h4>
+<p>Use the following exercise to practise a realistic review investigation. The numbers are deliberately from different namespaces:</p>
+<ul><li><strong>CI commit 2</strong> is the Git commit ID recorded by an earlier CI run.</li><li><strong>Gerrit patch set 4</strong> is the fourth uploaded patch set for one Gerrit review, identified by its <code>Change-Id</code>.</li><li><strong>local commit 5</strong> is the current jj commit object for the same logical change, after a later local rewrite.</li></ul>
+<pre class="diagram">jj evolution:    X2 --&gt; X3 --&gt; X4 --&gt; X5
+                 |       |       |       |
+CI:              c2      c3      c4      c5
+Gerrit:          ps2     ps3     ps4     (not uploaded)
+operations:      o2      o3      o4      o5</pre>
+<p>Do not answer “patch set 4 is commit 5” merely because both are described as the latest review. Perform the correlation:</p>
+<ol>
+<li>Fetch the Gerrit remote and record the commit ID currently attached to the review ref or fetched bookmark.</li>
+<li>Run <code>jj evolog -r CHANGE --reversed -G</code> and export full commit IDs, change IDs, operation IDs, and descriptions.</li>
+<li>Find the entry whose full commit ID matches the commit Gerrit used for patch set 4. Verify its <code>Change-Id</code> trailer and parent(s).</li>
+<li>Use <code>jj evolog -p -r CHANGE</code> to inspect what changed from the preceding local version; use an explicit <code>jj diff</code> only when comparing deliberately chosen stored objects.</li>
+<li>Use <code>jj op show o5</code> and <code>jj op diff</code> to establish why local commit 5 exists. If an ancestor was rewritten, inspect the descendant's evolution as well.</li>
+<li>Decide whether commit 5 is a new patch set to upload, an unintentional local successor, or a divergent alternative. Do not push until the bookmark and review identity have been checked.</li>
+</ol>
+<table><thead><tr><th>Evidence</th><th>Question answered</th><th>Question not answered</th></tr></thead><tbody>
+<tr><td>Gerrit patch set 4 and its commit ID</td><td>Which Git object the server reviewed</td><td>Which local operation produced it</td></tr>
+<tr><td><code>jj evolog</code> entry for that commit</td><td>Which logical change version it was locally</td><td>Whether the server accepted a later push</td></tr>
+<tr><td><code>jj evolog -p</code></td><td>What changed between adjacent local versions</td><td>What an arbitrary server-side comparison displayed</td></tr>
+<tr><td><code>jj op show</code>/<code>op diff</code></td><td>What local rewrite or publication operation affected the graph</td><td>Whether a remote review was merged or abandoned</td></tr>
+<tr><td>Fetched remote bookmark and server UI</td><td>Which object is currently published and reviewed</td><td>What was present only in an unfetched local clone</td></tr>
+</tbody></table>
+<p>This is the practical purpose of <code>evolog</code>: it lets a GitHub or Gerrit user follow the logical change while separately accounting for the exact Git objects and the local operations that produced them. It complements, rather than replaces, the operation log, remote bookmarks, server review history, and Git commit inspection.</p>
 <h3 id="recovery-laboratory">Recovery laboratory</h3>
 <pre>jj log -r 'all()'
 jj abandon 'stack-root::'

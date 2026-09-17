@@ -1,11 +1,11 @@
 # Completeness report
 
-Generated: 2026-09-16
+Generated: 2026-09-17
 
 ## Targets
 
 * Target: jj 0.45.1 (expected 0.45.1)
-* Git: git version 2.53.0
+* Git: unavailable (native Git commands are disabled in this validation environment)
 * Authored deliverable: ../jj-book.html, a symlink to the first-class HTML source src/book.html
 
 ## Inventories
@@ -14,12 +14,12 @@ Generated: 2026-09-16
 * Command paths with dedicated local help captured: 121
 * Reader-facing CLI articles in the authored HTML: 121
 * Reader-facing CLI articles covering the target command paths: 121
-* Substantive authored-book words (approximate, excludes pre/script/style): 105814
+* Substantive authored-book words (approximate, excludes pre/script/style): 108101
 * Expansion design target: 100,000–130,000 substantive words / approximately 450–600 Kindle-Scribe pages
-* Rendered PDF pages: 515 (7.5 × 10 inch portrait; see build/jj-book.pdf.sha256)
-* Rendered PDF SHA-256: 70c224582110a7e5234849f8b251c1d6774e1cb47c393b11f8132354e399df07
+* Rendered PDF pages: 526 (7.5 × 10 inch portrait; see build/jj-book.pdf.sha256)
+* Rendered PDF SHA-256: 21cdeb6b86ec14a2e7b14391fb91dd92d106769667b8dfde5e4d448365cdf751
 * PDF build timestamp: 2026-09-11T00:49:43Z (embedded in PDF metadata and the printed cover)
-* Printed contents span: 5 page(s) before the substantive preface; PDF outline entries: 192
+* Printed contents span: 5 page(s) before the substantive preface; PDF outline entries: 193
 * Revset operators: documented in research/revset-inventory.md and the raw help snapshot
 * Revset function names: 63 extracted help entries; grouped prose is in the HTML
 * Fileset function entries: 3 extracted help entries; syntax is in raw help
@@ -40,6 +40,7 @@ Generated: 2026-09-16
 * local bare Git remote add, push, fetch, and tracking
 * Git-backend object/HEAD/ref reachability, raw change-id header, colocated export, and non-colocated layout fixture
 * authored template examples against the validation repository
+* dedicated evolog fixture: successive versions, descendant rebasing, ordering/limit modes, the inter-diff option, template identity export, and divergent successors
 * representative revset topology, state, pattern, and visibility expressions parse and execute
 * directional revset result assertions on an interior mutable stack: <code>A:: &amp; mutable()</code> = A/B/C/D, <code>::A &amp; mutable()</code> = A, with roots/heads assertions
 * source-level audit rejects standalone <code>stack(@)</code>, the invalid <code>::X &amp; mutable()</code> spelling, and descendant-closure prose using the ancestor operator
