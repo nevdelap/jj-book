@@ -61,7 +61,7 @@ if body_start is None or body_start < 2:
 # its destination page rather than ending the previous page.
 for heading in (
     "Part II — The jj mental model for Git experts",
-    "Part XI — Operation log, undo, and recovery",
+    "Part XI — Operation history, change evolution, undo, and recovery",
     "Part XVII — Workflow map and complete real workflows",
     "Part XVIII — Practice, reference, and fieldbooks",
     "Appendix D — Complete fileset reference",

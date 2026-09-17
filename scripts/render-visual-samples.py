@@ -10,6 +10,11 @@ PDF = ROOT / "build" / "jj-book.pdf"
 OUTPUT = ROOT / "build" / "visual-inspection"
 FIXED_SAMPLE_PAGES = (1, 2, 3, 4, 109, 147, 313, 450, 475, 495)
 HEADING_SAMPLES = (
+    "Part XI — Operation history",
+    "Operation history: repository-wide",
+    "Evolution log: following one change through time",
+    "Recovery laboratory: named states",
+    "Concurrency, retention, and cross-machine",
     "Part XII — Workspaces and multiple machines",
     "Workspace laboratory: one store, several materialisations",
     "Part XIII — Configuration",
