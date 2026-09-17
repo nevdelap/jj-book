@@ -571,8 +571,8 @@ same logical change ID; different visible commit IDs</pre>
 <pre>jj log -r 'divergent()'
 jj evolog -r 'divergent()'
 jj log -r 'change_id("PREFIX")' --no-graph -T \
-  'commit_id ++ " " ++ change_id ++ " " ++
-   description.first_line() ++ "\n"'
+  'commit_id ++ " " ++ change_id ++
+   " " ++ description.first_line() ++ "\n"'
 jj op log -n 20</pre>
 <p>Compare tree diffs, descriptions, authorship, and parent edges. A convergence decision may choose one evolution, merge content, or preserve both as independent changes. Do not use <code>jj abandon</code> on one evolution merely to make the warning disappear; that is a semantic decision that may rewrite descendants and publication refs.</p>
 
@@ -3365,7 +3365,9 @@ X0  --------&lt;
 <p>This is not two ordinary commits that happen to have similar text. It is one logical change with multiple visible evolutions. A bare change-ID symbol is consequently ambiguous; inspect the evolution and select a specific offset or full commit ID only after comparing the alternatives:</p>
 <pre>jj log -r 'divergent()'
 jj evolog -r 'divergent()'
-jj log -r 'change_id("PREFIX")' --no-graph -T 'commit_id ++ " " ++ change_id ++ " " ++ description.first_line() ++ "\n"'
+jj log -r 'change_id("PREFIX")' --no-graph -T \
+  'commit_id ++ " " ++ change_id ++
+   " " ++ description.first_line() ++ "\n"'
 jj op log -n 20</pre>
 <p>Possible decisions are different operations, not spelling variants: keep one successor and abandon the other; duplicate one as a new independent change; edit one and converge the visible evolutions with <code>jj converge</code>; or preserve both if they represent genuinely different work. Compare descriptions, parents, diffs, conflicts, bookmarks, and review identifiers before choosing. A convergence operation combines the selected divergent evolutions into one successor for that logical change; it is not a squash merely because several commits are involved.</p>
 <p>When a change has diverged, <code>change_id("PREFIX")</code> selects all matching visible successors. To select one successor, append the offset to the bare full change ID or unique change-ID prefix; the offset is not appended to the <code>change_id()</code> function call:</p>
@@ -4405,7 +4407,7 @@ jj log -T 'committer.timestamp().ago() ++ " " ++
   workspace_name ++ " " ++ description ++ "\n"'</pre>
 <p>Keep operation ID, user, workspace, and description visible during recovery. An operation template describes local repository history; it does not synchronise operation IDs to another clone.</p>
 <p><code>WorkspaceRef</code> has <code>name()</code>, <code>target()</code>, and optional <code>root()</code>. The root can be absent for old records or stale/moved paths:</p>
-<pre>jj log -r 'working_copies()' -T 'working_copies().map(|w| w.name() ++ ":" ++ w.root()).join(" ") ++ "\n"'</pre>
+<pre>jj log -r 'working_copies()' -T 'working_copies.map(|w| w.name() ++ ":" ++ w.root()).join(" ") ++ "\n"'</pre>
 
 <h3 id="11-colour-labels-styles-and-hyperlinks">11. Colour labels, styles, and hyperlinks</h3>
 <p>jj automatically attaches labels based on command, context, and method names. Discover exact generated labels with <code>--color=debug</code> rather than assuming a stable taxonomy. Use <code>label("name", content)</code> for an explicit semantic label, then configure its style in UI colour configuration.</p>
@@ -4420,7 +4422,12 @@ jj log -T 'committer.timestamp().ago() ++ " " ++
 
 <h3 id="12-json-and-machine-readable-output">12. JSON and machine-readable output</h3>
 <p>Templates can emit JSON, but JSON validity is the author's responsibility when fields are concatenated manually. Use <code>json()</code> for serialisable objects and <code>escape_json()</code> for scalar strings. Emit one record per commit with a newline delimiter and disable colour/pager:</p>
-<pre>jj log --color=never --no-pager -r '::@' -T '"{\"commit_id\": " ++ json(commit_id) ++ ", \"change_id\": " ++ json(change_id) ++ ", \"description\": " ++ json(description) ++ ", \"empty\": " ++ json(empty) ++ ", \"conflict\": " ++ json(conflict) ++ "}\n"'</pre>
+<pre>jj log --color=never --no-pager -r '::@' -T \
+  '"{\"commit_id\": " ++ json(commit_id) ++
+   ", \"change_id\": " ++ json(change_id) ++
+   ", \"description\": " ++ json(description) ++
+   ", \"empty\": " ++ json(empty) ++
+   ", \"conflict\": " ++ json(conflict) ++ "}\n"'</pre>
 <p>Use a real JSON parser to consume this output. The serialised representation of underlying jj objects can change across releases even when ordinary human fields remain available. Pin jj and test fixture output if it feeds a build or publication gate.</p>
 
 <h3 id="13-template-aliases">13. Template aliases</h3>
@@ -4437,11 +4444,23 @@ compact-id = { definition = 'change_id.shortest(10)', doc = 'Short unique change
 
 <h3 id="14-building-a-daily-advanced-log">14. Building a daily advanced log</h3>
 <p>Build a template from stable fields rather than trying to clone every glyph of the builtin log. First create an unambiguous record:</p>
-<pre>jj log -G -r '@:: &amp; mutable()' -T 'change_id.shortest(10) ++ " " ++ commit_id.short(10) ++ " " ++ description.first_line() ++ "\n"'</pre>
+<pre>jj log -G -r '@:: &amp; mutable()' -T \
+  'change_id.shortest(10) ++ " " ++
+   commit_id.short(10) ++ " " ++
+   description.first_line() ++ "\n"'</pre>
 <p>Then add graph-relevant state and publication names:</p>
-<pre>jj log -G -r '(@:: &amp; mutable()) | bookmarks() | remote_bookmarks()' -T 'change_id.shortest(10) ++ " " ++ commit_id.short(10) ++ " " ++ if(conflict, label("conflict", "CONFLICT "), "") ++ if(empty, label("empty", "EMPTY "), "") ++ description.first_line() ++ separate(" ", bookmarks, tags) ++ "\n"'</pre>
+<pre>jj log -G -r '(@:: &amp; mutable()) | bookmarks() | remote_bookmarks()' -T \
+  'change_id.shortest(10) ++ " " ++ commit_id.short(10) ++
+   " " ++ if(conflict, label("conflict", "CONFLICT "), "") ++
+   if(empty, label("empty", "EMPTY "), "") ++
+   description.first_line() ++ separate(" ", bookmarks, tags) ++ "\n"'</pre>
 <p>Finally add author/date only when the output is being used for review:</p>
-<pre>jj log -G -r '(@:: &amp; mutable()) | bookmarks() | remote_bookmarks()' -T 'change_id.shortest(10) ++ " " ++ if(current_working_copy(), "@", " ") ++ " " ++ commit_id.short(10) ++ " " ++ author.timestamp().ago() ++ " " ++ description.first_line() ++ separate(" ", bookmarks, tags) ++ "\n"'</pre>
+<pre>jj log -G -r '(@:: &amp; mutable()) | bookmarks() | remote_bookmarks()' -T \
+  'change_id.shortest(10) ++ " " ++
+   if(current_working_copy, "@", " ") ++ " " ++
+   commit_id.short(10) ++ " " ++ author.timestamp().ago() ++
+   " " ++ description.first_line() ++
+   separate(" ", bookmarks, tags) ++ "\n"'</pre>
 <p>This is a display template, not a new revset alias.
 Keep the revset and template independently configurable so a log can change
 its search domain without changing its fields.</p>

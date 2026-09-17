@@ -6,3 +6,4 @@ build/*.epub
 build/*.html
 build/visual-inspection/
 build/evolog-inspection/
+build/rufus-evolog-inspection/

@@ -86,6 +86,10 @@ if rg -n 'change_id\([^\n]*\)/[0-9]+' "$ROOT/src/book.html"; then
   echo "reader-facing change offset is incorrectly appended to change_id()" >&2
   exit 1
 fi
+if rg -n 'if\(current_working_copy\(\)|working_copies\(\)\.map' "$ROOT/src/book.html"; then
+  echo "reader-facing template uses a nonexistent unqualified template function" >&2
+  exit 1
+fi
 json_output=$("$J" log --color=never --no-pager -r @ -T '"{\"commit_id\": " ++ json(commit_id) ++ ", \"change_id\": " ++ json(change_id) ++ ", \"description\": " ++ json(description) ++ ", \"empty\": " ++ json(empty) ++ ", \"conflict\": " ++ json(conflict) ++ "}\n"')
 grep -F '"commit_id": "' <<<"$json_output" >/dev/null
 
