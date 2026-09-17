@@ -64,5 +64,23 @@ test -n "$op1" -a -n "$op2" -a "$op1" != "$op2"
 divergent=$("$J" log -r 'divergent()' --no-graph -T 'change_id ++ "\n"')
 test "$(printf '%s\n' "$divergent" | sed '/^$/d' | wc -l)" -ge 2
 "$J" evolog -G -r 'divergent()' >/dev/null
+divergent_change=$(printf '%s\n' "$divergent" | sed '/^$/d' | head -n 1)
+test -n "$divergent_change"
+test -n "$("$J" log -r "$divergent_change/0" --no-graph -T 'commit_id')"
+test -n "$("$J" log -r "$divergent_change/1" --no-graph -T 'commit_id')"
+
+# Reader-facing shell examples must remain copy/pasteable. In particular,
+# -T must have its template on the same shell command, and a change offset
+# must be applied to a bare change-ID symbol rather than change_id(...).
+if rg -n -U --pcre2 '(?m)-T\s*\n\s*[^<\n]' "$ROOT/src/book.html"; then
+  echo "reader-facing template option is split across shell lines" >&2
+  exit 1
+fi
+if rg -n 'change_id\([^\n]*\)/[0-9]+' "$ROOT/src/book.html"; then
+  echo "reader-facing change offset is incorrectly appended to change_id()" >&2
+  exit 1
+fi
+json_output=$("$J" log --color=never --no-pager -r @ -T '"{\"commit_id\": " ++ json(commit_id) ++ ", \"change_id\": " ++ json(change_id) ++ ", \"description\": " ++ json(description) ++ ", \"empty\": " ++ json(empty) ++ ", \"conflict\": " ++ json(conflict) ++ "}\n"')
+grep -F '"commit_id": "' <<<"$json_output" >/dev/null
 
 printf '%s\n' "evolog validation passed for $("$J" version)"

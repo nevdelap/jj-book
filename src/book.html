@@ -570,8 +570,7 @@ same logical change ID; different visible commit IDs</pre>
 <p>When diagnosing divergence, begin with:</p>
 <pre>jj log -r 'divergent()'
 jj evolog -r 'divergent()'
-jj log -r 'change_id("PREFIX")' --no-graph -T
-  'commit_id ++ " " ++ change_id ++ " " ++ description.first_line() ++ "\n"'
+jj log -r 'change_id("PREFIX")' --no-graph -T 'commit_id ++ " " ++ change_id ++ " " ++ description.first_line() ++ "\n"'
 jj op log -n 20</pre>
 <p>Compare tree diffs, descriptions, authorship, and parent edges. A convergence decision may choose one evolution, merge content, or preserve both as independent changes. Do not use <code>jj abandon</code> on one evolution merely to make the warning disappear; that is a semantic decision that may rewrite descendants and publication refs.</p>
 
@@ -3292,9 +3291,7 @@ child=$(jj log -r @ --no-graph -T 'change_id ++ "\n"')
 
 printf 'logical change: %s\n' "$change"
 printf 'initial/current/descendant: %s %s %s\n' "$c0" "$c2" "$child"
-jj evolog -r "$change" -G -T
-  'commit.commit_id() ++ "\t" ++ commit.change_id() ++ "\t" ++
-   operation.id() ++ "\t" ++ commit.description().first_line() ++ "\n"'</pre>
+jj evolog -r "$change" -G -T 'commit.commit_id() ++ "\t" ++ commit.change_id() ++ "\t" ++ operation.id() ++ "\t" ++ commit.description().first_line() ++ "\n"'</pre>
 <p>The last command is deliberately a tabular evidence export. Its template runs in the <code>CommitEvolutionEntry</code> context, so the commit and operation are accessed as <code>commit.commit_id()</code> and <code>operation.id()</code>, not as the ordinary log keywords <code>commit_id</code> and <code>change_id</code>. Store the output when correlating a review or incident. Short IDs are useful for a screen; the full commit ID, change ID, and operation ID are the durable local evidence.</p>
 <table><thead><tr><th>Stage</th><th>Commit-DAG state</th><th>Evolution evidence</th><th>Ref/operation consequence</th></tr></thead><tbody>
 <tr><td>Initial</td><td><code>root -&gt; X0</code></td><td><code>c0</code> and <code>change</code> are recorded before the first rewrite.</td><td>The working-copy commit points at X0; no publication bookmark is required.</td></tr>
@@ -3313,11 +3310,7 @@ jj evolog -r "$change" -n 4
 jj evolog -r "$change" -G</pre>
 <p>Normal output presents the current version first and walks backwards through predecessors. <code>--reversed</code> presents the oldest entry first and the current version last, which is usually better for a narrative of a review. <code>-n</code>/<code>--limit</code> limits the entries after jj has selected and topologically ordered the evolution; with <code>--reversed</code>, the limit therefore describes the beginning of the reversed display, not necessarily the newest versions. <code>-G</code>/<code>--no-graph</code> removes graph decoration but does not change which entries are selected.</p>
 <p>Use a template when the question is identity or correlation rather than prose:</p>
-<pre>jj evolog -G -r "$change" -T
-  'commit.commit_id().short(12) ++ " " ++
-   commit.change_id().short(12) ++ " " ++
-   operation.id().short(12) ++ " " ++
-   commit.description().first_line() ++ "\n"'</pre>
+<pre>jj evolog -G -r "$change" -T 'commit.commit_id().short(12) ++ " " ++ commit.change_id().short(12) ++ " " ++ operation.id().short(12) ++ " " ++ commit.description().first_line() ++ "\n"'</pre>
 <p>The template context is an evolution entry. The important methods are <code>commit()</code>, <code>operation()</code>, <code>predecessors()</code>, and <code>inter_diff()</code>. Use the corresponding commit methods when the report needs signatures and timestamps. Keep an unlabelled, newline-delimited form for scripts; terminal labels and graph glyphs are presentation, not evidence.</p>
 
 <h4 id="evolog-patch-comparing-successive-versions">Comparing successive versions with <code>-p</code></h4>
@@ -3329,9 +3322,7 @@ jj evolog -r "$change" --reversed -p</pre>
 <p>The first entry has no earlier version of the same change, so it has no meaningful predecessor diff. Later entries show the change between successive versions, not the complete diff from the repository root and not necessarily the diff between two arbitrary branch tips. Use <code>jj diff --from OLD --to NEW</code> when the endpoints are arbitrary commits rather than adjacent versions of one change.</p>
 <div class="callout version"><strong>Parent-rebase caveat.</strong> If the previous version has different parents, jj temporarily rebases that previous version to the new version's parents before computing the inter-diff. This prevents an unrelated ancestor change from appearing as though it were part of the logical change's revision. The displayed patch is therefore an evolution comparison, not necessarily the raw tree diff between the two stored commit objects. Do not reconstruct it by blindly running <code>jj diff --from OLD --to NEW</code> when their parent contexts differ.</div>
 <p>For a machine-readable review record, combine the identity template with a separate patch command. Save the current and predecessor full IDs from the evolution output, then run the explicit diff only when you intentionally want object-to-object comparison:</p>
-<pre>jj evolog -G -r "$change" -T
-  'commit.commit_id() ++ " " ++ operation.id() ++ " " ++
-   commit.description().first_line() ++ "\n"'
+<pre>jj evolog -G -r "$change" -T 'commit.commit_id() ++ " " ++ operation.id() ++ " " ++ commit.description().first_line() ++ "\n"'
 # After choosing adjacent entries OLD and NEW deliberately:
 jj diff --from OLD --to NEW --git</pre>
 
@@ -3362,13 +3353,13 @@ X0  --------&lt;
 <p>This is not two ordinary commits that happen to have similar text. It is one logical change with multiple visible evolutions. A bare change-ID symbol is consequently ambiguous; inspect the evolution and select a specific offset or full commit ID only after comparing the alternatives:</p>
 <pre>jj log -r 'divergent()'
 jj evolog -r 'divergent()'
-jj log -r 'change_id("PREFIX")' --no-graph -T
-  'commit_id ++ " " ++ change_id ++ " " ++ description.first_line() ++ "\n"'
+jj log -r 'change_id("PREFIX")' --no-graph -T 'commit_id ++ " " ++ change_id ++ " " ++ description.first_line() ++ "\n"'
 jj op log -n 20</pre>
 <p>Possible decisions are different operations, not spelling variants: keep one successor and abandon the other; duplicate one as a new independent change; edit one and converge the visible evolutions with <code>jj converge</code>; or preserve both if they represent genuinely different work. Compare descriptions, parents, diffs, conflicts, bookmarks, and review identifiers before choosing. A convergence operation combines the selected divergent evolutions into one successor for that logical change; it is not a squash merely because several commits are involved.</p>
-<pre>jj show -r 'change_id("PREFIX")/0'
-jj show -r 'change_id("PREFIX")/1'
-jj diff --from 'change_id("PREFIX")/0' --to 'change_id("PREFIX")/1'
+<p>When a change has diverged, <code>change_id("PREFIX")</code> selects all matching visible successors. To select one successor, append the offset to the bare full change ID or unique change-ID prefix; the offset is not appended to the <code>change_id()</code> function call:</p>
+<pre>jj show -r 'FULL_CHANGE_ID/0'
+jj show -r 'FULL_CHANGE_ID/1'
+jj diff --from 'FULL_CHANGE_ID/0' --to 'FULL_CHANGE_ID/1'
 jj converge -r 'divergent()'
 jj evolog -r 'change_id("PREFIX")'
 jj op show</pre>
@@ -3500,8 +3491,8 @@ jj op log</pre>
 <h4 id="exercise-5-evolution-divergence">Exercise 5: evolution divergence</h4>
 <pre>jj evolog -r 'change_id(abc...)'
 jj log -r 'divergent() &amp; change_id(abc...)'
-jj show -r 'change_id(abc...)/0'
-jj show -r 'change_id(abc...)/1'</pre>
+jj show -r 'FULL_CHANGE_ID/0'
+jj show -r 'FULL_CHANGE_ID/1'</pre>
 <p>Choose the successor by content and graph context, not by offset number. One successor may contain the reviewed change and another a local experiment. You can edit one, rebase it, duplicate it to a new change, or abandon the unwanted successor. Then inspect descendants and bookmarks: a publication name can keep a commit visible even when the logical change has divergent forms.</p>
 <h4 id="exercise-6-operation-views-are-local">Exercise 6: operation views are local</h4>
 <p>Clone A and clone B share commits only after fetch/push. Their operation IDs may both begin with a root operation but are not a shared timeline. A commit recovered through <code>jj op restore</code> on A does not become a recoverable operation on B. To transfer a useful state, create a temporary bookmark, push it, fetch it, and create a new local working-copy commit on B.</p>
@@ -4399,8 +4390,7 @@ jj log -T 'committer.timestamp().ago() ++ " " ++
   workspace_name ++ " " ++ description ++ "\n"'</pre>
 <p>Keep operation ID, user, workspace, and description visible during recovery. An operation template describes local repository history; it does not synchronise operation IDs to another clone.</p>
 <p><code>WorkspaceRef</code> has <code>name()</code>, <code>target()</code>, and optional <code>root()</code>. The root can be absent for old records or stale/moved paths:</p>
-<pre>jj log -r 'working_copies()' -T
-  'working_copies().map(|w| w.name() ++ ":" ++ w.root()).join(" ") ++ "\n"'</pre>
+<pre>jj log -r 'working_copies()' -T 'working_copies().map(|w| w.name() ++ ":" ++ w.root()).join(" ") ++ "\n"'</pre>
 
 <h3 id="11-colour-labels-styles-and-hyperlinks">11. Colour labels, styles, and hyperlinks</h3>
 <p>jj automatically attaches labels based on command, context, and method names. Discover exact generated labels with <code>--color=debug</code> rather than assuming a stable taxonomy. Use <code>label("name", content)</code> for an explicit semantic label, then configure its style in UI colour configuration.</p>
@@ -4415,13 +4405,7 @@ jj log -T 'committer.timestamp().ago() ++ " " ++
 
 <h3 id="12-json-and-machine-readable-output">12. JSON and machine-readable output</h3>
 <p>Templates can emit JSON, but JSON validity is the author's responsibility when fields are concatenated manually. Use <code>json()</code> for serialisable objects and <code>escape_json()</code> for scalar strings. Emit one record per commit with a newline delimiter and disable colour/pager:</p>
-<pre>jj log --color=never --no-pager -r '::@' -T
-  '{ "commit_id": ' ++ json(commit_id) ++
-  ', "change_id": ' ++ json(change_id) ++
-  ', "description": ' ++ description.escape_json() ++
-  ', "empty": ' ++ json(empty) ++
-  ', "conflict": ' ++ json(conflict) ++
-  ' }\n'</pre>
+<pre>jj log --color=never --no-pager -r '::@' -T '"{\"commit_id\": " ++ json(commit_id) ++ ", \"change_id\": " ++ json(change_id) ++ ", \"description\": " ++ json(description) ++ ", \"empty\": " ++ json(empty) ++ ", \"conflict\": " ++ json(conflict) ++ "}\n"'</pre>
 <p>Use a real JSON parser to consume this output. The serialised representation of underlying jj objects can change across releases even when ordinary human fields remain available. Pin jj and test fixture output if it feeds a build or publication gate.</p>
 
 <h3 id="13-template-aliases">13. Template aliases</h3>
@@ -4438,25 +4422,11 @@ compact-id = { definition = 'change_id.shortest(10)', doc = 'Short unique change
 
 <h3 id="14-building-a-daily-advanced-log">14. Building a daily advanced log</h3>
 <p>Build a template from stable fields rather than trying to clone every glyph of the builtin log. First create an unambiguous record:</p>
-<pre>jj log -G -r '@:: &amp; mutable()' -T
-  'change_id.shortest(10) ++ " " ++
-   commit_id.short(10) ++ " " ++
-   description.first_line() ++ "\n"'</pre>
+<pre>jj log -G -r '@:: &amp; mutable()' -T 'change_id.shortest(10) ++ " " ++ commit_id.short(10) ++ " " ++ description.first_line() ++ "\n"'</pre>
 <p>Then add graph-relevant state and publication names:</p>
-<pre>jj log -G -r '(@:: &amp; mutable()) | bookmarks() | remote_bookmarks()' -T
-  'change_id.shortest(10) ++ " " ++ commit_id.short(10) ++ " " ++
-   if(conflict, label("conflict", "CONFLICT "), "") ++
-   if(empty, label("empty", "EMPTY "), "") ++
-   description.first_line() ++
-   separate(" ", bookmarks, tags) ++ "\n"'</pre>
+<pre>jj log -G -r '(@:: &amp; mutable()) | bookmarks() | remote_bookmarks()' -T 'change_id.shortest(10) ++ " " ++ commit_id.short(10) ++ " " ++ if(conflict, label("conflict", "CONFLICT "), "") ++ if(empty, label("empty", "EMPTY "), "") ++ description.first_line() ++ separate(" ", bookmarks, tags) ++ "\n"'</pre>
 <p>Finally add author/date only when the output is being used for review:</p>
-<pre>jj log -G -r '(@:: &amp; mutable()) | bookmarks() | remote_bookmarks()' -T
-  'change_id.shortest(10) ++ " " ++
-   if(current_working_copy(), "@", " ") ++ " " ++
-   commit_id.short(10) ++ " " ++
-   author.timestamp().ago() ++ " " ++
-   description.first_line() ++
-   separate(" ", bookmarks, tags) ++ "\n"'</pre>
+<pre>jj log -G -r '(@:: &amp; mutable()) | bookmarks() | remote_bookmarks()' -T 'change_id.shortest(10) ++ " " ++ if(current_working_copy(), "@", " ") ++ " " ++ commit_id.short(10) ++ " " ++ author.timestamp().ago() ++ " " ++ description.first_line() ++ separate(" ", bookmarks, tags) ++ "\n"'</pre>
 <p>This is a display template, not a new revset alias.
 Keep the revset and template independently configurable so a log can change
 its search domain without changing its fields.</p>
