@@ -12,8 +12,8 @@ major operation receives a graph transformation, every language chapter has a
 laboratory, and every reference has a human-readable contract in the HTML.
 The current result is approximately 100,734 substantive words and 496 PDF
 pages at the 7.5 × 10 inch Kindle-Scribe print profile. The book uses
-first-class HTML as its source, a pinned `uv` PDF renderer, `just` recipes, and
-root symlinks for the deliverables.
+first-class HTML as its source, a pinned `uv` PDF renderer, and `just` recipes;
+the rendered PDF is kept as the tracked `build/jj-book.pdf` artefact.
 
 ## Part-by-Part plan and result
 
@@ -50,7 +50,7 @@ The plan was considered complete only when all of the following held:
 4. workflows showed state over time rather than isolated command recipes;
 5. external-server and hardware boundaries were labelled rather than implied
    to be tested;
-6. the HTML, PDF, contents, outline, symlinks, and validation scripts passed
+6. the HTML, PDF, contents, outline, artefact checks, and validation scripts passed
    the `just review` interface.
 
 ## Remaining optional work

@@ -21,7 +21,6 @@ sync:
     uv sync --locked
 
 html:
-    ln -sfn src/book.html jj-book.html
     uv run --frozen python scripts/validate-html.py
     uv run --frozen python scripts/validate-structure.py
     uv run --frozen python scripts/validate-toc-order.py
@@ -33,7 +32,6 @@ pdf: sync html
     PYTHONHASHSEED=0 uv run --frozen python scripts/render-pdf.py
     uv run --frozen python scripts/validate-pdf.py
     sha256sum build/jj-book.pdf > build/jj-book.pdf.sha256
-    ln -sfn build/jj-book.pdf jj-book.pdf
 
 pdf-check: sync
     test -f build/jj-book.pdf
@@ -56,8 +54,8 @@ cli-check:
 test: setup sync validate html-check cli-check pdf
 
 review: test report visual
-    test -L jj-book.html
-    test -L jj-book.pdf
+    test -f src/book.html
+    test -f build/jj-book.pdf
 
 clean:
     rm -rf build

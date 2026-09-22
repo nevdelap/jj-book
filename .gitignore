@@ -1,7 +1,6 @@
 jj
 .toolchain/
 build/validation/
-build/*.pdf
 build/*.epub
 build/*.html
 build/visual-inspection/

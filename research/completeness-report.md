@@ -6,7 +6,7 @@ Generated: 2026-09-22
 
 * Target: jj 0.45.1 (expected 0.45.1)
 * Git: unavailable (native Git commands are disabled in this validation environment)
-* Authored deliverable: ../jj-book.html, a symlink to the first-class HTML source src/book.html
+* Authored deliverable: ../src/book.html (first-class semantic HTML source)
 
 ## Inventories
 

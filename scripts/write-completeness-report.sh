@@ -66,7 +66,7 @@ Generated: $(date -u +%F)
 
 * Target: jj $V (expected 0.45.1)
 * Git: $git_version
-* Authored deliverable: ../jj-book.html, a symlink to the first-class HTML source src/book.html
+* Authored deliverable: ../src/book.html (first-class semantic HTML source)
 
 ## Inventories
 
