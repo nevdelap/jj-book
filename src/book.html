@@ -3737,14 +3737,32 @@ cd ../project-review
 jj log -r '@ | @-'</pre>
 <p>Do not assume that a workspace at <code>main@origin</code> follows later fetches. The remote bookmark may advance while the workspace's working-copy commit remains the previously selected commit. Update it explicitly, and verify the resulting commit ID before trusting a build result.</p>
 <h4 id="workspace-stale-repair">Stale workspaces and repair</h4>
-<p>In jj 0.45.1, a workspace is stale when its recorded working-copy commit is no longer the current commit for that workspace because another repository operation changed the recorded checkout state. Ordinary edits made by an editor, build tool, or native filesystem command are unrecorded working-copy changes; they do not by themselves make the workspace record stale. A moved directory, missing metadata, or a native Git ref change is a separate location/backend diagnosis, not a synonym for stale state.</p>
+<p>In jj 0.45.1, a workspace is stale when its recorded working-copy commit is no longer the current commit for that workspace because another repository operation changed the recorded checkout state. The important word is <em>recorded</em>: an editor, build tool, or native filesystem command can leave unrecorded files in an otherwise non-stale workspace, but those files do not by themselves make the workspace record stale. A moved directory, missing metadata, or a native Git ref change is a separate location/backend diagnosis, not a synonym for stale state.</p>
+<p>For example, suppose <code>build@</code> records commit <code>C</code> while <code>dev@</code> is also based on <code>C</code>. The development workspace rewrites an ancestor, producing successor <code>C'</code>. The shared repository now knows that the development operation changed the commit that the build workspace was using, but the build directory still has its old checkout record:</p>
+<pre class="diagram">before the rewrite:
+
+        A---B---C
+                 \
+          dev@ ---+--- build@
+
+development rewrites B; jj creates successors:
+
+        A---B'---C'
+                 
+          dev@ = C'       build@ = C (stale)</pre>
+<p>Staleness is therefore a relationship between a workspace record and the repository's current graph view. It is not a new kind of commit, not a divergent change, and not evidence that the files in the directory are dirty. A normal jj command that encounters a stale workspace ordinarily prompts to update it. The explicit command is useful when the operator has inspected the directory and wants to make that decision visible:</p>
+<pre>jj workspace list
+jj -R ../project-build status
+jj -R ../project-build workspace update-stale</pre>
+<p><code>jj workspace update-stale</code> updates the stale workspace's checkout relationship/materialisation to the current state recorded for that workspace. It does not choose an arbitrary new revision, rebase a source set, repair the commit DAG, move a bookmark, or synchronise another clone. If the desired destination is a different commit rather than the recorded successor of the stale one, use <code>jj edit</code> or <code>jj new</code> in that workspace; those are graph/workspace-selection operations, not stale repair.</p>
 <p>Inspect all workspaces before attempting repair:</p>
 <pre>jj workspace list
 jj workspace root
 jj -R ../project-build status
 jj -R ../project-review status
 jj -R ../project-build workspace update-stale</pre>
-<p><code>update-stale</code> repairs the stale workspace record/checkout relationship; it is not a general graph repair and it is not a command for incorporating arbitrary filesystem edits. If it reports that the workspace is not stale, leave the files alone and diagnose the live-versus-recorded snapshot instead. If files contain valuable unrecorded edits, snapshot them with an appropriate jj command or copy them aside before an operation that will replace the checkout. If the graph target is wrong, choose an explicit commit with <code>jj edit</code> or <code>jj new</code> in that workspace. If the directory was moved or damaged, repair the filesystem/location problem separately.</p>
+<p>If it reports that the workspace is not stale, leave the files alone and diagnose the live-versus-recorded snapshot instead. If files contain valuable unrecorded edits, snapshot them with an appropriate jj command or copy them aside before an operation that will replace the checkout. If the graph target is wrong, choose an explicit commit with <code>jj edit</code> or <code>jj new</code> in that workspace. If the directory was moved or damaged, repair the filesystem/location problem separately.</p>
+<p>Automatic updating is a separate policy choice. Set <code>snapshot.auto-update-stale = true</code> when multiple workspaces are routinely allowed to follow shared rewrites without an explicit prompt. That is convenient for disposable build workspaces, but it reduces the pause at which an operator can inspect unrecorded files. Keep it disabled, or use an explicit update, for a review workspace containing valuable local edits. The setting changes when stale workspaces are updated; it does not change what “stale” means and does not make two processes safe to run in the same directory.</p>
 <h4 id="workspace-sparse-build">Sparse build workspace</h4>
 <p>Sparse state is per workspace. Use <code>sparse set</code> to specify patterns; <code>sparse edit</code> opens the external editor for the pattern configuration and takes no fileset argument in 0.45.1.</p>
 <pre>cd ../project-build
@@ -5606,11 +5624,12 @@ jj workspace list</pre>
 cd src && jj workspace root</pre></article>
 
 <article class="command-entry" id="cmd-workspace-update-stale"><h4 id="jj-workspace-update-stale"><code>jj workspace update-stale</code></h4>
-<p>Updates workspaces whose working-copy state is stale after shared graph changes. It is a repair/materialisation command, not a rebase selection command.</p>
+<p><strong>Purpose and model.</strong> Updates a workspace whose recorded working-copy commit is no longer current after a shared repository operation rewrote that commit or its ancestry. It is a repair/materialisation command, not a rebase selection command. Stale metadata is different from ordinary unrecorded filesystem edits: a file changed by an editor does not make the workspace stale by itself.</p>
+<p><strong>Syntax/options.</strong> <code>jj workspace update-stale</code> takes no command-specific selector. Use global <code>-R/--repository PATH</code> when repairing a workspace from another directory. Normal jj commands may prompt for this update; <code>snapshot.auto-update-stale = true</code> changes that policy to automatic updating.</p>
 <pre>jj workspace update-stale
 jj workspace list
 jj -R ../project-build status</pre>
-<p>Inspect filesystem edits before updating. A stale workspace may contain useful unrecorded files, and update policy may materialise a new tree or conflict. Use a temporary copy/bookmark when the state is valuable. Updating the workspace pointer does not rewrite unrelated commits, move publication bookmarks, or synchronise another clone.</p></article>
+<p><strong>Effects and traps.</strong> Inspect filesystem edits before updating. A stale workspace may contain useful unrecorded files, and updating it may replace the checkout materialisation. Preserve valuable files or snapshot them first. The command follows the repository's recorded stale-workspace state; it does not select an arbitrary commit, rewrite unrelated commits, move publication bookmarks, or synchronise another clone. If the intended target is a different commit, use <code>jj edit</code> or <code>jj new</code> instead.</p></article>
 
 <h3 id="cli-global-detail">Global option semantics</h3>
 <table><thead><tr><th>Option</th><th>Operational meaning</th><th>Use/caution</th></tr></thead><tbody>
